@@ -28,7 +28,7 @@ module.exports = (callbackOnComplete) => {
 
 					BIND_IP: env.get('BIND_IP', '0.0.0.0'),
 
-					BIND_PORT: env.get('BIND_PORT', 3000),
+					BIND_PORT: env.get('BIND_PORT', 3001),
 
 					/** Note: For production make sure to set this in .env configuration */
 					AUTHENTICATION_SECRET: env.get('AUTHENTICATION_SECRET', 'jolly-api'),
