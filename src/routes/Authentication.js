@@ -15,12 +15,12 @@ let userController = JOLLY.controller.UserController,
  */
 router.post('/login', (req, res, next) => {
 
-	let {username, password} = req.body,
+	let {email, password} = req.body,
 		authToken,
 		userData;
 
-    userController.findUserByUsername({
-        username
+    userController.findUserByEmail({
+        email
     }).then((userObject) => {
 
         if ( !userObject ) {

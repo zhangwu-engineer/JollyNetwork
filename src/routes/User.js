@@ -2,6 +2,7 @@
  * User Route Handler
  */
 const router = require('express').Router();
+const jwt = require('jsonwebtoken');
 
 let authService = JOLLY.service.Authentication,
 	userController = JOLLY.controller.UserController;
@@ -45,9 +46,11 @@ router.post('/register', (req, res) => {
 	userController
 		.registerUser(req.body)
 		.then((userData) => {
-
-			res.apiSuccess(userData);
-
+			const token = jwt.sign({ id: userData.id }, JOLLY.config.APP.AUTHENTICATION_SECRET);
+			res.apiSuccess({
+				auth_token: token, 
+				user: userData
+			});
 		});
 });
 

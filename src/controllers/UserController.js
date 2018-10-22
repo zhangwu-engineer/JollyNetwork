@@ -46,12 +46,12 @@ class UserController {
 
 		return new Promise((resolve, reject) => {
 
-			let {username, email, password} = options,
+			let {fullname, email, password} = options,
 				encryptedPassword = authService.generateHashedPassword(password),
 				newUser;
 
 			newUser = new EntityUser({
-				username,
+				fullname,
 				email,
 				password: encryptedPassword
 			});
@@ -90,7 +90,29 @@ class UserController {
 		});
 	}
 
+	findUserByEmail (options) {
 
+		let db = this.getDefaultDB(),
+			email = options.email,
+			user = null;
+
+		return new Promise((resolve, reject) => {
+
+			db.collection('users').findOne({
+				email
+			}).then((data) => {
+
+				if (data) {
+
+					user = new EntityUser(data);
+				}
+
+				resolve (user);
+
+			}).catch(reject);
+
+		});
+	}
 
 	listUsers(cb) {
 
