@@ -9,14 +9,12 @@
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
  *
+ * @property {String} [fullname]
  * @property {String} [firstName]
  * @property {String} [lastName]
  * @property {String} slug
  * @property {Date} joindate
- * @property {String} promotionalCode
  * @property {String} resetToken
- * @property {Boolean} rewardsEnabled
- * @property {Object} pointWallet
  */
 
 
@@ -40,7 +38,8 @@ class EntityUser extends BaseEntityWithID {
         this._role = options.role || SystemUserRoles.USER;
         this._status = options.status || SystemStatus.UNVERIFIED;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
-	    this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
+        this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
+        this._fullname = options.fullname;
     }
 
     /**
@@ -74,7 +73,8 @@ class EntityUser extends BaseEntityWithID {
         data.status = this._status;
         data.role = this._role;
         data.date_created = this._dateCreated;
-	    data.date_updated = this._dateUpdated;
+        data.date_updated = this._dateUpdated;
+        data.fullname = this._fullname;
 
         return data;
     }
