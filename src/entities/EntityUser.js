@@ -9,7 +9,6 @@
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
  *
- * @property {String} [fullname]
  * @property {String} [firstName]
  * @property {String} [lastName]
  * @property {String} slug
@@ -32,14 +31,15 @@ class EntityUser extends BaseEntityWithID {
 
         super (options);
 
-        this._username = options.username;
         this._password = options.password;
         this._email = options.email;
         this._role = options.role || SystemUserRoles.USER;
         this._status = options.status || SystemStatus.UNVERIFIED;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
         this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
-        this._fullname = options.fullname;
+        this._firstName = options.firstName;
+        this._lastName = options.lastName;
+        this._slug = options.slug;
     }
 
     /**
@@ -63,7 +63,6 @@ class EntityUser extends BaseEntityWithID {
         let isSafeOutput = options.isSafeOutput,
             data = super.toJson();
 
-        data.username = this._username;
         data.email = this._email;
 
         if (!isSafeOutput) {
@@ -74,7 +73,9 @@ class EntityUser extends BaseEntityWithID {
         data.role = this._role;
         data.date_created = this._dateCreated;
         data.date_updated = this._dateUpdated;
-        data.fullname = this._fullname;
+        data.firstName = this._firstName;
+        data.lastName = this._lastName;
+        data.slug = this._slug;
 
         return data;
     }

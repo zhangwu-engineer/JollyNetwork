@@ -1,6 +1,7 @@
 /**
  * User controller class, in charge of transactions related to users and their profiles.
  */
+const mongodb = require('mongodb');
 
 const EntityUser = require('../entities/EntityUser'),
 	DbNames = require('../enum/DbNames');
@@ -29,7 +30,7 @@ class UserController {
 	getDefaultDB () {
 
 		let Database = JOLLY.service.Db,
-			databaseName = DbNames.ACCOUNTS;
+			databaseName = DbNames.DB;
 
 		return Database.database(databaseName);
 	}
@@ -46,23 +47,34 @@ class UserController {
 
 		return new Promise((resolve, reject) => {
 
-			let {fullname, email, password} = options,
-				encryptedPassword = authService.generateHashedPassword(password),
+			let {email, firstName, lastName, password} = options,
+				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
 				newUser;
 
-			newUser = new EntityUser({
-				fullname,
-				email,
-				password: encryptedPassword
-			});
+			firstName = firstName.toLowerCase();
+			lastName = lastName.toLowerCase();
 
-			self.saveUser(newUser)
-				.then((userData) => {
-
-					resolve (userData.toJson());
-
-				})
-				.catch(reject);
+			self.generateSlug({ firstName, lastName}).then(slug => {
+				newUser = new EntityUser(encryptedPassword ? {
+					email,
+					firstName,
+					lastName,
+					password: encryptedPassword,
+					slug,
+				} : {
+					email,
+					firstName,
+					lastName,
+					slug,
+				});
+				return self.saveUser(newUser);
+			})
+			.then((userData) => {
+				resolve (userData.toJson({
+					isSafeOutput: true,
+				}));
+			})
+			.catch(reject)
 		});
 	}
 
@@ -114,11 +126,33 @@ class UserController {
 		});
 	}
 
+	findUserById (id) {
+
+		let db = this.getDefaultDB(),
+			user = null;
+		return new Promise((resolve, reject) => {
+
+			db.collection('users').findOne({
+				_id: new mongodb.ObjectID(id),
+			}).then((data) => {
+
+				if (data) {
+
+					user = new EntityUser(data);
+				}
+
+				resolve (user);
+
+			}).catch(reject);
+
+		});
+	}
+
 	listUsers(cb) {
 
 		let Database = JOLLY.service.Db;
 
-		Database.query(DbNames.ACCOUNTS, 'users', (userList) => {
+		Database.query(DbNames.DB, 'users', (userList) => {
 
 			let itemList = [];
 
@@ -150,6 +184,18 @@ class UserController {
 		});
 	}
 
+	generateSlug(options) {
+		return new Promise((resolve, reject) => {
+			let db = this.getDefaultDB();
+			db.collection('users').countDocuments(options).then(count => {
+				const slug = count === 0
+					? `${options.firstName}-${options.lastName}`
+					: `${options.firstName}-${options.lastName}-${count}`;
+				resolve(slug);
+			})
+			.catch(reject);
+		});
+	}
 
 	/**
 	 * Save user into database.
@@ -173,7 +219,6 @@ class UserController {
 			db.collection(collectionName)
 				.insertOne(userData)
 				.then((result) => {
-
 					//userData.id = result.insertedId;
 					userEntity = new EntityUser(userData);
 					resolve(userEntity);

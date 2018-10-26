@@ -2,6 +2,7 @@
  * Authentication Route Handler Class
  */
 const router = require('express').Router();
+const passport = require('passport');
 
 /** Define/Import system defined dependencies */
 let userController = JOLLY.controller.UserController,
@@ -48,7 +49,73 @@ router.post('/login', (req, res, next) => {
 
 });
 
+router.post('/facebook', passport.authenticate('facebook-token'), (req, res, next) => {
+    const data = {
+        firstName: req.user.name.givenName,
+        lastName: req.user.name.familyName,
+        email: req.user.emails[0].value,
+    };
+    userController.findUserByEmail({
+        email: data.email,
+    }).then((userObject) => {
+        if ( !userObject ) {
+            userController
+                .registerUser(data)
+                .then((userData) => {
+                    authToken = authService.generateToken({
+                        userId: userData.id
+                    });
+                    res.apiSuccess({
+                        auth_token: authToken,
+                    });
+                });
+        } else {
+            userData = userObject.toJson({
+                isSafeOutput: true
+            });
+            authToken = authService.generateToken({
+                userId: userData.id
+            });
+            res.apiSuccess({
+                auth_token: authToken,
+            });
+        }
+    }).catch(next);
+});
 
+router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, res, next) => {
+  const data = {
+      firstName: req.user.name.givenName,
+      lastName: req.user.name.familyName,
+      email: req.user.emails[0].value,
+  };
+  userController.findUserByEmail({
+      email: data.email,
+  }).then((userObject) => {
+      if ( !userObject ) {
+          userController
+              .registerUser(data)
+              .then((userData) => {
+                  authToken = authService.generateToken({
+                      userId: userData.id
+                  });
+                  res.apiSuccess({
+                      auth_token: authToken,
+                  });
+              });
+      } else {
+          userData = userObject.toJson({
+              isSafeOutput: true
+          });
+          authToken = authService.generateToken({
+              userId: userData.id
+          });
+          res.apiSuccess({
+              auth_token: authToken,
+          });
+      }
+  }).catch(next);
+});
 /**
  * Verify user authentication token route.
  * @public

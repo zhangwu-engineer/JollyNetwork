@@ -5,6 +5,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const ApiError = require('./lib/ApiError');
+const passport = require('passport');
+const FacebookTokenStrategy = require('passport-facebook-token');
+const LinkedInTokenStrategy = require('./lib/LinkedInStrategy');
 
 /** Define/Import system defined dependencies */
 let Database = require('./services/Database'),
@@ -78,7 +81,7 @@ class App {
 		/** Enable CORS */
 		appExpress.use(function(req, res, next){
 			res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-			res.header('Access-Control-Allow-Headers', 'Content-Type, Cache-Control');
+			res.header('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, x-access-token');
 			res.header('Access-Control-Allow-Origin', '*');
 			next();
 		});
@@ -177,10 +180,35 @@ class App {
 	 */
 	_configureMiddleware () {
 
-		const appExpress = this.app;
+		const appExpress = this.app,
+			config = JOLLY.config;
 
 		appExpress.use(bodyParser.urlencoded({ extended: true }));
 		appExpress.use(bodyParser.json());
+
+		appExpress.use(passport.initialize());
+		passport.serializeUser(function(user, done) {
+			done(null, user);
+		});
+
+		passport.deserializeUser(function(user, done) {
+			done(null, user);
+		});
+		passport.use(new FacebookTokenStrategy({
+				clientID: config.FACEBOOK.APP_ID,
+				clientSecret: config.FACEBOOK.APP_SECRET,
+      }, function(accessToken, refreshToken, profile, done) {
+      return done(null, profile);
+      }
+    ));
+		passport.use(new LinkedInTokenStrategy({
+        clientID: config.LINKEDIN.APP_ID,
+        clientSecret: config.LINKEDIN.APP_SECRET,
+      },
+      function(accessToken, refreshToken, profile, done) {
+        return done(null, profile);
+      }
+    ));
 	}
 
 	/**
