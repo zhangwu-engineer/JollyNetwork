@@ -47,6 +47,16 @@ module.exports = (callbackOnComplete) => {
 					AUTH_SRC: env.get('MONGO_DB_AUTH_SRC', null),
 
 					DEFAULT_DATABASE: env.get('MONGO_DB_DEFAULT_DATABASE', DbNames.DB),
+				},
+
+				FACEBOOK: {
+					APP_ID: env.get('FACEBOOK_APP_ID', ''),
+					APP_SECRET: env.get('FACEBOOK_APP_SECRET', ''),
+				},
+
+				LINKEDIN: {
+					APP_ID: env.get('LINKEDIN_APP_ID', ''),
+					APP_SECRET: env.get('LINKEDIN_APP_SECRET', ''),
 				}
 
 			};

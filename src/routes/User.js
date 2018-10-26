@@ -26,15 +26,14 @@ router.get('/', authService.verifyUserAuthentication, (req, res) => {
 /**
  * User information route
  */
-router.get('/me', (req, res) => {
-
-	userController.findUser((user) => {
-
-		res.apiSuccess({
-			user: user.toJson()
-		});
-
-	});
+router.get('/me', authService.verifyUserAuthentication, (req, res, next) => {
+	userController.findUserById(req.userId)
+		.then(userObject => {
+			userData = userObject.toJson({
+                isSafeOutput: true
+            });
+            res.apiSuccess(userData);
+		}).catch(next);
 
 });
 
@@ -46,9 +45,11 @@ router.post('/register', (req, res) => {
 	userController
 		.registerUser(req.body)
 		.then((userData) => {
-			const token = jwt.sign({ id: userData.id }, JOLLY.config.APP.AUTHENTICATION_SECRET);
+			authToken = authService.generateToken({
+				userId: userData.id
+			});
 			res.apiSuccess({
-				auth_token: token, 
+				auth_token: authToken, 
 				user: userData
 			});
 		});
