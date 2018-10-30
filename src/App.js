@@ -12,7 +12,9 @@ const LinkedInTokenStrategy = require('./lib/LinkedInStrategy');
 /** Define/Import system defined dependencies */
 let Database = require('./services/Database'),
 	Authentication = require('./services/Authentication'),
-	UserController = require('./controllers/UserController');
+  UserController = require('./controllers/UserController'),
+  TalentController = require('./controllers/TalentController'),
+  UnitController = require('./controllers/UnitController');
 
 
 class App {
@@ -133,7 +135,11 @@ class App {
 		JOLLY.controller = {
 
 			/** User controller */
-			UserController: new UserController()
+      UserController: new UserController(),
+      /** Talent controller */
+      TalentController: new TalentController(),
+      /** Unit controller */
+      UnitController: new UnitController()
 		};
 	}
 

@@ -12,6 +12,16 @@ const ApplicationRouteList = [
     {
         path: '/user',
         handler: require ('../routes/User')
+    },
+
+    {
+      path: '/talent',
+      handler: require ('../routes/Talent')
+    },
+
+    {
+      path: '/unit',
+      handler: require ('../routes/Unit')
     }
 ];
 
