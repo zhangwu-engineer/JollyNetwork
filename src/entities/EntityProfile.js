@@ -1,0 +1,77 @@
+const ObjectId = require('mongodb').ObjectID;
+/**
+ * Profile type
+ * @typedef {Object} Profile
+ * @property {String} name
+ * @property {String} phone
+ * @property {String} bio
+ * @property {Boolean} receiveEmail
+ * @property {Boolean} receiveSMS
+ * @property {Boolean} receiveCall
+ * @property {String} location
+ * @property {String} distance
+ * @property {String} facebook
+ * @property {String} twitter
+ * @property {String} linkedin
+ * @property {String} youtube
+ * @property {Boolean} showImageLibrary
+ * @property {Boolean} showSocialLinks
+ * @property {Boolean} public
+ * @property {ObjectId} user_id
+ * @property {Date|String} date_created
+ * @property {Date|String} date_updated
+ *
+ */
+
+const BaseEntityWithID = require('./base/BaseEntityWithID');
+
+class EntityProfile extends BaseEntityWithID {
+
+    /**
+     * User constructor method.
+     * @param {User} options
+     */
+    constructor (options) {
+
+        super (options);
+
+        this._name = options.name || null;
+        this._phone = options.phone || null;
+        this._bio = options.bio || null;
+        this._receiveEmail = options.receiveEmail || true;
+        this._receiveSMS = options.receiveSMS || true;
+        this._receiveCall = options.receiveCall || true;
+        this._location = options.location || null;
+        this._distance = options.distance || null;
+        this._facebook = options.facebook || null;
+        this._twitter = options.twitter || null;
+        this._linkedin = options.linkedin || null;
+        this._youtube = options.youtube || null;
+        this._showImageLibrary = options.showImageLibrary || true;
+        this._showSocialLinks = options.showSocialLinks || true;
+        this._public = options.public || true;
+        this._userId = new ObjectId(options.userId);
+        this._dateCreated = options.dateCreated ? new Date(options.dateCreated) : new Date();
+        this._dateUpdated = options.dateUpdated ? new Date(options.dateUpdated) : this._dateCreated;
+    }
+
+    /**
+     * @param {Object} [options]
+     * @return {Object}
+     */
+    toJson (options) {
+
+      let data = super.toJson();
+
+      Object.keys(this).forEach(property => {
+        if (property !== '_id' && this[property]) {
+          const name = property.replace('_', '');
+          data[name] = this[property];
+        }
+      });
+
+      return data;
+    }
+
+}
+module.exports = EntityProfile;

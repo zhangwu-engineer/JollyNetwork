@@ -52,7 +52,7 @@ class Authentication {
 
 		// create a token
 		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
-			expiresIn = 86400 /** Expires in 24 hours */,
+			expiresIn = 864000 /** Expires in 240 hours */,
 			userId = options.userId || '',
 			accessToken = jwt.sign ({
 				id: userId
@@ -82,10 +82,9 @@ class Authentication {
 		}
 
         jwt.verify(accessToken, authSecret, (err, decoded) => {
-
             if (err) {
 
-                next (new ApiError('Failed to process authentication token.'));
+                next (new ApiError(err.message || 'Failed to process authentication token.'));
             }
             else {
 

@@ -4,6 +4,7 @@
 const mongodb = require('mongodb');
 
 const EntityUser = require('../entities/EntityUser'),
+  EntityProfile = require('../entities/EntityProfile'),
 	DbNames = require('../enum/DbNames');
 
 
@@ -40,22 +41,26 @@ class UserController {
 	 * @param {Object} options
 	 * @returns {Promise<Object>}
 	 */
-	registerUser (options) {
+	async registerUser (options) {
 
 		let self = this,
 			authService = JOLLY.service.Authentication;
 
-		return new Promise((resolve, reject) => {
-
-			let {email, firstName, lastName, password} = options,
+    let {email, firstName, lastName, password} = options,
 				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
-				newUser;
+        newUser,
+        newUserProfile;
 
 			firstName = firstName.toLowerCase();
-			lastName = lastName.toLowerCase();
+      lastName = lastName.toLowerCase();
 
-			self.generateSlug({ firstName, lastName}).then(slug => {
-				newUser = new EntityUser(encryptedPassword ? {
+    try {
+      const isExistingEmail = await self.isExistingEmail(options.email);
+      if (isExistingEmail) {
+        throw new ApiError('Email already exists!');
+      } else {
+        const slug = await self.generateSlug({ firstName, lastName});
+        newUser = new EntityUser(encryptedPassword ? {
 					email,
 					firstName,
 					lastName,
@@ -66,16 +71,17 @@ class UserController {
 					firstName,
 					lastName,
 					slug,
-				});
-				return self.saveUser(newUser);
-			})
-			.then((userData) => {
-				resolve (userData.toJson({
-					isSafeOutput: true,
-				}));
-			})
-			.catch(reject)
-		});
+        });
+        const userData = await self.saveUser(newUser);
+        newUserProfile = new EntityProfile({ userId: userData._id });
+        const userProfileData = await self.saveUserProfile(newUserProfile)
+        const res = userData.toJson({ isSafeOutput: true });
+        res.profile = userProfileData.toJson();
+        return res;
+      }
+    } catch (err) {
+      throw err;
+    }
 	}
 
 	findUserByUsername (options) {
@@ -197,6 +203,15 @@ class UserController {
 		});
 	}
 
+  isExistingEmail (email) {
+    return new Promise((resolve, reject) => {
+			let db = this.getDefaultDB();
+			db.collection('users').countDocuments({ email }).then(count => {
+				resolve(count);
+			})
+      .catch(reject);
+		});
+  }
 	/**
 	 * Save user into database.
 	 * @param {EntityUser} user - User entity we are going to register into system.
@@ -228,6 +243,40 @@ class UserController {
 			});
 	}
 
+  /**
+	 * Save user profile into database.
+	 * @param {EntityProfile} profile - User profile entity we are going to save into system.
+	 * @returns {Promise}
+	 * @resolve {EntityProfile}
+	 */
+	saveUserProfile (profile) {
+
+		let db = this.getDefaultDB(),
+			collectionName = 'profiles',
+			profileData = profile.toJson(),
+			profileEntity;
+
+    const fieldNames = ['id', 'name', 'phone', 'bio', 'location', 'distance', 'facebook', 'twitter', 'linkedin', 'youtube'];
+
+    fieldNames.forEach(field => {
+      if (profileData[field] == null) {
+        delete (profileData[field]);
+      }
+    })
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.insertOne(profileData)
+				.then((result) => {
+          //userData.id = result.insertedId;
+          profileEntity = new EntityProfile(profileData);
+
+					resolve(profileEntity);
+				})
+				.catch(reject);
+
+			});
+	}
 }
 
 module.exports = UserController;

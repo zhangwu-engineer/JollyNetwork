@@ -40,19 +40,19 @@ router.get('/me', authService.verifyUserAuthentication, (req, res, next) => {
 /**
  * Register new user into system.
  */
-router.post('/register', (req, res) => {
+router.post('/register', (req, res, next) => {
 
 	userController
 		.registerUser(req.body)
 		.then((userData) => {
-			authToken = authService.generateToken({
-				userId: userData.id
-			});
+			// authToken = authService.generateToken({
+			// 	userId: userData.id
+			// });
 			res.apiSuccess({
-				auth_token: authToken, 
+				// auth_token: authToken,
 				user: userData
 			});
-		});
+		}).catch(next);
 });
 
 
