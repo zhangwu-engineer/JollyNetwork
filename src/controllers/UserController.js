@@ -84,6 +84,24 @@ class UserController {
     }
 	}
 
+  async getUserById(userId) {
+    let self = this,
+      user = null,
+      profile = null;
+
+    try {
+      user = await self.findUserById(userId);
+      profile = await self.findUserProfile(userId);
+      if (user) {
+        const userData = user.toJson({ isSafeOutput: true });
+        userData.profile = profile.toJson();
+        return userData;
+      }
+      throw new ApiError('User not found');
+    } catch (err) {
+      throw err;
+    }
+  }
 	findUserByUsername (options) {
 
 		let db = this.getDefaultDB(),
@@ -152,6 +170,28 @@ class UserController {
 			}).catch(reject);
 
 		});
+  }
+
+  findUserProfile (userId) {
+
+		let db = this.getDefaultDB(),
+			profile = null;
+		return new Promise((resolve, reject) => {
+
+			db.collection('profiles').findOne({
+				userId: new mongodb.ObjectID(userId),
+			}).then((data) => {
+
+				if (data) {
+
+					profile = new EntityProfile(data);
+				}
+
+				resolve (profile);
+
+			}).catch(reject);
+
+		});
 	}
 
 	listUsers(cb) {
@@ -174,19 +214,6 @@ class UserController {
 			}
 
 			cb(itemList);
-		});
-	}
-
-	findUser(cb) {
-
-		let db = this.getDefaultDB();
-
-		db.collection('users').findOne((err, result) => {
-
-			if (err) throw err;
-
-			let user = new EntityUser(result);
-			cb(user);
 		});
 	}
 
