@@ -38,18 +38,18 @@ class EntityProfile extends BaseEntityWithID {
         this._name = options.name || null;
         this._phone = options.phone || null;
         this._bio = options.bio || null;
-        this._receiveEmail = options.receiveEmail || true;
-        this._receiveSMS = options.receiveSMS || true;
-        this._receiveCall = options.receiveCall || true;
+        this._receiveEmail = options.receiveEmail === undefined ? true : options.receiveEmail;
+        this._receiveSMS = options.receiveSMS === undefined ? true : options.receiveSMS;
+        this._receiveCall = options.receiveCall === undefined ? true : options.receiveCall;
         this._location = options.location || null;
         this._distance = options.distance || null;
         this._facebook = options.facebook || null;
         this._twitter = options.twitter || null;
         this._linkedin = options.linkedin || null;
         this._youtube = options.youtube || null;
-        this._showImageLibrary = options.showImageLibrary || true;
-        this._showSocialLinks = options.showSocialLinks || true;
-        this._public = options.public || true;
+        this._showImageLibrary = options.showImageLibrary === undefined ? true : options.showImageLibrary;
+        this._showSocialLinks = options.showSocialLinks === undefined ? true : options.showSocialLinks;
+        this._public = options.public === undefined ? true : options._public;
         this._userId = new ObjectId(options.userId);
         this._dateCreated = options.dateCreated ? new Date(options.dateCreated) : new Date();
         this._dateUpdated = options.dateUpdated ? new Date(options.dateUpdated) : this._dateCreated;
@@ -64,7 +64,7 @@ class EntityProfile extends BaseEntityWithID {
       let data = super.toJson();
 
       Object.keys(this).forEach(property => {
-        if (property !== '_id' && this[property]) {
+        if (property !== '_id' && this[property] !== null) {
           const name = property.replace('_', '');
           data[name] = this[property];
         }
