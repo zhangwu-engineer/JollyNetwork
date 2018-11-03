@@ -91,7 +91,7 @@ class UserController {
 
     try {
       user = await self.findUserById(userId);
-      profile = await self.findUserProfile(userId);
+      profile = await self.getUserProfile(userId);
       if (user) {
         const userData = user.toJson({ isSafeOutput: true });
         userData.profile = profile.toJson();
@@ -102,6 +102,26 @@ class UserController {
       throw err;
     }
   }
+
+  async updateUser(userId, data) {
+    let self = this,
+      user = null,
+      profile = null;
+
+    try {
+      user = await self.findUserById(userId);
+      if (user) {
+        const updatedProfile = await self.updateUserProfile(userId, data.profile);
+        const userData = user.toJson({ isSafeOutput: true });
+        userData.profile = updatedProfile.toJson();
+        return userData;
+      }
+      throw new ApiError('Wrong user id');
+    } catch (err) {
+      throw err;
+    }
+  }
+
 	findUserByUsername (options) {
 
 		let db = this.getDefaultDB(),
@@ -172,7 +192,7 @@ class UserController {
 		});
   }
 
-  findUserProfile (userId) {
+  getUserProfile (userId) {
 
 		let db = this.getDefaultDB(),
 			profile = null;
@@ -303,7 +323,36 @@ class UserController {
 				.catch(reject);
 
 			});
-	}
+  }
+
+  updateUserProfile(userId, data) {
+    let db = this.getDefaultDB(),
+      collectionName = 'profiles',
+      profile = null;
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.updateOne({ userId: new mongodb.ObjectID(userId) }, { $set: data })
+				.then(() => {
+					return db.collection(collectionName).findOne({
+            userId: new mongodb.ObjectID(userId),
+          });
+        })
+        .then((data) => {
+
+          if (data) {
+
+            profile = new EntityProfile(data);
+          }
+
+          resolve (profile);
+
+        })
+				.catch(reject);
+
+			});
+  }
 }
 
 module.exports = UserController;
