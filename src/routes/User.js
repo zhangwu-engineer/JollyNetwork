@@ -23,6 +23,14 @@ router.get('/', authService.verifyUserAuthentication, (req, res) => {
 
 });
 
+router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
+  userController.updateUser(req.params.id, req.body)
+    .then(userData => {
+      res.apiSuccess(userData);
+    })
+    .catch(next);
+
+});
 /**
  * User information route
  */
