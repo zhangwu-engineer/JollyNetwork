@@ -42,7 +42,6 @@ router.post('/login', (req, res, next) => {
 
         res.apiSuccess({
             auth_token: authToken,
-            user: userData
         });
 
     }).catch(next);

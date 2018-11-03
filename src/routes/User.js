@@ -27,12 +27,9 @@ router.get('/', authService.verifyUserAuthentication, (req, res) => {
  * User information route
  */
 router.get('/me', authService.verifyUserAuthentication, (req, res, next) => {
-	userController.findUserById(req.userId)
-		.then(userObject => {
-			userData = userObject.toJson({
-                isSafeOutput: true
-            });
-            res.apiSuccess(userData);
+	userController.getUserById(req.userId)
+		.then(userData => {
+      res.apiSuccess(userData);
 		}).catch(next);
 
 });
@@ -45,12 +42,11 @@ router.post('/register', (req, res, next) => {
 	userController
 		.registerUser(req.body)
 		.then((userData) => {
-			// authToken = authService.generateToken({
-			// 	userId: userData.id
-			// });
+			authToken = authService.generateToken({
+				userId: userData.id
+			});
 			res.apiSuccess({
-				// auth_token: authToken,
-				user: userData
+				auth_token: authToken,
 			});
 		}).catch(next);
 });
