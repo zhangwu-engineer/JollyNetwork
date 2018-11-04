@@ -5,6 +5,7 @@ const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 
 let authService = JOLLY.service.Authentication,
+  userController = JOLLY.controller.UserController
 	talentController = JOLLY.controller.TalentController;
 
 
@@ -20,6 +21,20 @@ router.get('/', authService.verifyUserAuthentication, (req, res) => {
         talent_list: userTalentList
       });
     });
+});
+
+router.get('/user/:slug', (req, res, next) => {
+
+  userController.getUserBySlug(req.params.slug)
+    .then(userData => {
+      return talentController.getUserTalents(userData.id);
+    })
+    .then((userTalentList) => {
+      res.apiSuccess({
+        talent_list: userTalentList
+      });
+    })
+    .catch(next);
 });
 
 /**

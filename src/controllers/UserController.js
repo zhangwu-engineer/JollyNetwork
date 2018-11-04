@@ -91,8 +91,27 @@ class UserController {
 
     try {
       user = await self.findUserById(userId);
-      profile = await self.getUserProfile(userId);
       if (user) {
+        profile = await self.getUserProfile(userId);
+        const userData = user.toJson({ isSafeOutput: true });
+        userData.profile = profile.toJson();
+        return userData;
+      }
+      throw new ApiError('User not found');
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async getUserBySlug(slug) {
+    let self = this,
+      user = null,
+      profile = null;
+
+    try {
+      user = await self.findUserBySlug(slug);
+      if (user) {
+        profile = await self.getUserProfile(user.getId());
         const userData = user.toJson({ isSafeOutput: true });
         userData.profile = profile.toJson();
         return userData;
@@ -178,6 +197,28 @@ class UserController {
 
 			db.collection('users').findOne({
 				_id: new mongodb.ObjectID(id),
+			}).then((data) => {
+
+				if (data) {
+
+					user = new EntityUser(data);
+				}
+
+				resolve (user);
+
+			}).catch(reject);
+
+		});
+  }
+
+  findUserBySlug (slug) {
+
+		let db = this.getDefaultDB(),
+			user = null;
+		return new Promise((resolve, reject) => {
+
+			db.collection('users').findOne({
+			  slug,
 			}).then((data) => {
 
 				if (data) {
