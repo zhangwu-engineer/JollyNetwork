@@ -73,7 +73,9 @@ class EnvLoader {
 				self.envVariables = envVars;
 				self._callBackOnLoad(self);
 			});
-		}
+    } else {
+      self._callBackOnLoad(self);
+    }
 	}
 
 	/**
