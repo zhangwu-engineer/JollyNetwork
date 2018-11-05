@@ -26,37 +26,37 @@ module.exports = (callbackOnComplete) => {
 
 					NAME: 'JOLLY API',
 
-					BIND_IP: env.get('BIND_IP', '0.0.0.0'),
+					BIND_IP: process.env.HOST || '0.0.0.0',
 
-					BIND_PORT: env.get('BIND_PORT', 3001),
+					BIND_PORT: process.env.PORT || 3000,
 
 					/** Note: For production make sure to set this in .env configuration */
-					AUTHENTICATION_SECRET: env.get('AUTHENTICATION_SECRET', 'jolly-api'),
+					AUTHENTICATION_SECRET: process.env.AUTHENTICATION_SECRET || 'jolly-api',
 				},
 
 				MONGO_DB: {
 
-					HOST: env.get('MONGO_DB_HOST', 'localhost'),
+					HOST: process.env.MONGO_DB_HOST || 'localhost',
 
-					PORT: env.get('MONGO_DB_PORT', 27017),
+					PORT: process.env.MONGO_DB_PORT || 27017,
 
-					USER: env.get('MONGO_DB_USER', null),
+					USER: process.env.MONGO_DB_USER || null,
 
-					PASS: env.get('MONGO_DB_PASS', null),
+					PASS: process.env.MONGO_DB_PASS || null,
 
-					AUTH_SRC: env.get('MONGO_DB_AUTH_SRC', null),
+					AUTH_SRC: process.env.MONGO_DB_AUTH_SRC || null,
 
-					DEFAULT_DATABASE: env.get('MONGO_DB_DEFAULT_DATABASE', DbNames.DB),
+					DEFAULT_DATABASE: process.env.MONGO_DB_DEFAULT_DATABASE || DbNames.DB,
 				},
 
 				FACEBOOK: {
-					APP_ID: env.get('FACEBOOK_APP_ID', ''),
-					APP_SECRET: env.get('FACEBOOK_APP_SECRET', ''),
+					APP_ID: process.env.FACEBOOK_APP_ID || '',
+					APP_SECRET: process.env.FACEBOOK_APP_SECRET || '',
 				},
 
 				LINKEDIN: {
-					APP_ID: env.get('LINKEDIN_APP_ID', ''),
-					APP_SECRET: env.get('LINKEDIN_APP_SECRET', ''),
+					APP_ID: process.env.LINKEDIN_APP_ID || '',
+					APP_SECRET: process.env.LINKEDIN_APP_SECRET || '',
 				}
 
 			};
