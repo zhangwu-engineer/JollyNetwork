@@ -52,7 +52,7 @@ class Authentication {
 
 		// create a token
 		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
-			expiresIn = 864000 /** Expires in 240 hours */,
+			expiresIn = options.expiresIn || 86400, /** Expires in 86400 = 24 hours */
 			userId = options.userId || '',
 			accessToken = jwt.sign ({
 				id: userId
@@ -92,6 +92,25 @@ class Authentication {
                 next();
             }
         });
+  }
+
+  verifyUserEmail (req, res, next) {
+		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
+			token = req.body.token;
+
+		if (!token) {
+			next (new ApiError('No token provided.', 403));
+		}
+
+    jwt.verify(token, authSecret, (err, decoded) => {
+      if (err) {
+        next (new ApiError('Invalid token.'));
+      }
+      else {
+        req.userId = decoded.id;
+        next();
+      }
+    });
 	}
 
 }

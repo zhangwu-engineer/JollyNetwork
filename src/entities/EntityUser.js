@@ -4,8 +4,7 @@
  * @property {String} email - unique
  * @property {String} username - unique
  * @property {String} password
- * @property {JOLLY.enum.SystemStatus|String} status
- * @property {JOLLY.enum.SystemUserRoles|String} role
+ * @property {Boolean} verifiedEmail
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
  *
@@ -33,8 +32,7 @@ class EntityUser extends BaseEntityWithID {
 
         this._password = options.password;
         this._email = options.email;
-        this._role = options.role || SystemUserRoles.USER;
-        this._status = options.status || SystemStatus.UNVERIFIED;
+        this._verifiedEmail = options.verifiedEmail || false;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
         this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
         this._firstName = options.firstName;
@@ -66,11 +64,10 @@ class EntityUser extends BaseEntityWithID {
         data.email = this._email;
 
         if (!isSafeOutput) {
-	        data.password = this._password;
+          data.password = this._password;
+          data.verifiedEmail = this._verifiedEmail;
         }
 
-        data.status = this._status;
-        data.role = this._role;
         data.date_created = this._dateCreated;
         data.date_updated = this._dateUpdated;
         data.firstName = this._firstName;

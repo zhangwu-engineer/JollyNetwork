@@ -10,6 +10,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
+    "start-dev": "nodemon src/index.js",
     "start-service": "forever start --uid jolly-api -a src/index.js",
     "debug": "node --inspect-brk=0.0.0.0:9229 src/index.js",
     "debug2": "DEBUG=* node --inspect-brk=0.0.0.0:9229 src/index.js"
@@ -29,6 +30,7 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "jsonwebtoken": "^8.3.0",
+    "mandrill-api": "^1.0.45",
     "mongodb": "^3.1.3",
     "passport": "^0.4.0",
     "passport-facebook-token": "^3.3.0",
