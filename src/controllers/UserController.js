@@ -5,8 +5,7 @@ const mongodb = require('mongodb');
 
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
-	DbNames = require('../enum/DbNames');
-
+  DbNames = require('../enum/DbNames');
 
 class UserController {
 
@@ -44,7 +43,8 @@ class UserController {
 	async registerUser (options) {
 
 		let self = this,
-			authService = JOLLY.service.Authentication;
+      authService = JOLLY.service.Authentication,
+      mailService = JOLLY.service.Mail;
 
     let {email, firstName, lastName, password} = options,
 				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
@@ -77,6 +77,7 @@ class UserController {
         const userProfileData = await self.saveUserProfile(newUserProfile)
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
+        mailService.sendEmailVerification(res);
         return res;
       }
     } catch (err) {
@@ -130,9 +131,46 @@ class UserController {
     try {
       user = await self.findUserById(userId);
       if (user) {
-        const updatedProfile = await self.updateUserProfile(userId, data.profile);
         const userData = user.toJson({ isSafeOutput: true });
-        userData.profile = updatedProfile.toJson();
+        if (data.profile) {
+          const updatedProfile = await self.updateUserProfile(userId, data.profile);
+          userData.profile = updatedProfile.toJson();
+        }
+        return userData;
+      }
+      throw new ApiError('Wrong user id');
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async verifyUserEmail(userId) {
+    let self = this,
+      user = null,
+      profile = null;
+
+    try {
+      user = await self.updateUserCollection(userId, { verifiedEmail: true });
+      if (user) {
+        const userData = user.toJson({ isSafeOutput: true });
+        return userData;
+      }
+      throw new ApiError('Wrong user id');
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async updateUserPassword(options) {
+    let self = this,
+      user = null,
+      profile = null;
+
+    try {
+      const encryptedPassword = options.password ? authService.generateHashedPassword(options.password) : '',
+      user = await self.updateUserCollection(options.userId, { password: encryptedPassword });
+      if (user) {
+        const userData = user.toJson({ isSafeOutput: true });
         return userData;
       }
       throw new ApiError('Wrong user id');
@@ -330,6 +368,35 @@ class UserController {
 
 			});
 	}
+
+  updateUserCollection(userId, data) {
+    let db = this.getDefaultDB(),
+      collectionName = 'users',
+      user = null;
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.updateOne({ _id: new mongodb.ObjectID(userId) }, { $set: data })
+				.then(() => {
+					return db.collection(collectionName).findOne({
+            _id: new mongodb.ObjectID(userId),
+          });
+        })
+        .then((data) => {
+
+          if (data) {
+
+            user = new EntityUser(data);
+          }
+
+          resolve (user);
+
+        })
+				.catch(reject);
+
+			});
+  }
 
   /**
 	 * Save user profile into database.

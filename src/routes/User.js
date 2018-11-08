@@ -68,5 +68,12 @@ router.post('/register', (req, res, next) => {
 		}).catch(next);
 });
 
+router.post('/verify-email', authService.verifyUserEmail, (req, res, next) => {
+  userController.verifyUserEmail(req.userId)
+    .then(userData => {
+      res.apiSuccess(userData);
+    })
+    .catch(next);
+});
 
 module.exports = router;

@@ -97,7 +97,11 @@ class EnvLoader {
 
 		let envVars = this.envVariables;
 
-		return envVars[envKey] ? envVars[envKey] : defaultValue;
+    if (process.env.NODE_ENV === 'production') {
+      return process.env[envKey] ? process.env[envKey] : defaultValue;
+    } else {
+      return envVars[envKey] ? envVars[envKey] : defaultValue;
+    }
 	}
 
 }

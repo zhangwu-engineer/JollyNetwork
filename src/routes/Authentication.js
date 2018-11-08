@@ -6,6 +6,7 @@ const passport = require('passport');
 
 /** Define/Import system defined dependencies */
 let userController = JOLLY.controller.UserController,
+  mailService = JOLLY.service.Mail;
 	authService = JOLLY.service.Authentication;
 
 /**
@@ -114,6 +115,32 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
           });
       }
   }).catch(next);
+});
+
+router.post('/forgot-password', (req, res, next) => {
+  userController
+    .findUserByEmail(req.body)
+    .then(userObject => {
+      if (userObject) {
+        userData = userObject.toJson({
+          isSafeOutput: true
+        });
+        return mailService.sendPasswordResetEmail(userData);
+      } else {
+        throw new ApiError('Email not found');
+      }
+    })
+    .then(result => {
+      res.apiSuccess(result);
+    }).catch(next);
+});
+
+router.post('/reset-password', authService.verifyUserEmail, (req, res, next) => {
+  userController.updateUserPassword(Object.assign({}, req.body, { userId: req.userId }))
+    .then(userData => {
+      res.apiSuccess(userData);
+    })
+    .catch(next);
 });
 /**
  * Verify user authentication token route.

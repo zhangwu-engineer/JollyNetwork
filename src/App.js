@@ -11,7 +11,8 @@ const LinkedInTokenStrategy = require('./lib/LinkedInStrategy');
 
 /** Define/Import system defined dependencies */
 let Database = require('./services/Database'),
-	Authentication = require('./services/Authentication'),
+  Authentication = require('./services/Authentication'),
+  Mail = require('./services/Mail'),
   UserController = require('./controllers/UserController'),
   TalentController = require('./controllers/TalentController'),
   UnitController = require('./controllers/UnitController');
@@ -120,7 +121,10 @@ class App {
 			Db: Database.getInstance(),
 
 			/** Initiate Authentication Service */
-			Authentication: new Authentication()
+      Authentication: new Authentication(),
+
+      /** Initiate Mail Service */
+			Mail: new Mail()
 		};
 	}
 
