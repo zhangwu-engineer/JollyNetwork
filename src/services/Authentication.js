@@ -61,6 +61,18 @@ class Authentication {
 			});
 
 		return accessToken;
+  }
+
+	generatePhoneVerificationToken () {
+
+    const possible = "0123456789";
+    let token = "";
+
+		for (var i = 0; i < 5; i++) {
+      token += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+
+    return token;
 	}
 
 	/**

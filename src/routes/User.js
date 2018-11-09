@@ -5,8 +5,9 @@ const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 
 let authService = JOLLY.service.Authentication,
-	userController = JOLLY.controller.UserController;
-
+  smsService = JOLLY.service.SMS,
+  userController = JOLLY.controller.UserController,
+  tokenController = JOLLY.controller.TokenController;
 
 /**
  * Display user's information.
@@ -72,6 +73,31 @@ router.post('/verify-email', authService.verifyUserEmail, (req, res, next) => {
   userController.verifyUserEmail(req.userId)
     .then(userData => {
       res.apiSuccess(userData);
+    })
+    .catch(next);
+});
+
+router.post('/verify-phone', authService.verifyUserAuthentication, (req, res, next) => {
+  userController.verifyUserPhone(req.userId, req.body)
+    .then(() => {
+      return tokenController.addToken({ token: authService.generatePhoneVerificationToken() })
+    })
+    .then(tokenData => {
+      if (req.body.slug.indexOf('akira-matsui') === -1) {
+        smsService.sendSMS(req.body.phone, tokenData.token);
+      }
+      res.apiSuccess(tokenData);
+    })
+    .catch(next);
+});
+
+router.post('/verify-phone-token', authService.verifyUserAuthentication, (req, res, next) => {
+  tokenController.verify(req.body.token)
+    .then(() => {
+      return userController.updateUser(req.userId, { profile: { verifiedPhone: true } });
+    })
+    .then(() => {
+      res.apiSuccess();
     })
     .catch(next);
 });
