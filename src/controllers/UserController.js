@@ -161,6 +161,17 @@ class UserController {
     }
   }
 
+  async verifyUserPhone(userId, data) {
+    let self = this;
+
+    try {
+      const userData = await self.updateUser(userId, { profile: { phone: data.phone, verifiedPhone: false }});
+      return userData;
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async updateUserPassword(options) {
     let self = this,
       user = null,

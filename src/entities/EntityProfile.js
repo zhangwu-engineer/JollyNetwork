@@ -4,6 +4,7 @@ const ObjectId = require('mongodb').ObjectID;
  * @typedef {Object} Profile
  * @property {String} name
  * @property {String} phone
+ * @property {Boolean} verifiedPhone
  * @property {String} bio
  * @property {Boolean} receiveEmail
  * @property {Boolean} receiveSMS
@@ -37,6 +38,7 @@ class EntityProfile extends BaseEntityWithID {
 
         this._name = options.name || null;
         this._phone = options.phone || null;
+        this._verifiedPhone = options.verifiedPhone || false;
         this._bio = options.bio || null;
         this._receiveEmail = options.receiveEmail === undefined ? true : options.receiveEmail;
         this._receiveSMS = options.receiveSMS === undefined ? true : options.receiveSMS;

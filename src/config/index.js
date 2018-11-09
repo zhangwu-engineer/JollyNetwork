@@ -63,6 +63,12 @@ module.exports = (callbackOnComplete) => {
 
         MANDRILL: {
           API_KEY: env.get('MANDRILL_APP_KEY', ''),
+        },
+
+        TWILIO: {
+          ACCOUNT_SID: env.get('TWILIO_ACCOUNT_SID', ''),
+          AUTH_TOKEN: env.get('TWILIO_AUTH_TOKEN', ''),
+          FROM: env.get('TWILIO_FROM', ''),
         }
 			};
 

@@ -13,8 +13,10 @@ const LinkedInTokenStrategy = require('./lib/LinkedInStrategy');
 let Database = require('./services/Database'),
   Authentication = require('./services/Authentication'),
   Mail = require('./services/Mail'),
+  SMS = require('./services/SMS'),
   UserController = require('./controllers/UserController'),
   TalentController = require('./controllers/TalentController'),
+  TokenController = require('./controllers/TokenController'),
   UnitController = require('./controllers/UnitController');
 
 
@@ -124,7 +126,10 @@ class App {
       Authentication: new Authentication(),
 
       /** Initiate Mail Service */
-			Mail: new Mail()
+      Mail: new Mail(),
+
+      /** Initiate SMS Service */
+			SMS: new SMS()
 		};
 	}
 
@@ -143,7 +148,9 @@ class App {
       /** Talent controller */
       TalentController: new TalentController(),
       /** Unit controller */
-      UnitController: new UnitController()
+      UnitController: new UnitController(),
+      /** Token controller */
+      TokenController: new TokenController()
 		};
 	}
 
