@@ -18,6 +18,8 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {Boolean} showImageLibrary
  * @property {Boolean} showSocialLinks
  * @property {Boolean} public
+ * @property {String} avatar
+ * @property {String} backgroundImage
  * @property {ObjectId} user_id
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
@@ -52,6 +54,8 @@ class EntityProfile extends BaseEntityWithID {
         this._showImageLibrary = options.showImageLibrary === undefined ? true : options.showImageLibrary;
         this._showSocialLinks = options.showSocialLinks === undefined ? true : options.showSocialLinks;
         this._public = options.public === undefined ? true : options._public;
+        this._avatar = options.avatar || null;
+        this._backgroundImage = options.backgroundImage || null;
         this._userId = new ObjectId(options.userId);
         this._dateCreated = options.dateCreated ? new Date(options.dateCreated) : new Date();
         this._dateUpdated = options.dateUpdated ? new Date(options.dateUpdated) : this._dateCreated;

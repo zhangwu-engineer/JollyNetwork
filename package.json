@@ -26,9 +26,11 @@
   },
   "homepage": "https://bitbucket.org/jollydevelopment/jolly",
   "dependencies": {
+    "aws-sdk": "^2.354.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
+    "file-type": "^10.4.0",
     "jsonwebtoken": "^8.3.0",
     "mandrill-api": "^1.0.45",
     "mongodb": "^3.1.3",

@@ -2,6 +2,8 @@
  * User controller class, in charge of transactions related to users and their profiles.
  */
 const mongodb = require('mongodb');
+const AWS = require('aws-sdk');
+const fileType = require('file-type');
 
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
@@ -187,6 +189,31 @@ class UserController {
       throw new ApiError('Wrong user id');
     } catch (err) {
       throw err;
+    }
+  }
+
+  async uploadImage(userId, image) {
+    AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
+    const S3 = new AWS.S3();
+    try {
+      const fileBuffer = Buffer.from(image, 'base64');
+      const fileTypeInfo = fileType(fileBuffer);
+      const fileName = Math.floor(new Date() / 1000);
+
+      const filePath = `${fileName}.${fileTypeInfo.ext}`;
+      const params = {
+        Bucket: JOLLY.config.S3.BUCKET,
+        Key: filePath,
+        Body: fileBuffer,
+        ACL: 'public-read',
+        ContentEncoding: 'base64',
+        ContentType: fileTypeInfo.mime,
+      };
+      await S3.putObject(params).promise();
+
+      return `${JOLLY.config.S3.BUCKET_LINK}/${filePath}`;
+    } catch (err) {
+      throw new ApiError(err.message);
     }
   }
 

@@ -69,7 +69,15 @@ module.exports = (callbackOnComplete) => {
           ACCOUNT_SID: env.get('TWILIO_ACCOUNT_SID', ''),
           AUTH_TOKEN: env.get('TWILIO_AUTH_TOKEN', ''),
           FROM: env.get('TWILIO_FROM', ''),
-        }
+        },
+        AWS: {
+          ACCESS_KEY_ID: env.get('AWS_ACCESS_KEY_ID', ''),
+          SECRET_ACCESS_KEY: env.get('AWS_SECRET_ACCESS_KEY', ''),
+        },
+        S3: {
+          BUCKET: env.get('S3_BUCKET', ''),
+          BUCKET_LINK: env.get('S3_BUCKET_LINK', ''),
+        },
 			};
 
 			env.done();
