@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 let authService = JOLLY.service.Authentication,
   smsService = JOLLY.service.SMS,
   userController = JOLLY.controller.UserController,
+  fileController = JOLLY.controller.FileController,
   tokenController = JOLLY.controller.TokenController;
 
 /**
@@ -101,5 +102,23 @@ router.post('/verify-phone-token', authService.verifyUserAuthentication, (req, r
     })
     .catch(next);
 });
+
+router.post('/image', authService.verifyUserAuthentication, (req, res, next) => {
+  userController.uploadImage(req.userId, req.body.image)
+    .then(path => fileController.addFile({ path, user_id: req.userId }))
+    .then(fileData => {
+      res.apiSuccess(fileData);
+    })
+    .catch(next);
+});
+
+router.get('/files', authService.verifyUserAuthentication, (req, res, next) => {
+  fileController.getUserFiles(req.userId)
+    .then(files => {
+      res.apiSuccess(files);
+    })
+    .catch(next);
+});
+
 
 module.exports = router;

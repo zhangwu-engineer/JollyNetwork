@@ -17,6 +17,7 @@ let Database = require('./services/Database'),
   UserController = require('./controllers/UserController'),
   TalentController = require('./controllers/TalentController'),
   TokenController = require('./controllers/TokenController'),
+  FileController = require('./controllers/FileController'),
   UnitController = require('./controllers/UnitController');
 
 
@@ -150,7 +151,9 @@ class App {
       /** Unit controller */
       UnitController: new UnitController(),
       /** Token controller */
-      TokenController: new TokenController()
+      TokenController: new TokenController(),
+      /** File controller */
+      FileController: new FileController()
 		};
 	}
 
