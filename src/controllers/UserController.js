@@ -359,8 +359,8 @@ class UserController {
 			let db = this.getDefaultDB();
 			db.collection('users').countDocuments(options).then(count => {
 				const slug = count === 0
-					? `${options.firstName}-${options.lastName}`
-					: `${options.firstName}-${options.lastName}-${count}`;
+					? `${options.firstName}-${options.lastName.split(' ').join('-')}`
+					: `${options.firstName}-${options.lastName.split(' ').join('-')}-${count}`;
 				resolve(slug);
 			})
 			.catch(reject);
