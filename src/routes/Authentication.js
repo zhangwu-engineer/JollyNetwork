@@ -26,11 +26,11 @@ router.post('/login', (req, res, next) => {
     }).then((userObject) => {
 
         if ( !userObject ) {
-            throw new ApiError('Unable to find user', 404);
+            throw new ApiError('The email or password entered is incorrect', 404);
         }
 
         if ( !authService.verifyPassword(password, userObject.getPassword()) ) {
-            throw new ApiError('Invalid password', 404);
+            throw new ApiError('The email or password entered is incorrect', 404);
         }
 
         userData = userObject.toJson({
