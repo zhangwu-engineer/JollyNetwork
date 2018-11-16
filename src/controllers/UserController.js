@@ -127,11 +127,36 @@ class UserController {
 
   async updateUser(userId, data) {
     let self = this,
+      currentUser = null,
       user = null,
       profile = null;
 
     try {
-      user = await self.findUserById(userId);
+      currentUser = await self.findUserById(userId);
+      const currentUserData = currentUser.toJson({ isSafeOutput: true });
+      const { email, firstName, lastName } = data;
+      if (email || firstName || lastName) {
+        const data = {};
+        if (email && currentUserData.email !== email) {
+          data.email = email;
+        }
+        if (firstName && currentUserData.firstName !== firstName.toLowerCase()) {
+          data.firstName = firstName.toLowerCase();
+        }
+        if (lastName && currentUserData.lastName !== lastName.toLowerCase()) {
+          data.lastName = lastName.toLowerCase();
+        }
+        if (data.firstName || data.lastName) {
+          const slug = await self.generateSlug({
+            firstName: data.firstName || currentUserData.firstName,
+            lastName: data.lastName || currentUserData.lastName,
+          });
+          data.slug = slug;
+        }
+        user = await self.updateUserCollection(userId, data);
+      } else {
+        user = currentUser;
+      }
       if (user) {
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
