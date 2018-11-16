@@ -33,6 +33,16 @@ router.get('/slug/:slug', (req, res, next) => {
 
 });
 
+router.get('/slug/:slug/files', (req, res, next) => {
+	userController.getUserBySlug(req.params.slug)
+    .then(userData => fileController.getUserFiles(userData.id))
+    .then(files => {
+      res.apiSuccess(files);
+    })
+    .catch(next);
+
+});
+
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
   userController.updateUser(req.params.id, req.body)
