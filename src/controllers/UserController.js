@@ -59,7 +59,7 @@ class UserController {
     try {
       const isExistingEmail = await self.isExistingEmail(options.email);
       if (isExistingEmail) {
-        throw new ApiError('Email already exists!');
+        throw new ApiError('There is already an account associated with this email address.');
       } else {
         const slug = await self.generateSlug({ firstName, lastName});
         newUser = new EntityUser(encryptedPassword ? {
