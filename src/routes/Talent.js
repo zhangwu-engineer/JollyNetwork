@@ -52,7 +52,6 @@ router.post('/', authService.verifyUserAuthentication, (req, res) => {
 });
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
-  console.log(req.body);
 	talentController
 		.updateTalent(req.params.id, req.body)
 		.then((talentData) => {

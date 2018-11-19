@@ -37,7 +37,6 @@ router.post('/', authService.verifyUserAuthentication, (req, res) => {
 });
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
-  console.log(req.body);
 	unitController
 		.updateUnit(req.params.id, req.body)
 		.then((unitData) => {
