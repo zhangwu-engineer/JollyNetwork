@@ -41,7 +41,8 @@ class App {
 			/** Initiate Express Application
 			 * @type Express
 			 */
-			this.app = express();
+      this.app = express();
+      this.ready = false;
 
 			/** Connect to Database and initiate application */
 			new Database({
@@ -327,7 +328,9 @@ class App {
 
 		appExpress.listen(bindPort, bindIp, () => {
 
-			console.log(`Service started, listening on => ${bindIp}:${bindPort}`);
+      console.log(`Service started, listening on => ${bindIp}:${bindPort}`);
+      appExpress.emit("appStarted");
+      this.ready = true;
 		});
 
 		return this;
