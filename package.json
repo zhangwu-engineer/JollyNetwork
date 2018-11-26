@@ -8,10 +8,10 @@
     "node": "8.12.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
     "start-dev": "nodemon src/index.js",
     "start-service": "forever start --uid jolly-api -a src/index.js",
+    "test": "NODE_ENV=test mocha",
     "debug": "node --inspect-brk=0.0.0.0:9229 src/index.js",
     "debug2": "DEBUG=* node --inspect-brk=0.0.0.0:9229 src/index.js"
   },
@@ -28,6 +28,7 @@
   "dependencies": {
     "aws-sdk": "^2.354.0",
     "bcryptjs": "^2.4.3",
+    "bluebird": "^3.5.3",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "file-type": "^10.4.0",
@@ -41,6 +42,9 @@
   },
   "devDependencies": {
     "@types/express": "^4.16.0",
+    "chai": "^4.2.0",
+    "chai-http": "^4.2.0",
+    "mocha": "^5.2.0",
     "nodemon": "^1.18.4"
   }
 }
