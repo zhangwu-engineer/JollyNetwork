@@ -4,7 +4,7 @@
 
 JOLLY.enum.DbNames = JOLLY.enum.DbNames || {
 
-	DB: 'jolly-development'
+	DB: process.env.NODE_ENV === 'test' ? 'jolly-test' : 'jolly-development'
 
 };
 
