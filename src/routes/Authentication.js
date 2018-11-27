@@ -29,23 +29,30 @@ router.post('/login', (req, res, next) => {
             throw new ApiError('The email or password entered is incorrect', 404);
         }
 
-        if ( !authService.verifyPassword(password, userObject.getPassword()) ) {
-            throw new ApiError('The email or password entered is incorrect', 404);
-        }
-
         userData = userObject.toJson({
-            isSafeOutput: true
+          isSafeOutput: true
         });
 
-        authToken = authService.generateToken({
-            userId: userData.id
-        });
+        if (userObject.getPassword() === null) {
+          return mailService.sendPasswordResetEmail(userData);
+        } else {
+          if ( !authService.verifyPassword(password, userObject.getPassword()) ) {
+            throw new ApiError('The email or password entered is incorrect', 404);
+          }
 
-        res.apiSuccess({
-            auth_token: authToken,
-        });
+          authToken = authService.generateToken({
+              userId: userData.id
+          });
 
-    }).catch(next);
+          res.apiSuccess({
+              auth_token: authToken,
+          });
+        }
+    })
+    .then(() => {
+      throw new ApiError('Please check your email. You should reset your password.', 404);
+    })
+    .catch(next);
 
 });
 
