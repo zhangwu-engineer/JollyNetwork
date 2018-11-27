@@ -205,7 +205,7 @@ class App {
 			config = JOLLY.config;
 
 		appExpress.use(bodyParser.urlencoded({ extended: true }));
-		appExpress.use(bodyParser.json());
+    appExpress.use(bodyParser.json({ limit: '50mb' }));
 
 		appExpress.use(passport.initialize());
 		passport.serializeUser(function(user, done) {
