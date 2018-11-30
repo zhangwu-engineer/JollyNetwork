@@ -53,6 +53,7 @@ class UserController {
         newUser,
         newUserProfile;
 
+      email = email.toLowerCase();
 			firstName = firstName.toLowerCase();
       lastName = lastName.toLowerCase();
 
