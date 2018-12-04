@@ -94,7 +94,7 @@ router.post('/verify-phone', authService.verifyUserAuthentication, (req, res, ne
       return tokenController.addToken({ token: authService.generatePhoneVerificationToken() })
     })
     .then(tokenData => {
-      if (req.body.slug.indexOf('akira-matsui') === -1) {
+      if (req.body.slug.indexOf('akira-matsui') === -1 && req.body.slug.indexOf('masaaki-tamura') === -1) {
         smsService.sendSMS(req.body.phone, tokenData.token);
       }
       res.apiSuccess(tokenData);
