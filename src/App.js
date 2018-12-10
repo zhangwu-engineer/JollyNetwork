@@ -18,7 +18,8 @@ let Database = require('./services/Database'),
   TalentController = require('./controllers/TalentController'),
   TokenController = require('./controllers/TokenController'),
   FileController = require('./controllers/FileController'),
-  UnitController = require('./controllers/UnitController');
+  UnitController = require('./controllers/UnitController'),
+  WorkController = require('./controllers/WorkController');
 
 
 class App {
@@ -151,6 +152,8 @@ class App {
       TalentController: new TalentController(),
       /** Unit controller */
       UnitController: new UnitController(),
+      /** Work controller */
+      WorkController: new WorkController(),
       /** Token controller */
       TokenController: new TokenController(),
       /** File controller */
