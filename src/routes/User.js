@@ -25,6 +25,19 @@ router.get('/', authService.verifyUserAuthentication, (req, res) => {
 
 });
 
+router.post('/search', authService.verifyUserAuthentication, (req, res, next) => {
+
+  userController
+    .findUserByKeyword(Object.assign({}, req.body, { user_id: req.userId }))
+    .then((userList) => {
+      res.apiSuccess({
+        user_list: userList
+      });
+    })
+    .catch(next);
+
+});
+
 router.get('/slug/:slug', (req, res, next) => {
 	userController.getUserBySlug(req.params.slug)
 		.then(userData => {

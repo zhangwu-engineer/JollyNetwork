@@ -4,6 +4,7 @@
 const mongodb = require('mongodb');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
+const Promise = require('bluebird');
 
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
@@ -241,6 +242,46 @@ class UserController {
     } catch (err) {
       throw new ApiError(err.message);
     }
+  }
+
+  findUserByKeyword (options) {
+
+		let db = this.getDefaultDB(),
+      keyword = options.keyword,
+      userId = options.user_id,
+			user = null;
+
+		return new Promise((resolve, reject) => {
+
+      db
+        .collection('users')
+        .find({
+          $or: [
+            { firstName: { $regex: `(?i)${keyword}` } },
+            { lastName: { $regex: `(?i)${keyword}` } },
+            { email: { $regex: `(?i)${keyword}` } },
+          ],
+          _id: { $ne: new mongodb.ObjectID(userId) },
+        })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          let userList = [];
+
+          if (result) {
+
+            result.forEach((userData) => {
+
+              userList.push(this.getUserById(userData._id));
+            })
+
+          }
+          Promise.all(userList).then(users => {
+            resolve (users);
+          })
+
+        });
+
+		});
   }
 
 	findUserByUsername (options) {

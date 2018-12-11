@@ -47,7 +47,7 @@ class WorkController {
 
 		return new Promise((resolve, reject) => {
 
-			let {title, role, from, to, caption, pinToProfile, user_id} = options,
+			let {title, role, from, to, caption, pinToProfile, coworkers, user_id} = options,
         newWork;
 
       newWork = new EntityWork({
@@ -57,6 +57,7 @@ class WorkController {
         to,
         caption,
         pinToProfile,
+        coworkers,
         user_id,
 			});
 
