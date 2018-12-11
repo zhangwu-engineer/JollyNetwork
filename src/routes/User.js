@@ -108,7 +108,7 @@ router.post('/verify-phone', authService.verifyUserAuthentication, (req, res, ne
     })
     .then(tokenData => {
       if (req.body.slug.indexOf('akira-matsui') === -1 && req.body.slug.indexOf('masaaki-tamura') === -1) {
-        smsService.sendSMS(req.body.phone, tokenData.token);
+        smsService.sendSMS(req.body.phone, `Here's your verification code! Thanks! Jolly Team. ${tokenData.token}`);
       }
       res.apiSuccess(tokenData);
     })
