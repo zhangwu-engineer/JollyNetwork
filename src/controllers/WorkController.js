@@ -2,6 +2,8 @@
  * Unit controller class, in charge of transactions related to user's units.
  */
 const mongodb = require('mongodb');
+const AWS = require('aws-sdk');
+const fileType = require('file-type');
 
 const EntityWork = require('../entities/EntityWork'),
 	DbNames = require('../enum/DbNames');
@@ -40,15 +42,36 @@ class WorkController {
 	 * @param {Object} options
 	 * @returns {Promise<Object>}
 	 */
-	addWork (options) {
+	async addWork (options) {
+    AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
+    try {
+      const S3 = new AWS.S3();
+      const {title, role, from, to, caption, pinToProfile, coworkers, photos, user_id} = options;
+      let newWork;
 
-		let self = this,
-			authService = JOLLY.service.Authentication;
+      let photo_urls = [];
 
-		return new Promise((resolve, reject) => {
+      for (let i = 0; i < photos.length; i += 1) {
+        const block = photos[i].split(';');
+        const [, base64] = block;
+        const [, realData] = base64.split(',');
 
-			let {title, role, from, to, caption, pinToProfile, coworkers, user_id} = options,
-        newWork;
+        const fileBuffer = Buffer.from(realData, 'base64');
+        const fileTypeInfo = fileType(fileBuffer);
+        const fileName = Math.floor(new Date() / 1000);
+
+        const filePath = `${fileName}.${fileTypeInfo.ext}`;
+        const params = {
+          Bucket: JOLLY.config.S3.BUCKET,
+          Key: filePath,
+          Body: fileBuffer,
+          ACL: 'public-read',
+          ContentEncoding: 'base64',
+          ContentType: fileTypeInfo.mime,
+        };
+        await S3.putObject(params).promise();
+        photo_urls.push(`${JOLLY.config.S3.BUCKET_LINK}/${filePath}`);
+      }
 
       newWork = new EntityWork({
         title,
@@ -58,15 +81,16 @@ class WorkController {
         caption,
         pinToProfile,
         coworkers,
+        photos: photo_urls,
         user_id,
-			});
+      });
 
-      self.saveWork(newWork)
-        .then((workData) => {
-          resolve (workData.toJson({}));
-        })
-        .catch(reject)
-		});
+      const workData = await this.saveWork(newWork);
+      return workData.toJson({});
+
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
 	}
 
 	listUnits(cb) {
