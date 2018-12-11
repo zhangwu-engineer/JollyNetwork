@@ -25,7 +25,7 @@ router.get('/', authService.verifyUserAuthentication, (req, res) => {
 /**
  * create new unit into system.
  */
-router.post('/', authService.verifyUserAuthentication, (req, res) => {
+router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
 
 	workController
 		.addWork(Object.assign({}, req.body, { user_id: req.userId }))
@@ -33,7 +33,8 @@ router.post('/', authService.verifyUserAuthentication, (req, res) => {
 			res.apiSuccess({
 				work: workData
 			});
-		});
+    })
+    .catch(next);
 });
 
 // router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
