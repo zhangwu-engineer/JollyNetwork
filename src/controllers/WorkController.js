@@ -4,7 +4,7 @@
 const mongodb = require('mongodb');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
-
+const dateFns = require('date-fns');
 const EntityWork = require('../entities/EntityWork'),
 	DbNames = require('../enum/DbNames');
 
@@ -46,7 +46,11 @@ class WorkController {
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     try {
       const S3 = new AWS.S3();
-      const {title, role, from, to, caption, pinToProfile, coworkers, photos, user_id} = options;
+      const {title, role, from, to, caption, pinToProfile, photos, user} = options;
+      const fromString = dateFns.format(new Date(from), 'YYYYMMDD');
+      const toString = dateFns.format(new Date(to), 'YYYYMMDD');
+      const slug = `${title.toLowerCase().split(' ').join('-')}-${fromString}-${toString}`;
+      let { coworkers } = options;
       let newWork;
 
       let photo_urls = [];
@@ -73,6 +77,8 @@ class WorkController {
         photo_urls.push(`${JOLLY.config.S3.BUCKET_LINK}/${filePath}`);
       }
 
+      coworkers = coworkers.map(c => c.id);
+
       newWork = new EntityWork({
         title,
         role,
@@ -82,7 +88,8 @@ class WorkController {
         pinToProfile,
         coworkers,
         photos: photo_urls,
-        user_id,
+        slug,
+        user,
       });
 
       const workData = await this.saveWork(newWork);
@@ -123,7 +130,7 @@ class WorkController {
       db
         .collection('works')
         .find({
-          user_id: new mongodb.ObjectID(userId),
+          user: new mongodb.ObjectID(userId),
         })
         .toArray((err, result) => {
           if (err) reject(err);
@@ -145,22 +152,22 @@ class WorkController {
     });
   }
 
-  findUnitById (id) {
+  findWorkById (id) {
 
 		let db = this.getDefaultDB(),
-			unit = null;
+			work = null;
 		return new Promise((resolve, reject) => {
 
-			db.collection('units').findOne({
+			db.collection('works').findOne({
 				_id: new mongodb.ObjectID(id),
 			}).then((data) => {
 
 				if (data) {
 
-					unit = new EntityUnit(data);
+					work = new EntityWork(data);
 				}
 
-				resolve (unit);
+				resolve (work);
 
 			}).catch(reject);
 
