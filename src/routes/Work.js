@@ -53,14 +53,63 @@ router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
-router.get('/:id', authService.verifyUserAuthentication, (req, res) => {
+router.post('/search', authService.verifyUserAuthentication, (req, res, next) => {
 	workController
-		.findWorkById(req.params.id)
-		.then((workData) => {
-			res.apiSuccess({
-				work: workData.toJson({}),
-			});
-		});
+		.searchWorks(req.body)
+		.then((works) =>
+      Promise.map(works, (work) => {
+        return new Promise((resolve, reject) => {
+          userController
+            .getUserById(work.user)
+            .then(user => {
+              const populatedWork = work;
+              populatedWork.user = user;
+              resolve(populatedWork);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then(populatedWorks => {
+      res.apiSuccess({
+        work: populatedWorks
+      });
+    })
+    .catch(next);
+});
+
+router.get('/:id/user', authService.verifyUserAuthentication, (req, res, next) => {
+	workController
+		.findWorkUsers(req.params.id)
+		.then((users) =>
+			Promise.map(users, (user) => {
+        return new Promise((resolve, reject) => {
+          userController
+            .getUserById(user.user)
+            .then(u => {
+              const populatedUser = user;
+              populatedUser.user = u;
+              resolve(populatedUser);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then(populatedUsers => {
+      res.apiSuccess({
+        users: populatedUsers
+      });
+    })
+    .catch(next);
+});
+
+router.post('/:id/addCoworker', authService.verifyUserAuthentication, (req, res, next) => {
+  workController
+		.addCoworker(req.params.id, req.body.coworker)
+		.then(() => {
+      res.apiSuccess({});
+    })
+    .catch(next)
 });
 
 // router.put('/:id', authService.verifyUserAuthentication, (req, res) => {

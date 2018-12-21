@@ -172,7 +172,144 @@ class WorkController {
 			}).catch(reject);
 
 		});
-	}
+  }
+
+  searchWorks (options) {
+
+		let db = this.getDefaultDB(),
+      work = null;
+
+    const filter = options;
+
+		return new Promise((resolve, reject) => {
+
+      if (filter.userSlug) {
+        db.collection('users').findOne({
+          slug: filter.userSlug,
+        }).then((data) => {
+          filter.user = data._id;
+          delete filter.userSlug;
+
+          db.collection('works')
+            .find(filter)
+            .toArray((err, result) => {
+              if (err) reject(err);
+              let itemList = [];
+
+              if (result) {
+
+                result.forEach((workData) => {
+
+                  let workObject = new EntityWork(workData);
+
+                  itemList.push(workObject.toJson({}));
+                })
+
+              }
+
+              resolve (itemList);
+            });
+
+        }).catch(reject);
+      } else {
+        db.collection('works')
+          .find(filter)
+          .toArray((err, result) => {
+            if (err) reject(err);
+            let itemList = [];
+
+            if (result) {
+
+              result.forEach((workData) => {
+
+                let workObject = new EntityWork(workData);
+
+                itemList.push(workObject.toJson({}));
+              })
+
+            }
+
+            resolve (itemList);
+          });
+      }
+		});
+  }
+
+  findWorkUsers(eventId) {
+    let db = this.getDefaultDB(),
+      users = [],
+      coworkers = [];
+
+    return new Promise((resolve, reject) => {
+
+			db.collection('works').findOne({
+				_id: new mongodb.ObjectID(eventId),
+			}).then((data) => {
+        coworkers = data.coworkers;
+        data.coworkers.forEach(coworker => {
+          users.push({
+            type: "invited",
+            user: coworker,
+          });
+        });
+
+        db.collection('works')
+          .find({
+            slug: data.slug,
+            user: { $ne: data.user },
+          })
+          .toArray((err, result) => {
+            if (err) reject(err);
+
+            if (result) {
+
+              result.forEach((workData) => {
+                if (coworkers.includes(workData.user.toString())) {
+                  const pos = coworkers.indexOf(workData.user.toString());
+                  users.splice(pos, 1);
+                  coworkers.splice(pos, 1);
+                  users.push({
+                    type: "verified",
+                    user: workData.user,
+                  });
+                } else {
+                  users.push({
+                    type: "verifiable",
+                    user: workData.user,
+                  });
+                }
+              })
+            }
+            resolve (users);
+          });
+			}).catch(reject);
+
+		});
+
+  }
+
+  addCoworker(id, coworker) {
+    let db = this.getDefaultDB(),
+      collectionName = 'works';
+
+		return new Promise((resolve, reject) => {
+
+      db.collection('works')
+        .findOne({
+          _id: new mongodb.ObjectID(id),
+        })
+        .then((data) => {
+          const newCoworkers = data.coworkers;
+          newCoworkers.push(coworker);
+          db.collection(collectionName)
+            .updateOne({_id: new mongodb.ObjectID(id)}, { $set: { coworkers: newCoworkers } })
+            .then(() => {
+              resolve();
+            });
+        })
+        .catch(reject);
+    });
+  }
 	/**
 	 * Save work into database.
 	 * @param {EntityWork} work - work entity we are going to register into system.
