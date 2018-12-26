@@ -289,23 +289,16 @@ class WorkController {
   }
 
   addCoworker(id, coworker) {
-    let db = this.getDefaultDB(),
-      collectionName = 'works';
+    const db = this.getDefaultDB();
 
 		return new Promise((resolve, reject) => {
 
       db.collection('works')
-        .findOne({
+        .updateOne({
           _id: new mongodb.ObjectID(id),
-        })
+        }, { $push: { coworkers: coworker } })
         .then((data) => {
-          const newCoworkers = data.coworkers;
-          newCoworkers.push(coworker);
-          db.collection(collectionName)
-            .updateOne({_id: new mongodb.ObjectID(id)}, { $set: { coworkers: newCoworkers } })
-            .then(() => {
-              resolve();
-            });
+          resolve();
         })
         .catch(reject);
     });
