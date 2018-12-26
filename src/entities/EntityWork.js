@@ -9,6 +9,8 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {String} caption
  * @property {Boolean} pinToProfile
  * @property {Array} coworkers
+ * @property {Array} verifiedCoworkers
+ * @property {Array} verifiers
  * @property {Array} photos
  * @property {String} slug
  * @property {ObjectId} user
@@ -35,8 +37,10 @@ class EntityWork extends BaseEntityWithID {
         this._to = options.to ? new Date(options.to) : new Date();
         this._caption = options.caption;
         this._pinToProfile = options.pinToProfile;
-        this._coworkers = options.coworkers;
-        this._photos = options.photos;
+        this._coworkers = options.coworkers || [];
+        this._verifiedCoworkers = options.verifiedCoworkers || [];
+        this._verifiers = options.verifiers || [];
+        this._photos = options.photos || [];
         this._slug = options.slug;
         this._user = new ObjectId(options.user);
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
@@ -58,6 +62,8 @@ class EntityWork extends BaseEntityWithID {
       data.caption = this._caption;
       data.pinToProfile = this._pinToProfile;
       data.coworkers = this._coworkers;
+      data.verifiedCoworkers = this._verifiedCoworkers;
+      data.verifiers = this._verifiers;
       data.photos = this._photos;
       data.slug = this._slug;
       data.user = this._user;
