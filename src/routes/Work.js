@@ -38,6 +38,33 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
+router.get('/user/:slug', (req, res, next) => {
+  userController.getUserBySlug(req.params.slug)
+    .then(userData => {
+      return workController.getUserWorks(userData.id);
+    })
+    .then((works) =>
+      Promise.map(works, (work) => {
+        return new Promise((resolve, reject) => {
+          userController
+            .getUserById(work.user)
+            .then(user => {
+              const populatedWork = work;
+              populatedWork.user = user;
+              resolve(populatedWork);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then(populatedWorks => {
+      res.apiSuccess({
+        work_list: populatedWorks
+      });
+    })
+    .catch(next);
+});
+
 /**
  * create new unit into system.
  */
