@@ -70,6 +70,22 @@ router.post('/search', authService.verifyUserAuthentication, (req, res, next) =>
         });
       })
     )
+    .then((works) =>
+      Promise.map(works, (work) => {
+        return new Promise((resolve, reject) => {
+          Promise.map(
+            work.verifiers,
+            (verifier) => userController.getUserById(verifier)
+          )
+          .then(verifiers => {
+            const populatedWork = work;
+            populatedWork.verifiers = verifiers;
+            resolve(populatedWork);
+          })
+          .catch(reject);
+        });
+      })
+    )
     .then(populatedWorks => {
       res.apiSuccess({
         work: populatedWorks
@@ -106,6 +122,15 @@ router.get('/:id/user', authService.verifyUserAuthentication, (req, res, next) =
 router.post('/:id/addCoworker', authService.verifyUserAuthentication, (req, res, next) => {
   workController
 		.addCoworker(req.params.id, req.body.coworker)
+		.then(() => {
+      res.apiSuccess({});
+    })
+    .catch(next)
+});
+
+router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, (req, res, next) => {
+  workController
+		.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }))
 		.then(() => {
       res.apiSuccess({});
     })

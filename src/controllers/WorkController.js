@@ -5,6 +5,7 @@ const mongodb = require('mongodb');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const dateFns = require('date-fns');
+const Promise = require('bluebird');
 const EntityWork = require('../entities/EntityWork'),
 	DbNames = require('../enum/DbNames');
 
@@ -252,7 +253,12 @@ class WorkController {
             user: coworker,
           });
         });
-
+        data.verifiedCoworkers.forEach(coworker => {
+          users.push({
+            type: "verified",
+            user: coworker,
+          });
+        });
         db.collection('works')
           .find({
             slug: data.slug,
@@ -272,7 +278,7 @@ class WorkController {
                     type: "verified",
                     user: workData.user,
                   });
-                } else {
+                } else if (!data.verifiedCoworkers.includes(workData.user.toString())) {
                   users.push({
                     type: "verifiable",
                     user: workData.user,
@@ -302,6 +308,22 @@ class WorkController {
         })
         .catch(reject);
     });
+  }
+
+  verifyCoworker(id, options) {
+    const db = this.getDefaultDB();
+    return Promise.all([
+      db.collection('works')
+        .updateOne({
+          _id: new mongodb.ObjectID(id),
+        }, { $push: { verifiedCoworkers: options.coworker } })
+      ,
+      db.collection('works')
+        .updateOne({
+          slug: options.slug,
+          user: new mongodb.ObjectID(options.coworker),
+        }, { $push: { verifiers: options.verifier } })
+    ]);
   }
 	/**
 	 * Save work into database.
