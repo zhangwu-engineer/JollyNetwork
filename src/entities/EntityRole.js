@@ -1,7 +1,7 @@
 const ObjectId = require('mongodb').ObjectID;
 /**
- * Talent type
- * @typedef {Object} Talent
+ * Role type
+ * @typedef {Object} Role
  * @property {String} name
  * @property {String} rate
  * @property {String} unit
@@ -13,7 +13,7 @@ const ObjectId = require('mongodb').ObjectID;
 
 const BaseEntityWithID = require('./base/BaseEntityWithID');
 
-class EntityTalent extends BaseEntityWithID {
+class EntityRole extends BaseEntityWithID {
 
     /**
      * User constructor method.
@@ -50,4 +50,4 @@ class EntityTalent extends BaseEntityWithID {
     }
 
 }
-module.exports = EntityTalent;
+module.exports = EntityRole;

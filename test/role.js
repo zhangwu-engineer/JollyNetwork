@@ -10,9 +10,9 @@ const expect = chai.expect;
 
 let server = null;
 let token = null;
-let talentId = '';
+let roleId = '';
 
-describe('Talent', () => {
+describe('Role', () => {
   before(() => {
     return new Promise((resolve) => {
       DefaultConfig(() => {
@@ -56,12 +56,12 @@ describe('Talent', () => {
   });
 
   after(() => Promise.map(
-    ['users', 'profiles', 'talents'],
+    ['users', 'profiles', 'roles'],
     collectionName => JOLLY.service.Db.database(JOLLY.enum.DbNames.DB).collection(collectionName).deleteMany({}),
     { concurrency: 1 }
   ));
-  describe('Create user talent ---> POST /talent', () => {
-    it('should return newly created talent data', () => {
+  describe('Create user role ---> POST /role', () => {
+    it('should return newly created role data', () => {
       const payload = {
         name: 'Web Development',
         rate: '50.56',
@@ -69,53 +69,53 @@ describe('Talent', () => {
       };
       return chai
         .request(server)
-        .post('/talent')
+        .post('/role')
         .set('x-access-token', token)
         .send(payload)
         .then(res => {
           expect(res).to.have.status(200);
-          expect(res.body.response).to.have.property('talent');
-          expect(res.body.response.talent).to.have.property('name', 'Web Development');
-          talentId = res.body.response.talent.id;
+          expect(res.body.response).to.have.property('role');
+          expect(res.body.response.role).to.have.property('name', 'Web Development');
+          roleId = res.body.response.role.id;
         })
         .catch(err => {
           throw err;
         });
     });
   });
-  describe('Get user talent ---> GET /talent', () => {
-    it('should return user\'s talent data', () => {
+  describe('Get user role ---> GET /role', () => {
+    it('should return user\'s role data', () => {
       return chai
         .request(server)
-        .get('/talent')
+        .get('/role')
         .set('x-access-token', token)
         .send()
         .then(res => {
           expect(res).to.have.status(200);
-          expect(res.body.response.talent_list.length).to.be.equal(1);
+          expect(res.body.response.roles.length).to.be.equal(1);
         })
         .catch(err => {
           throw err;
         });
     });
   });
-  describe('Get member talent ---> GET /talent/user/:slug', () => {
-    it('should return user\'s talent data', () => {
+  describe('Get member role ---> GET /role/user/:slug', () => {
+    it('should return user\'s role data', () => {
       return chai
         .request(server)
-        .get(`/talent/user/akira-matsui`)
+        .get(`/role/user/akira-matsui`)
         .send()
         .then(res => {
           expect(res).to.have.status(200);
-          expect(res.body.response.talent_list.length).to.be.equal(1);
+          expect(res.body.response.roles.length).to.be.equal(1);
         })
         .catch(err => {
           throw err;
         });
     });
   });
-  describe('Update talent ---> PUT /talent/:id', () => {
-    it('should return updated talent data', () => {
+  describe('Update role ---> PUT /role/:id', () => {
+    it('should return updated role data', () => {
       const payload = {
         name: 'Web Development',
         rate: '60',
@@ -123,24 +123,24 @@ describe('Talent', () => {
       };
       return chai
         .request(server)
-        .put(`/talent/${talentId}`)
+        .put(`/role/${roleId}`)
         .set('x-access-token', token)
         .send(payload)
         .then(res => {
           expect(res).to.have.status(200);
-          expect(res.body.response).to.have.property('talent');
-          expect(res.body.response.talent).to.have.property('rate', '60');
+          expect(res.body.response).to.have.property('role');
+          expect(res.body.response.role).to.have.property('rate', '60');
         })
         .catch(err => {
           throw err;
         });
     });
   });
-  describe('Delete talent ---> DELETE /talent/:id', () => {
-    it('should delete talent', () => {
+  describe('Delete role ---> DELETE /role/:id', () => {
+    it('should delete role', () => {
       return chai
         .request(server)
-        .delete(`/talent/${talentId}`)
+        .delete(`/role/${roleId}`)
         .set('x-access-token', token)
         .send()
         .then(res => {

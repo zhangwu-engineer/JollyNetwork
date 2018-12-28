@@ -15,7 +15,7 @@ let Database = require('./services/Database'),
   Mail = require('./services/Mail'),
   SMS = require('./services/SMS'),
   UserController = require('./controllers/UserController'),
-  TalentController = require('./controllers/TalentController'),
+  RoleController = require('./controllers/RoleController'),
   TokenController = require('./controllers/TokenController'),
   FileController = require('./controllers/FileController'),
   UnitController = require('./controllers/UnitController'),
@@ -148,8 +148,8 @@ class App {
 
 			/** User controller */
       UserController: new UserController(),
-      /** Talent controller */
-      TalentController: new TalentController(),
+      /** Role controller */
+      RoleController: new RoleController(),
       /** Unit controller */
       UnitController: new UnitController(),
       /** Work controller */

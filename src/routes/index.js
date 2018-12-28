@@ -15,8 +15,8 @@ const ApplicationRouteList = [
     },
 
     {
-      path: '/talent',
-      handler: require ('../routes/Talent')
+      path: '/role',
+      handler: require ('../routes/Role')
     },
 
     {

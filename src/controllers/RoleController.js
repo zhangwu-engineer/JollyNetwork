@@ -1,26 +1,26 @@
 /**
- * Talent controller class, in charge of transactions related to user's talents.
+ * Role controller class, in charge of transactions related to user's roles.
  */
 const mongodb = require('mongodb');
 
-const EntityTalent = require('../entities/EntityTalent'),
+const EntityRole = require('../entities/EntityRole'),
 	DbNames = require('../enum/DbNames');
 
 
-class TalentController {
+class RoleController {
 
 	/**
      * Controller constructor method.
-	 * @returns {TalentController|*}
+	 * @returns {RoleController|*}
 	 */
 	constructor () {
 
-		if ( !TalentController.instance ) {
+		if ( !RoleController.instance ) {
 
-			TalentController.instance = this;
+			RoleController.instance = this;
 		}
 
-		return TalentController.instance;
+		return RoleController.instance;
 	}
 
 	/**
@@ -36,11 +36,11 @@ class TalentController {
 	}
 
 	/**
-	 * create new talent.
+	 * create new role.
 	 * @param {Object} options
 	 * @returns {Promise<Object>}
 	 */
-	addTalent (options) {
+	addRole (options) {
 
 		let self = this,
 			authService = JOLLY.service.Authentication;
@@ -48,38 +48,38 @@ class TalentController {
 		return new Promise((resolve, reject) => {
 
 			let {name, rate, unit, user_id} = options,
-        newTalent;
+        newRole;
 
-      newTalent = new EntityTalent({
+      newRole = new EntityRole({
         name,
         rate,
         unit,
         user_id,
 			});
 
-      self.saveTalent(newTalent)
-        .then((talentData) => {
-          resolve (talentData.toJson({}));
+      self.saveRole(newRole)
+        .then((roleData) => {
+          resolve (roleData.toJson({}));
         })
         .catch(reject)
 		});
 	}
 
-	listTalents(cb) {
+	listRoles(cb) {
 
 		let Database = JOLLY.service.Db;
 
-		Database.query(DbNames.DB, 'talents', (userTalentList) => {
+		Database.query(DbNames.DB, 'roles', (userRoleList) => {
 
 			let itemList = [];
 
-			if (userTalentList) {
+			if (userRoleList) {
 
-				userTalentList.forEach((talentData) => {
+				userRoleList.forEach((roleData) => {
 
-					let talentObject = new EntityTalent(talentData);
+					let roleObject = new EntityRole(roleData);
 
-					itemList.push(talentObject.toJson({}));
+					itemList.push(roleObject.toJson({}));
 				})
 
 			}
@@ -88,12 +88,12 @@ class TalentController {
 		});
   }
 
-  getUserTalents(userId) {
+  getUserRoles(userId) {
     let db = this.getDefaultDB();
     return new Promise((resolve, reject) => {
 
       db
-        .collection('talents')
+        .collection('roles')
         .find({
           user_id: new mongodb.ObjectID(userId),
         })
@@ -103,11 +103,11 @@ class TalentController {
 
           if (result) {
 
-            result.forEach((talentData) => {
+            result.forEach((roleData) => {
 
-              let talentObject = new EntityTalent(talentData);
+              let roleObject = new EntityRole(roleData);
 
-              itemList.push(talentObject.toJson({}));
+              itemList.push(roleObject.toJson({}));
             })
 
           }
@@ -117,69 +117,69 @@ class TalentController {
     });
   }
 
-  findTalentById (id) {
+  findRoleById (id) {
 
 		let db = this.getDefaultDB(),
-			talent = null;
+			role = null;
 		return new Promise((resolve, reject) => {
 
-			db.collection('talents').findOne({
+			db.collection('roles').findOne({
 				_id: new mongodb.ObjectID(id),
 			}).then((data) => {
 
 				if (data) {
 
-					talent = new EntityTalent(data);
+					role = new EntityRole(data);
 				}
 
-				resolve (talent);
+				resolve (role);
 
 			}).catch(reject);
 
 		});
 	}
 	/**
-	 * Save talent into database.
-	 * @param {EntityTalent} talent - User entity we are going to register into system.
+	 * Save role into database.
+	 * @param {EntityRole} role - User entity we are going to register into system.
 	 * @returns {Promise}
 	 * @resolve {EntityUser}
 	 */
-	saveTalent (talent) {
+	saveRole (role) {
 
 		let db = this.getDefaultDB(),
-			collectionName = 'talents',
-			talentData = talent.toJson(),
-			talentEntity;
+			collectionName = 'roles',
+			roleData = role.toJson(),
+			roleEntity;
 
-		if (talentData.id == null) {
-			delete (talentData.id);
+		if (roleData.id == null) {
+			delete (roleData.id);
 		}
 
 		return new Promise((resolve, reject) => {
 
 			db.collection(collectionName)
-				.insertOne(talentData)
+				.insertOne(roleData)
 				.then((result) => {
-					//talentData.id = result.insertedId;
-					talentEntity = new EntityTalent(talentData);
-					resolve(talentEntity);
+					//roleData.id = result.insertedId;
+					roleEntity = new EntityRole(roleData);
+					resolve(roleEntity);
 				})
 				.catch(reject);
 
 			});
   }
 
-  updateTalent(id, data) {
+  updateRole(id, data) {
     let db = this.getDefaultDB(),
-      collectionName = 'talents',
-      talent = null;;
+      collectionName = 'roles',
+      role = null;;
 
 		return new Promise((resolve, reject) => {
 
 			db.collection(collectionName)
 				.updateOne({_id: new mongodb.ObjectID(id)}, { $set: data })
 				.then((result) => {
-          return db.collection('talents').findOne({
+          return db.collection('roles').findOne({
             _id: new mongodb.ObjectID(id),
           });
         })
@@ -187,10 +187,10 @@ class TalentController {
 
           if (data) {
 
-            talent = new EntityTalent(data);
+            role = new EntityRole(data);
           }
 
-          resolve (talent);
+          resolve (role);
 
         })
 				.catch(reject);
@@ -198,10 +198,10 @@ class TalentController {
 			});
   }
 
-  deleteTalent(id) {
+  deleteRole(id) {
     let db = this.getDefaultDB(),
-      collectionName = 'talents',
-      talent = null;;
+      collectionName = 'roles',
+      role = null;
 
 		return new Promise((resolve, reject) => {
 
@@ -216,4 +216,4 @@ class TalentController {
   }
 }
 
-module.exports = TalentController;
+module.exports = RoleController;
