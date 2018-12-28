@@ -1,24 +1,24 @@
 /**
- * Talent Route Handler
+ * Role Route Handler
  */
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 
 let authService = JOLLY.service.Authentication,
   userController = JOLLY.controller.UserController
-	talentController = JOLLY.controller.TalentController;
+	roleController = JOLLY.controller.RoleController;
 
 
 /**
- * Display user's talents.
+ * Display user's roles.
  */
 router.get('/', authService.verifyUserAuthentication, (req, res) => {
 
-  talentController
-    .getUserTalents(req.userId)
-    .then((userTalentList) => {
+  roleController
+    .getUserRoles(req.userId)
+    .then((userRoleList) => {
       res.apiSuccess({
-        talent_list: userTalentList
+        roles: userRoleList
       });
     });
 });
@@ -27,44 +27,44 @@ router.get('/user/:slug', (req, res, next) => {
 
   userController.getUserBySlug(req.params.slug)
     .then(userData => {
-      return talentController.getUserTalents(userData.id);
+      return roleController.getUserRoles(userData.id);
     })
-    .then((userTalentList) => {
+    .then((userRoleList) => {
       res.apiSuccess({
-        talent_list: userTalentList
+        roles: userRoleList
       });
     })
     .catch(next);
 });
 
 /**
- * create new talent into system.
+ * create new role into system.
  */
 router.post('/', authService.verifyUserAuthentication, (req, res) => {
 
-	talentController
-		.addTalent(Object.assign({}, req.body, { user_id: req.userId }))
-		.then((talentData) => {
+	roleController
+		.addRole(Object.assign({}, req.body, { user_id: req.userId }))
+		.then((roleData) => {
 			res.apiSuccess({
-				talent: talentData
+				role: roleData
 			});
 		});
 });
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
-	talentController
-		.updateTalent(req.params.id, req.body)
-		.then((talentData) => {
+	roleController
+		.updateRole(req.params.id, req.body)
+		.then((roleData) => {
 			res.apiSuccess({
-				talent: talentData.toJson({}),
+				role: roleData.toJson({}),
 			});
 		});
 });
 
 router.delete('/:id', authService.verifyUserAuthentication, (req, res) => {
 
-	talentController
-		.deleteTalent(req.params.id)
+	roleController
+		.deleteRole(req.params.id)
 		.then(() => {
 			res.apiSuccess({});
 		});
