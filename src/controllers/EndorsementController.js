@@ -47,13 +47,14 @@ class EndorsementController {
 
 		return new Promise((resolve, reject) => {
 
-			let {to, from, work, quality} = options,
+			let {to, from, work, work_slug, quality} = options,
         newEndorsement;
 
       newEndorsement = new EntityEndorsement({
         to,
         from,
         work,
+        work_slug,
         quality,
 			});
 
@@ -126,6 +127,36 @@ class EndorsementController {
         .find({
           work: new mongodb.ObjectID(workId),
           from: new mongodb.ObjectID(userId),
+        })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          let itemList = [];
+
+          if (result) {
+
+            result.forEach((endorsementData) => {
+
+              let endorsementObject = new EntityEndorsement(endorsementData);
+
+              itemList.push(endorsementObject.toJson({}));
+            })
+
+          }
+
+          resolve (itemList);
+        });
+    });
+  }
+
+  getEndorsersForWork(workSlug, userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+
+      db
+        .collection('endorsements')
+        .find({
+          work_slug: workSlug,
+          to: new mongodb.ObjectID(userId),
         })
         .toArray((err, result) => {
           if (err) reject(err);
