@@ -47,12 +47,15 @@ class RoleController {
 
 		return new Promise((resolve, reject) => {
 
-			let {name, rate, unit, user_id} = options,
+			let {name, month, year, minRate, maxRate, unit, user_id} = options,
         newRole;
 
       newRole = new EntityRole({
-        name,
-        rate,
+				name,
+				month,
+				year,
+				minRate,
+        maxRate,
         unit,
         user_id,
 			});
