@@ -80,7 +80,7 @@ router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
-router.post('/search', authService.verifyUserAuthentication, (req, res, next) => {
+router.post('/search', (req, res, next) => {
 	workController
 		.searchWorks(req.body)
 		.then((works) =>
@@ -121,7 +121,7 @@ router.post('/search', authService.verifyUserAuthentication, (req, res, next) =>
     .catch(next);
 });
 
-router.get('/:id/user', authService.verifyUserAuthentication, (req, res, next) => {
+router.get('/:id/user', (req, res, next) => {
 	workController
 		.findWorkUsers(req.params.id)
 		.then((users) =>

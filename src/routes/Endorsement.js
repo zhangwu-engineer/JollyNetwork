@@ -13,18 +13,61 @@ let authService = JOLLY.service.Authentication,
 /**
  * Display user's endorsements.
  */
-router.get('/', authService.verifyUserAuthentication, (req, res) => {
+router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
 
   endorsementController
     .getUserEndorsements(req.userId)
-    .then((endorsements) => {
+    .then((endorsements) =>
+      Promise.map(endorsements, (endorser) => {
+        return new Promise((resolve, reject) => {
+          userController
+            .getUserById(endorser.from)
+            .then(user => {
+              const populatedData = endorser;
+              populatedData.from = user;
+              resolve(populatedData);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then((populatedEndorsers) => {
       res.apiSuccess({
-        endorsements: endorsements
+        endorsements: populatedEndorsers
       });
-    });
+    })
+    .catch(next);
 });
 
-router.get('/work/:workId', authService.verifyUserAuthentication, (req, res) => {
+router.get('/user/:slug', (req, res, next) => {
+
+  userController.getUserBySlug(req.params.slug)
+    .then(userData => {
+      return endorsementController.getUserEndorsements(userData.id);
+    })
+    .then((endorsements) =>
+      Promise.map(endorsements, (endorser) => {
+        return new Promise((resolve, reject) => {
+          userController
+            .getUserById(endorser.from)
+            .then(user => {
+              const populatedData = endorser;
+              populatedData.from = user;
+              resolve(populatedData);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then((populatedEndorsers) => {
+      res.apiSuccess({
+        endorsements: populatedEndorsers
+      });
+    })
+    .catch(next);
+});
+
+router.get('/work/:workId', authService.verifyUserAuthentication, (req, res, next) => {
 
   endorsementController
     .getEndorsementsForWork(req.params.workId, req.userId)
@@ -32,13 +75,16 @@ router.get('/work/:workId', authService.verifyUserAuthentication, (req, res) => 
       res.apiSuccess({
         endorsements: endorsements
       });
-    });
+    })
+    .catch(next);
 });
 
-router.get('/work/:workSlug/endorsers', authService.verifyUserAuthentication, (req, res, next) => {
+router.post('/work/:workSlug/endorsers', (req, res, next) => {
 
-  endorsementController
-    .getEndorsersForWork(req.params.workSlug, req.userId)
+  userController.getUserBySlug(req.body.userSlug)
+    .then(userData => {
+      return endorsementController.getEndorsersForWork(req.params.workSlug, userData.id);
+    })
     .then((endorsers) =>
       Promise.map(endorsers, (endorser) => {
         return new Promise((resolve, reject) => {
