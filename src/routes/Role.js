@@ -12,7 +12,7 @@ let authService = JOLLY.service.Authentication,
 /**
  * Display user's roles.
  */
-router.get('/', authService.verifyUserAuthentication, (req, res) => {
+router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
 
   roleController
     .getUserRoles(req.userId)
@@ -20,7 +20,8 @@ router.get('/', authService.verifyUserAuthentication, (req, res) => {
       res.apiSuccess({
         roles: userRoleList
       });
-    });
+		})
+		.catch(next);
 });
 
 router.get('/user/:slug', (req, res, next) => {
@@ -40,7 +41,7 @@ router.get('/user/:slug', (req, res, next) => {
 /**
  * create new role into system.
  */
-router.post('/', authService.verifyUserAuthentication, (req, res) => {
+router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
 
 	roleController
 		.addRole(Object.assign({}, req.body, { user_id: req.userId }))
@@ -48,26 +49,29 @@ router.post('/', authService.verifyUserAuthentication, (req, res) => {
 			res.apiSuccess({
 				role: roleData
 			});
-		});
+		})
+		.catch(next);
 });
 
-router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
+router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
 	roleController
 		.updateRole(req.params.id, req.body)
 		.then((roleData) => {
 			res.apiSuccess({
 				role: roleData.toJson({}),
 			});
-		});
+		})
+		.catch(next);
 });
 
-router.delete('/:id', authService.verifyUserAuthentication, (req, res) => {
+router.delete('/:id', authService.verifyUserAuthentication, (req, res, next) => {
 
 	roleController
 		.deleteRole(req.params.id)
 		.then(() => {
 			res.apiSuccess({});
-		});
+		})
+		.catch(next);
 });
 
 module.exports = router;
