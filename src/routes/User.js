@@ -88,7 +88,8 @@ router.post('/register', (req, res, next) => {
 				userId: userData.id
 			});
 			res.apiSuccess({
-				auth_token: authToken,
+        auth_token: authToken,
+        user: userData,
 			});
 		}).catch(next);
 });

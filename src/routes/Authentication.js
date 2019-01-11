@@ -46,6 +46,7 @@ router.post('/login', (req, res, next) => {
 
           res.apiSuccess({
               auth_token: authToken,
+              user: userData,
           });
         }
     })
@@ -74,6 +75,10 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
                     });
                     res.apiSuccess({
                         auth_token: authToken,
+                        action: 'signup',
+                        type: 'facebook',
+                        user: userData,
+
                     });
                 });
         } else {
@@ -85,6 +90,9 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
             });
             res.apiSuccess({
                 auth_token: authToken,
+                action: 'login',
+                type: 'facebook',
+                user: userData,
             });
         }
     }).catch(next);
@@ -108,6 +116,9 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
                   });
                   res.apiSuccess({
                       auth_token: authToken,
+                      action: 'signup',
+                      type: 'linkedin',
+                      user: userData,
                   });
               });
       } else {
@@ -119,6 +130,9 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
           });
           res.apiSuccess({
               auth_token: authToken,
+              action: 'login',
+              type: 'linkedin',
+              user: userData,
           });
       }
   }).catch(next);
