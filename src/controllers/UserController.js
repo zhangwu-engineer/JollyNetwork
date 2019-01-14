@@ -8,6 +8,7 @@ const Promise = require('bluebird');
 
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
+  EntityWork = require('../entities/EntityWork'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -49,7 +50,7 @@ class UserController {
       authService = JOLLY.service.Authentication,
       mailService = JOLLY.service.Mail;
 
-    let {email, firstName, lastName, password} = options,
+    let {email, firstName, lastName, password, invite} = options,
 				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
         newUser,
         newUserProfile;
@@ -81,6 +82,11 @@ class UserController {
         const userProfileData = await self.saveUserProfile(newUserProfile)
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
+        if (invite && invite.work) {
+          const workData = invite.work;
+          workData.user = res.id;
+          await self.saveWork(workData);
+        }
         mailService.sendEmailVerification(res);
         return res;
       }
@@ -562,6 +568,31 @@ class UserController {
           resolve (profile);
 
         })
+				.catch(reject);
+
+			});
+  }
+
+  saveWork (work) {
+
+		let db = this.getDefaultDB(),
+			collectionName = 'works',
+			workData = work,
+			workEntity;
+
+		if (workData.id == null) {
+			delete (workData.id);
+		}
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.insertOne(workData)
+				.then((result) => {
+					//talentData.id = result.insertedId;
+					workEntity = new EntityWork(workData);
+					resolve(workEntity);
+				})
 				.catch(reject);
 
 			});

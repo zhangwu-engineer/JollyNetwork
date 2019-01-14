@@ -44,10 +44,11 @@ class WorkController {
 	 * @returns {Promise<Object>}
 	 */
 	async addWork (options) {
+    const mailService = JOLLY.service.Mail;
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     try {
       const S3 = new AWS.S3();
-      const {title, role, from, to, caption, pinToProfile, photos, user} = options;
+      const {title, role, from, to, caption, pinToProfile, photos, user, firstName, lastName, userSlug} = options;
       const fromString = dateFns.format(new Date(from), 'YYYYMMDD');
       const toString = dateFns.format(new Date(to), 'YYYYMMDD');
       const slug = `${title.toLowerCase().split(' ').join('-')}-${fromString}-${toString}`;
@@ -78,7 +79,8 @@ class WorkController {
         photo_urls.push(`${JOLLY.config.S3.BUCKET_LINK}/${filePath}`);
       }
 
-      coworkers = coworkers.map(c => c.id);
+      const emails = coworkers.map(c => typeof c ==='object' ? { email: c.email, existing: true }: { email: c, existing: false });
+      coworkers = coworkers.filter(c => typeof c === 'object').map(c => c.id);
 
       newWork = new EntityWork({
         title,
@@ -94,7 +96,12 @@ class WorkController {
       });
 
       const workData = await this.saveWork(newWork);
-      return workData.toJson({});
+
+      mailService.sendInvite(emails, workData.toJson({}), { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
+      return {
+        tageeEmails: emails,
+        work: workData.toJson({}),
+      };
 
     } catch (err) {
       throw new ApiError(err.message);
@@ -294,17 +301,38 @@ class WorkController {
 
   }
 
-  addCoworker(id, coworker) {
+  addCoworker(id, coworker, user) {
     const db = this.getDefaultDB();
-
-		return new Promise((resolve, reject) => {
+    const mailService = JOLLY.service.Mail;
+    const emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    let work = null;
+    return new Promise((resolve, reject) => {
 
       db.collection('works')
         .updateOne({
           _id: new mongodb.ObjectID(id),
         }, { $push: { coworkers: coworker } })
-        .then((data) => {
-          resolve();
+        .then(() => {
+          db.collection('works').findOne({
+            _id: new mongodb.ObjectID(id),
+          }).then((data) => {
+            if (data) {
+              work = new EntityWork(data);
+              if (emailRegEx.test(coworker)) {
+                mailService.sendInvite([{ email: coworker, existing: false }], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
+                resolve();
+              } else {
+                db.collection('users').findOne({
+                  _id: new mongodb.ObjectID(coworker),
+                }).then((userData) => {
+                  mailService.sendInvite([{ email: userData.email, existing: true}], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
+                  resolve();
+                });
+              }
+            } else {
+              reject();
+            }
+          });
         })
         .catch(reject);
     });

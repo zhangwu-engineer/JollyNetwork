@@ -70,9 +70,11 @@ router.get('/user/:slug', (req, res, next) => {
  */
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
 
-	workController
-		.addWork(Object.assign({}, req.body, { user: req.userId }))
-		.then((workData) => {
+  userController.getUserById(req.userId)
+    .then(user => {
+      return workController.addWork(Object.assign({}, req.body, { user: req.userId, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }));
+    })
+    .then((workData) => {
 			res.apiSuccess({
 				work: workData
 			});
@@ -122,20 +124,30 @@ router.post('/search', (req, res, next) => {
 });
 
 router.get('/:id/user', (req, res, next) => {
+  const emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 	workController
 		.findWorkUsers(req.params.id)
 		.then((users) =>
 			Promise.map(users, (user) => {
-        return new Promise((resolve, reject) => {
-          userController
-            .getUserById(user.user)
-            .then(u => {
-              const populatedUser = user;
-              populatedUser.user = u;
-              resolve(populatedUser);
-            })
-            .catch(reject);
-        });
+        if (emailRegEx.test(user.user)) {
+          return {
+            type: user.type,
+            user: {
+              email: user.user,
+            }
+          };
+        } else {
+          return new Promise((resolve, reject) => {
+            userController
+              .getUserById(user.user)
+              .then(u => {
+                const populatedUser = user;
+                populatedUser.user = u;
+                resolve(populatedUser);
+              })
+              .catch(reject);
+          });
+        }
       })
     )
     .then(populatedUsers => {
@@ -147,8 +159,11 @@ router.get('/:id/user', (req, res, next) => {
 });
 
 router.post('/:id/addCoworker', authService.verifyUserAuthentication, (req, res, next) => {
-  workController
-		.addCoworker(req.params.id, req.body.coworker)
+  userController
+    .getUserById(req.userId)
+    .then((user) => {
+      return workController.addCoworker(req.params.id, req.body.coworker, user);
+    })
 		.then(() => {
       res.apiSuccess({});
     })
@@ -164,6 +179,27 @@ router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, (req, r
     .catch(next)
 });
 
+router.post('/invite', (req, res, next) => {
+  const authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET;
+  jwt.verify(req.body.token, authSecret, (err, decoded) => {
+    if (err) {
+      next (new ApiError(err.message || 'Invalid token.'));
+    }
+    else {
+      workController
+        .findWorkById(decoded.workId)
+        .then(workData => {
+          const work = workData.toJson({});
+          res.apiSuccess({
+            work: work,
+            tagger: decoded.tagger,
+            startFrom: decoded.startFrom,
+          });
+        })
+        .catch(next);
+    }
+  });
+});
 // router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
 // 	unitController
 // 		.updateUnit(req.params.id, req.body)

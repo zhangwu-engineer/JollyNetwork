@@ -2,7 +2,8 @@
  * Mail Service
  */
 
-const mandrill = require('mandrill-api/mandrill');
+const mandrill = require('mandrill-api/mandrill'),
+  jwt = require('jsonwebtoken');
 
 class Mail {
 
@@ -91,6 +92,62 @@ class Mail {
         resolve(result);
       }, function(e) {
         reject(e);
+      });
+    });
+  }
+
+  sendInvite(tagges, work, tagger) {
+    const authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET;
+    const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
+    var template_name = "invite";
+    var template_content = [];
+    tagges.forEach(tagee => {
+      const token = jwt.sign ({
+        workId: work.id,
+        tagger: tagger,
+        startFrom: tagee.existing ? 'signin' : 'signup',
+			}, authSecret, {
+				expiresIn: 86400
+			});
+      const taggerFirstName = `${tagger.firstName}`;
+      const taggerLastName = `${tagger.lastName}`;
+      var message = {
+        "subject": `${taggerFirstName} ${taggerLastName} tagged you on a job.`,
+        "to": [{
+          "email": tagee.email,
+          "type": "to"
+        }],
+        "merge_vars": [{
+          "rcpt": tagee.email,
+          "vars": [{
+            "name": "fname",
+            "content": taggerFirstName,
+          }, {
+            "name": "lname",
+            "content": taggerLastName,
+          }, {
+            "name": "ename",
+            "content": work.title,
+          }, {
+            "name": "eextra",
+            "content": "",
+          }, {
+            "name": "link",
+            "content": `<a href="${JOLLY.config.APP.APP_DOMAIN}/f/${tagger.slug}/e/${work.slug}/work/${token}">View My Invitation</a>`
+          }]
+        }],
+      }
+      var async = true;
+      var ip_pool = "Main Pool";
+      var send_at = new Date();
+
+      mandrill_client.messages.sendTemplate({
+        "template_name": template_name,
+        "template_content": template_content,
+        "message": message,
+        "async": async,
+        "ip_pool": ip_pool,
+        "send_at": send_at,
       });
     });
   }

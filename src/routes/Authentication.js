@@ -40,13 +40,19 @@ router.post('/login', (req, res, next) => {
             throw new ApiError('The email or password entered is incorrect', 404);
           }
 
+          if (req.body.invite && req.body.invite.work) {
+            const workData = req.body.invite.work;
+            workData.user = userData.id;
+            userController.saveWork(workData);
+          }
+
           authToken = authService.generateToken({
               userId: userData.id
           });
 
           res.apiSuccess({
-              auth_token: authToken,
-              user: userData,
+            auth_token: authToken,
+            user: userData,
           });
         }
     })
@@ -70,6 +76,11 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
             userController
                 .registerUser(data)
                 .then((userData) => {
+                    if (req.body.invite && req.body.invite.work) {
+                      const workData = req.body.invite.work;
+                      workData.user = userData.id;
+                      userController.saveWork(workData);
+                    }
                     authToken = authService.generateToken({
                         userId: userData.id
                     });
@@ -85,6 +96,11 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
             userData = userObject.toJson({
                 isSafeOutput: true
             });
+            if (req.body.invite && req.body.invite.work) {
+              const workData = req.body.invite.work;
+              workData.user = userData.id;
+              userController.saveWork(workData);
+            }
             authToken = authService.generateToken({
                 userId: userData.id
             });
@@ -111,6 +127,11 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
           userController
               .registerUser(data)
               .then((userData) => {
+                  if (req.body.invite && req.body.invite.work) {
+                    const workData = req.body.invite.work;
+                    workData.user = userData.id;
+                    userController.saveWork(workData);
+                  }
                   authToken = authService.generateToken({
                       userId: userData.id
                   });
@@ -125,6 +146,11 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
           userData = userObject.toJson({
               isSafeOutput: true
           });
+          if (req.body.invite && req.body.invite.work) {
+            const workData = req.body.invite.work;
+            workData.user = userData.id;
+            userController.saveWork(workData);
+          }
           authToken = authService.generateToken({
               userId: userData.id
           });
