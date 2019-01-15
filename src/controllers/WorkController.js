@@ -98,10 +98,7 @@ class WorkController {
       const workData = await this.saveWork(newWork);
 
       mailService.sendInvite(emails, workData.toJson({}), { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
-      return {
-        tageeEmails: emails,
-        work: workData.toJson({}),
-      };
+      return workData.toJson({});
 
     } catch (err) {
       throw new ApiError(err.message);
