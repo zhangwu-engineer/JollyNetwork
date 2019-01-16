@@ -316,14 +316,14 @@ class WorkController {
             if (data) {
               work = new EntityWork(data);
               if (emailRegEx.test(coworker)) {
-                mailService.sendInvite([{ email: coworker, existing: false }], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
-                resolve();
+                const tokens = mailService.sendInvite([{ email: coworker, existing: false }], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
+                resolve(tokens);
               } else {
                 db.collection('users').findOne({
                   _id: new mongodb.ObjectID(coworker),
                 }).then((userData) => {
-                  mailService.sendInvite([{ email: userData.email, existing: true}], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
-                  resolve();
+                  const tokens = mailService.sendInvite([{ email: userData.email, existing: true}], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
+                  resolve(tokens);
                 });
               }
             } else {

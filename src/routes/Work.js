@@ -178,7 +178,19 @@ router.post('/:id/addCoworker', authService.verifyUserAuthentication, (req, res,
     .then((user) => {
       return workController.addCoworker(req.params.id, req.body.coworker, user);
     })
-		.then(() => {
+		.then((tokens) => {
+      return Promise.map(tokens, (token) => {
+        return new Promise((resolve, reject) => {
+          tokenController
+            .addToken({ token })
+            .then(() => {
+              resolve();
+            })
+            .catch(reject);
+        });
+      });
+    })
+    .then(() => {
       res.apiSuccess({});
     })
     .catch(next)
