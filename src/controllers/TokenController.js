@@ -80,6 +80,25 @@ class TokenController {
 				.catch(reject);
 		});
   }
+
+  isValidToken (token) {
+    let self = this,
+      db = this.getDefaultDB(),
+			collectionName = 'tokens';
+
+		return new Promise((resolve, reject) => {
+			db.collection(collectionName)
+				.findOne({ token })
+				.then((data) => {
+					if ( data ) {
+            resolve();
+          } else {
+            reject(new ApiError('invalid token'));
+          }
+        })
+				.catch(reject);
+		});
+  }
 	/**
 	 * Save token into database.
 	 * @param {EntityToken} token - token we are going to register into system.

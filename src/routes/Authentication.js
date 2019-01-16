@@ -46,6 +46,10 @@ router.post('/login', (req, res, next) => {
             userController.saveWork(workData);
           }
 
+          if (req.body.invite && req.body.invite.token) {
+            userController.deleteToken(req.body.invite.token);
+          }
+
           authToken = authService.generateToken({
               userId: userData.id
           });
@@ -81,6 +85,15 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
                       workData.user = userData.id;
                       userController.saveWork(workData);
                     }
+
+                    if (req.body.invite && req.body.invite.rootWorkId) {
+                      userController.addCoworker(req.body.invite.rootWorkId, userData.id.toString(), res.email);
+                    }
+
+                    if (req.body.invite && req.body.invite.token) {
+                      userController.deleteToken(req.body.invite.token);
+                    }
+
                     authToken = authService.generateToken({
                         userId: userData.id
                     });
@@ -100,6 +113,10 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
               const workData = req.body.invite.work;
               workData.user = userData.id;
               userController.saveWork(workData);
+            }
+
+            if (req.body.invite && req.body.invite.token) {
+              userController.deleteToken(req.body.invite.token);
             }
             authToken = authService.generateToken({
                 userId: userData.id
@@ -132,6 +149,15 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
                     workData.user = userData.id;
                     userController.saveWork(workData);
                   }
+
+                  if (req.body.invite && req.body.invite.rootWorkId) {
+                    userController.addCoworker(req.body.invite.rootWorkId, userData.id.toString(), res.email);
+                  }
+
+                  if (req.body.invite && req.body.invite.token) {
+                    userController.deleteToken(req.body.invite.token);
+                  }
+
                   authToken = authService.generateToken({
                       userId: userData.id
                   });
@@ -151,6 +177,11 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
             workData.user = userData.id;
             userController.saveWork(workData);
           }
+
+          if (req.body.invite && req.body.invite.token) {
+            userController.deleteToken(req.body.invite.token);
+          }
+
           authToken = authService.generateToken({
               userId: userData.id
           });

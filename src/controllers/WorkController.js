@@ -254,19 +254,15 @@ class WorkController {
 			db.collection('works').findOne({
 				_id: new mongodb.ObjectID(eventId),
 			}).then((data) => {
-        coworkers = data.coworkers;
-        data.coworkers.forEach(coworker => {
-          users.push({
-            type: "invited",
-            user: coworker,
+        coworkers = data.coworkers || [];
+        if (data.coworkers) {
+          data.coworkers.forEach(coworker => {
+            users.push({
+              type: "invited",
+              user: coworker,
+            });
           });
-        });
-        data.verifiedCoworkers.forEach(coworker => {
-          users.push({
-            type: "verified",
-            user: coworker,
-          });
-        });
+        }
         db.collection('works')
           .find({
             slug: data.slug,
@@ -286,7 +282,7 @@ class WorkController {
                     type: "verified",
                     user: workData.user,
                   });
-                } else if (!data.verifiedCoworkers.includes(workData.user.toString())) {
+                } else {
                   users.push({
                     type: "verifiable",
                     user: workData.user,
@@ -345,7 +341,7 @@ class WorkController {
       db.collection('works')
         .updateOne({
           _id: new mongodb.ObjectID(id),
-        }, { $push: { verifiedCoworkers: options.coworker } })
+        }, { $push: { coworkers: options.coworker } })
       ,
       db.collection('works')
         .updateOne({

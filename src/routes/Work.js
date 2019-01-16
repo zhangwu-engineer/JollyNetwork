@@ -195,24 +195,21 @@ router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, (req, r
 
 router.post('/invite', (req, res, next) => {
   const authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET;
-  jwt.verify(req.body.token, authSecret, (err, decoded) => {
-    if (err) {
-      next (new ApiError(err.message || 'Invalid token.'));
-    }
-    else {
-      workController
-        .findWorkById(decoded.workId)
-        .then(workData => {
-          const work = workData.toJson({});
+  tokenController
+    .isValidToken(req.body.token)
+    .then(() => {
+      jwt.verify(req.body.token, authSecret, (err, decoded) => {
+        if (err) {
+          next (new ApiError(err.message || 'Invalid token.'));
+        } else {
           res.apiSuccess({
-            work: work,
+            workId: decoded.workId,
             tagger: decoded.tagger,
             startFrom: decoded.startFrom,
           });
-        })
-        .catch(next);
-    }
-  });
+        }
+      });
+    }).catch(next);
 });
 // router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
 // 	unitController
