@@ -7,6 +7,8 @@ const fileType = require('file-type');
 const dateFns = require('date-fns');
 const Promise = require('bluebird');
 const EntityWork = require('../entities/EntityWork'),
+  EntityRole = require('../entities/EntityRole'),
+  Role = require('../enum/Role'),
 	DbNames = require('../enum/DbNames');
 
 
@@ -97,6 +99,8 @@ class WorkController {
       });
 
       const workData = await this.saveWork(newWork);
+
+      this.saveRole(role, user);
 
       const tokens = mailService.sendInvite(emails, workData.toJson({}), { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
 
@@ -420,6 +424,41 @@ class WorkController {
 			db.collection(collectionName)
 				.deleteOne({_id: new mongodb.ObjectID(id)})
 				.then(() => {
+          resolve();
+        })
+				.catch(reject);
+
+			});
+  }
+
+  saveRole (role, user) {
+		let db = this.getDefaultDB(),
+			collectionName = 'roles';
+
+		return new Promise((resolve, reject) => {
+
+      db.collection(collectionName)
+        .findOne({ name: role, user_id: new mongodb.ObjectID(user) })
+        .then((data) => {
+          if (data) {
+            resolve();
+          } else {
+            const newRole = new EntityRole({
+              name: role,
+              user_id: user,
+              minRate: '',
+              maxRate: '',
+              unit: 'hour',
+              dateStarted: new Date(),
+            });
+            const roleData = newRole.toJson();
+            if (roleData.id == null) {
+              delete (roleData.id);
+            }
+            return db.collection(collectionName).insertOne(roleData);
+          }
+        })
+        .then(() => {
           resolve();
         })
 				.catch(reject);
