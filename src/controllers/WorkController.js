@@ -79,8 +79,8 @@ class WorkController {
         photo_urls.push(`${JOLLY.config.S3.BUCKET_LINK}/${filePath}`);
       }
 
-      const emails = coworkers.map(c => typeof c ==='object' ? { email: c.email, existing: true }: { email: c, existing: false });
-      coworkers = coworkers.filter(c => typeof c === 'object').map(c => c.id);
+      const emails = coworkers.map(c => ({ email: c.email, existing: !!c.id }));
+      coworkers = coworkers.map(c => c.id ? c.id : c.email);
 
       newWork = new EntityWork({
         title,
@@ -97,8 +97,12 @@ class WorkController {
 
       const workData = await this.saveWork(newWork);
 
-      mailService.sendInvite(emails, workData.toJson({}), { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
-      return workData.toJson({});
+      const tokens = mailService.sendInvite(emails, workData.toJson({}), { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
+
+      return {
+        tokens: tokens,
+        work: workData.toJson({}),
+      };
 
     } catch (err) {
       throw new ApiError(err.message);

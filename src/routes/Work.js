@@ -7,6 +7,7 @@ const Promise = require('bluebird');
 
 let authService = JOLLY.service.Authentication,
   workController = JOLLY.controller.WorkController,
+  tokenController = JOLLY.controller.TokenController,
   userController = JOLLY.controller.UserController;
 
 
@@ -69,14 +70,27 @@ router.get('/user/:slug', (req, res, next) => {
  * create new unit into system.
  */
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
-
+  let work = null;
   userController.getUserById(req.userId)
     .then(user => {
       return workController.addWork(Object.assign({}, req.body, { user: req.userId, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }));
     })
-    .then((workData) => {
-			res.apiSuccess({
-				work: workData
+    .then((result) => {
+      work = result.work;
+      return Promise.map(result.tokens, (token) => {
+        return new Promise((resolve, reject) => {
+          tokenController
+            .addToken({ token })
+            .then(() => {
+              resolve();
+            })
+            .catch(reject);
+        });
+      });
+    })
+    .then(() => {
+      res.apiSuccess({
+				work: work
 			});
     })
     .catch(next);
