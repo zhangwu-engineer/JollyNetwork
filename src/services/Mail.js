@@ -101,6 +101,7 @@ class Mail {
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
     var template_name = "invite";
     var template_content = [];
+    const tokens = [];
     tagges.forEach(tagee => {
       const token = jwt.sign ({
         workId: work.id,
@@ -108,7 +109,8 @@ class Mail {
         startFrom: tagee.existing ? 'signin' : 'signup',
 			}, authSecret, {
 				expiresIn: 86400
-			});
+      });
+      tokens.push(token);
       const taggerFirstName = `${tagger.firstName}`;
       const taggerLastName = `${tagger.lastName}`;
       var message = {
@@ -150,6 +152,7 @@ class Mail {
         "send_at": send_at,
       });
     });
+    return tokens;
   }
 }
 
