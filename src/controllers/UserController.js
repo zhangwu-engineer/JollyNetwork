@@ -87,6 +87,12 @@ class UserController {
           workData.user = res.id;
           await self.saveWork(workData);
         }
+        if (invite && invite.rootWorkId) {
+          await self.addCoworker(invite.rootWorkId, res.id.toString(), res.email);
+        }
+        if (invite && invite.token) {
+          await self.deleteToken(invite.token);
+        }
         mailService.sendEmailVerification(res);
         return res;
       }
@@ -593,6 +599,45 @@ class UserController {
 					workEntity = new EntityWork(workData);
 					resolve(workEntity);
 				})
+				.catch(reject);
+
+			});
+  }
+
+  addCoworker(workId, userId, userEmail) {
+    let db = this.getDefaultDB();
+
+		return new Promise((resolve, reject) => {
+
+      db.collection('works')
+        .updateOne({
+          _id: new mongodb.ObjectID(workId),
+        }, { $push: { coworkers: userId } })
+        .then(() => {
+          return db.collection('works')
+            .updateOne({
+              _id: new mongodb.ObjectID(workId),
+            }, { $pull: { coworkers: userEmail } })
+        })
+        .then(() => {
+          resolve();
+        })
+        .catch(reject);
+
+    });
+  }
+
+  deleteToken(token) {
+    let db = this.getDefaultDB(),
+      collectionName = 'tokens';
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.deleteOne({ token })
+				.then(() => {
+          resolve();
+        })
 				.catch(reject);
 
 			});
