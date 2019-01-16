@@ -51,7 +51,8 @@ class WorkController {
       const {title, role, from, to, caption, pinToProfile, photos, user, firstName, lastName, userSlug} = options;
       const fromString = dateFns.format(new Date(from), 'YYYYMMDD');
       const toString = dateFns.format(new Date(to), 'YYYYMMDD');
-      const slug = `${title.toLowerCase().split(' ').join('-')}-${fromString}-${toString}`;
+      let slug = `${title.toLowerCase().split(' ').join('-')}-${fromString}-${toString}`;
+      slug = slug.normalize('NFD').replace(/[^a-zA-Z0-9\-]/g, '');
       let { coworkers } = options;
       let newWork;
 
