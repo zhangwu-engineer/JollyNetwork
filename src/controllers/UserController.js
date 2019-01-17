@@ -86,6 +86,7 @@ class UserController {
           const workData = invite.work;
           workData.user = res.id;
           await self.saveWork(workData);
+          await self.clearEmail(workData.slug, res.email);
         }
         if (invite && invite.rootWorkId) {
           await self.addCoworker(invite.rootWorkId, res.id.toString(), res.email);
@@ -619,6 +620,24 @@ class UserController {
               _id: new mongodb.ObjectID(workId),
             }, { $pull: { coworkers: userEmail } })
         })
+        .then(() => {
+          resolve();
+        })
+        .catch(reject);
+
+    });
+  }
+
+  clearEmail(workSlug, email) {
+    let db = this.getDefaultDB();
+
+		return new Promise((resolve, reject) => {
+
+      db.collection('works')
+        .updateOne({
+          slug: workSlug,
+          coworkers: email,
+        }, { $pull: { coworkers: email } })
         .then(() => {
           resolve();
         })
