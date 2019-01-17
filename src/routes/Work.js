@@ -31,6 +31,21 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
         });
       })
     )
+    .then((works) =>
+      Promise.map(works, (work) => {
+        return new Promise((resolve, reject) => {
+          workController
+            .findWorkUsers(work.id)
+            .then(users => {
+              const coworkers = users.filter(i => i.type !== 'invited')
+              const populatedWork = work;
+              populatedWork.numberOfCoworkers = coworkers.length;
+              resolve(populatedWork);
+            })
+            .catch(reject);
+        });
+      })
+    )
     .then(populatedWorks => {
       res.apiSuccess({
         work_list: populatedWorks
@@ -52,6 +67,21 @@ router.get('/user/:slug', (req, res, next) => {
             .then(user => {
               const populatedWork = work;
               populatedWork.user = user;
+              resolve(populatedWork);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then((works) =>
+      Promise.map(works, (work) => {
+        return new Promise((resolve, reject) => {
+          workController
+            .findWorkUsers(work.id)
+            .then(users => {
+              const coworkers = users.filter(i => i.type !== 'invited')
+              const populatedWork = work;
+              populatedWork.numberOfCoworkers = coworkers.length;
               resolve(populatedWork);
             })
             .catch(reject);
