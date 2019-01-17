@@ -49,7 +49,7 @@ function LinkedinTokenStrategy(options, verify) {
   this._passReqToCallback = options.passReqToCallback;
 
   OAuth2Strategy.call(this, options, verify);
-  this.profileUrl = options.profileURL || 'https://api.linkedin.com/v1/people/~:(id,first-name,last-name,email-address,public-profile-url)?format=json';
+  this.profileUrl = options.profileURL || 'https://api.linkedin.com/v1/people/~:(id,first-name,last-name,email-address,picture-url,public-profile-url)?format=json';
   this.name = 'linkedin-oauth-token';
 }
 

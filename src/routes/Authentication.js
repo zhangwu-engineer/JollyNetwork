@@ -73,6 +73,9 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
         lastName: req.user.name.familyName,
         email: req.user.emails[0].value,
     };
+    if (req.user.photos && req.user.photos.length) {
+      data.avatar = req.user.photos[0].value;
+    }
     userController.findUserByEmail({
         email: data.email,
     }).then((userObject) => {
@@ -137,6 +140,9 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
       lastName: req.user.name.familyName,
       email: req.user.emails[0].value,
   };
+  if (req.user.photos && req.user.photos.length) {
+    data.avatar = req.user.photos[0];
+  }
   userController.findUserByEmail({
       email: data.email,
   }).then((userObject) => {
