@@ -50,7 +50,7 @@ class UserController {
       authService = JOLLY.service.Authentication,
       mailService = JOLLY.service.Mail;
 
-    let {email, firstName, lastName, password, invite} = options,
+    let {email, firstName, lastName, password, avatar, invite} = options,
 				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
         newUser,
         newUserProfile;
@@ -78,7 +78,11 @@ class UserController {
 					slug,
         });
         const userData = await self.saveUser(newUser);
-        newUserProfile = new EntityProfile({ userId: userData._id });
+        const newProfileData = { userId: userData._id };
+        if (avatar) {
+          newProfileData.avatar = avatar;
+        }
+        newUserProfile = new EntityProfile(newProfileData);
         const userProfileData = await self.saveUserProfile(newUserProfile)
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
