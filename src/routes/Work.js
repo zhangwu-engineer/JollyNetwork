@@ -253,6 +253,17 @@ router.post('/invite', (req, res, next) => {
       });
     }).catch(next);
 });
+
+router.post('/invite/accept', authService.verifyUserAuthentication, (req, res, next) => {
+  userController
+    .getUserById(req.userId)
+    .then(user => {
+      return userController.acceptInvite(req.body, user);
+    })
+    .then(() => {
+      res.apiSuccess({});
+    }).catch(next);
+});
 // router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
 // 	unitController
 // 		.updateUnit(req.params.id, req.body)
