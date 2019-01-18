@@ -665,6 +665,25 @@ class UserController {
 
 			});
   }
+
+  async acceptInvite(invite, user) {
+    const self = this;
+    try {
+      const workData = invite.work;
+      workData.user = user.id;
+      await self.saveWork(workData);
+      await self.clearEmail(workData.slug, user.email);
+      if (invite.rootWorkId) {
+        await self.addCoworker(invite.rootWorkId, user.id.toString(), user.email);
+      }
+      if (invite.token) {
+        await self.deleteToken(invite.token);
+      }
+      return workData;
+    } catch (err) {
+      throw err;
+    }
+  }
 }
 
 module.exports = UserController;
