@@ -264,7 +264,7 @@ class UserController {
   findUserByKeyword (options) {
 
 		let db = this.getDefaultDB(),
-      keyword = options.keyword,
+      keyword = options.keyword.trim(),
       userId = options.user_id,
 			user = null;
 
@@ -277,6 +277,7 @@ class UserController {
             { firstName: { $regex: `(?i)${keyword}` } },
             { lastName: { $regex: `(?i)${keyword}` } },
             { email: { $regex: `(?i)${keyword}` } },
+            { slug: { $regex: `(?i)${keyword.split(' ').join('-')}` } }
           ],
           _id: { $ne: new mongodb.ObjectID(userId) },
         })
