@@ -13,6 +13,7 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {Array} verifiers
  * @property {Array} photos
  * @property {String} slug
+ * @property {String} addMethod
  * @property {ObjectId} user
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
@@ -42,6 +43,7 @@ class EntityWork extends BaseEntityWithID {
         this._verifiers = options.verifiers || [];
         this._photos = options.photos || [];
         this._slug = options.slug;
+        this._addMethod = options.addMethod || 'created';
         this._user = new ObjectId(options.user);
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
         this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
@@ -66,6 +68,7 @@ class EntityWork extends BaseEntityWithID {
       data.verifiers = this._verifiers;
       data.photos = this._photos;
       data.slug = this._slug;
+      data.addMethod = this._addMethod;
       data.user = this._user;
       data.date_created = this._dateCreated;
       data.date_updated = this._dateUpdated;

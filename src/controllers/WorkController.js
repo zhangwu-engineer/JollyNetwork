@@ -6,11 +6,11 @@ const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const dateFns = require('date-fns');
 const Promise = require('bluebird');
+const Analytics = require('analytics-node');
 const EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   Role = require('../enum/Role'),
-	DbNames = require('../enum/DbNames');
-
+  DbNames = require('../enum/DbNames');
 
 class WorkController {
 
@@ -47,6 +47,7 @@ class WorkController {
 	 */
 	async addWork (options) {
     const mailService = JOLLY.service.Mail;
+    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     try {
       const S3 = new AWS.S3();
@@ -56,6 +57,7 @@ class WorkController {
       let slug = `${title.toLowerCase().split(' ').join('-')}-${fromString}-${toString}`;
       slug = slug.normalize('NFD').replace(/[^a-zA-Z0-9\-]/g, '');
       let { coworkers } = options;
+      const originalCoworkers = coworkers;
       let newWork;
 
       let photo_urls = [];
@@ -99,14 +101,53 @@ class WorkController {
       });
 
       const workData = await this.saveWork(newWork);
+      const work = workData.toJson({});
 
       this.saveRole(role, user);
 
-      const tokens = mailService.sendInvite(emails, workData.toJson({}), { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
+      originalCoworkers.map(c => {
+        if (c.id) {
+          analytics.track({
+            userId: user,
+            event: 'Coworker Tagged on Job',
+            properties: {
+              userID: user,
+              jobID: work.id,
+              eventID: work.slug,
+              jobAddedMethod: 'created',
+              taggedCoworker: {
+                userID: c.id,
+                email: c.email,
+                name: `${c.firstName} ${c.lastName}`
+              },
+              tagStatus: 'awaiting_response',
+            }
+          });
+        } else {
+          analytics.track({
+            userId: user,
+            event: 'Coworker Tagged on Job',
+            properties: {
+              userID: user,
+              jobID: work.id,
+              eventID: work.slug,
+              jobAddedMethod: 'created',
+              taggedCoworker: {
+                userID: null,
+                email: c.email,
+                name: null
+              },
+              tagStatus: 'awaiting_response',
+            }
+          });
+        }
+      });
+
+      const tokens = mailService.sendInvite(emails, work, { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
 
       return {
         tokens: tokens,
-        work: workData.toJson({}),
+        work: work,
       };
 
     } catch (err) {
