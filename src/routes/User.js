@@ -31,7 +31,7 @@ router.post('/search', authService.verifyUserAuthentication, (req, res, next) =>
     .findUserByKeyword(Object.assign({}, req.body, { user_id: req.userId }))
     .then((userList) => {
       res.apiSuccess({
-        user_list: userList
+        user_list: userList.sort((a,b) => (a.slug > b.slug) ? 1 : ((b.slug > a.slug) ? -1 : 0))
       });
     })
     .catch(next);
