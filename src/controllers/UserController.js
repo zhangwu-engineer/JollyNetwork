@@ -86,7 +86,9 @@ class UserController {
         const userProfileData = await self.saveUserProfile(newUserProfile)
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
-        await self.acceptInvite(invite, res);
+        if (invite) {
+          await self.acceptInvite(invite, res);
+        }
         mailService.sendEmailVerification(res);
         return res;
       }
