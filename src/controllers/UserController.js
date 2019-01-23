@@ -5,7 +5,7 @@ const mongodb = require('mongodb');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
-
+const Analytics = require('analytics-node');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
   EntityWork = require('../entities/EntityWork'),
@@ -86,18 +86,7 @@ class UserController {
         const userProfileData = await self.saveUserProfile(newUserProfile)
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
-        if (invite && invite.work) {
-          const workData = invite.work;
-          workData.user = res.id;
-          await self.saveWork(workData);
-          await self.clearEmail(workData.slug, res.email);
-        }
-        if (invite && invite.rootWorkId) {
-          await self.addCoworker(invite.rootWorkId, res.id.toString(), res.email);
-        }
-        if (invite && invite.token) {
-          await self.deleteToken(invite.token);
-        }
+        await self.acceptInvite(invite, res);
         mailService.sendEmailVerification(res);
         return res;
       }
@@ -618,7 +607,7 @@ class UserController {
       db.collection('works')
         .updateOne({
           _id: new mongodb.ObjectID(workId),
-        }, { $push: { coworkers: userId } })
+        }, { $addToSet: { coworkers: userId } })
         .then(() => {
           return db.collection('works')
             .updateOne({
@@ -668,11 +657,30 @@ class UserController {
   }
 
   async acceptInvite(invite, user) {
+    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const self = this;
     try {
       const workData = invite.work;
       workData.user = user.id;
       await self.saveWork(workData);
+      if (workData.verifiers) {
+        analytics.track({
+          userId: user.id.toString(),
+          event: 'Coworker Tagged on Job',
+          properties: {
+            userID: invite.tagger && invite.tagger.userId,
+            jobID: workData.id,
+            eventID: workData.slug,
+            jobAddedMethod: workData.addMethod || 'created',
+            taggedCoworker: {
+              userID: user.id.toString(),
+              email: user.email,
+              name: `${user.firstName} ${user.lastName}`
+            },
+            tagStatus: 'accepted',
+          }
+        });
+      }
       await self.clearEmail(workData.slug, user.email);
       if (invite.rootWorkId) {
         await self.addCoworker(invite.rootWorkId, user.id.toString(), user.email);
