@@ -661,6 +661,7 @@ class UserController {
     const self = this;
     try {
       const workData = invite.work;
+      const originalAddMethod = workData.addMethod;
       workData.user = user.id;
       workData.addMethod = 'tagged';
       await self.saveWork(workData);
@@ -679,6 +680,18 @@ class UserController {
               name: `${user.firstName} ${user.lastName}`
             },
             tagStatus: 'accepted',
+          }
+        });
+        analytics.track({
+          userId: invite.tagger && invite.tagger.userId,
+          event: 'Coworker Job Verified',
+          properties: {
+            userID: invite.tagger && invite.tagger.userId,
+            jobID: workData.id,
+            eventID: workData.slug,
+            jobAddedMethod: originalAddMethod,
+            verificationMethod: 'tagged',
+            verifiedCoworkerUserID: user.id.toString(),
           }
         });
       }
