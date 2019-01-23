@@ -4,9 +4,10 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
-
+const Analytics = require('analytics-node');
 let authService = JOLLY.service.Authentication,
-  userController = JOLLY.controller.UserController;
+  workController = JOLLY.controller.WorkController,
+  userController = JOLLY.controller.UserController,
 	endorsementController = JOLLY.controller.EndorsementController;
 
 
@@ -110,10 +111,27 @@ router.post('/work/:workSlug/endorsers', (req, res, next) => {
  * create new endorsement into system.
  */
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
-
-	endorsementController
-		.addEndorsement(Object.assign({}, req.body, { from: req.userId }))
+  const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  let workData = null;
+  workController
+    .findWorkById(req.body.work)
+    .then(work => {
+      workData = work.toJson({});
+      return endorsementController.addEndorsement(Object.assign({}, req.body, { from: req.userId }))
+    })
 		.then((endorsementData) => {
+      analytics.track({
+        userId: req.userId,
+        event: 'Coworker Job Endorsed',
+        properties: {
+          userID: req.userId,
+          jobID: workData.id,
+          eventID: workData.slug,
+          jobAddedMethod: workData.addMethod,
+          qualitySelected: req.body.quality,
+          endorsedCoworkerUserID: req.body.to,
+        }
+      });
 			res.apiSuccess({
 				endorsement: endorsementData
 			});
