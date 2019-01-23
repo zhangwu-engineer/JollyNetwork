@@ -346,6 +346,7 @@ class WorkController {
 
   addCoworker(id, coworker, user) {
     const db = this.getDefaultDB();
+    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const mailService = JOLLY.service.Mail;
     const emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     let work = null;
@@ -361,13 +362,46 @@ class WorkController {
           }).then((data) => {
             if (data) {
               work = new EntityWork(data);
+              const workData = work.toJson({});
               if (emailRegEx.test(coworker)) {
-                const tokens = mailService.sendInvite([{ email: coworker, existing: false }], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
+                analytics.track({
+                  userId: user.id.toString(),
+                  event: 'Coworker Tagged on Job',
+                  properties: {
+                    userID: user.id.toString(),
+                    jobID: workData.id,
+                    eventID: workData.slug,
+                    jobAddedMethod: workData.addMethod || 'created',
+                    taggedCoworker: {
+                      userID: null,
+                      email: coworker,
+                      name: null
+                    },
+                    tagStatus: 'awaiting_response',
+                  }
+                });
+                const tokens = mailService.sendInvite([{ email: coworker, existing: false }], workData, { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
                 resolve(tokens);
               } else {
                 db.collection('users').findOne({
                   _id: new mongodb.ObjectID(coworker),
                 }).then((userData) => {
+                  analytics.track({
+                    userId: user.id.toString(),
+                    event: 'Coworker Tagged on Job',
+                    properties: {
+                      userID: user.id.toString(),
+                      jobID: workData.id,
+                      eventID: workData.slug,
+                      jobAddedMethod: workData.addMethod || 'created',
+                      taggedCoworker: {
+                        userID: userData.id.toString(),
+                        email: userData.email,
+                        name: `${userData.firstName} ${userData.lastName}`
+                      },
+                      tagStatus: 'awaiting_response',
+                    }
+                  });
                   const tokens = mailService.sendInvite([{ email: userData.email, existing: true}], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
                   resolve(tokens);
                 });
