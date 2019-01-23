@@ -695,6 +695,16 @@ class UserController {
           }
         });
       }
+      analytics.track({
+        userId: user.id.toString(),
+        event: 'Coworker Tag on Job Accepted',
+        properties: {
+          userID: user.id.toString(),
+          jobID: workData.id,
+          eventID: workData.slug,
+          taggingUserID: invite.tagger && invite.tagger.userId,
+        }
+      });
       await self.clearEmail(workData.slug, user.email);
       if (invite.rootWorkId) {
         await self.addCoworker(invite.rootWorkId, user.id.toString(), user.email);
