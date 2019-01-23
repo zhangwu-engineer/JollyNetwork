@@ -4,7 +4,7 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
-
+const Analytics = require('analytics-node');
 let authService = JOLLY.service.Authentication,
   workController = JOLLY.controller.WorkController,
   tokenController = JOLLY.controller.TokenController,
@@ -227,9 +227,27 @@ router.post('/:id/addCoworker', authService.verifyUserAuthentication, (req, res,
 });
 
 router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, (req, res, next) => {
+  const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  let workData = null;
   workController
-		.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }))
+    .findWorkById(req.params.id)
+    .then(work => {
+      workData = work.toJson({});
+      return workController.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }));
+    })
 		.then(() => {
+      analytics.track({
+        userId: req.userId,
+        event: 'Coworker Job Verified',
+        properties: {
+          userID: req.userId,
+          jobID: workData.id,
+          eventID: workData.slug,
+          jobAddedMethod: workData.addMethod,
+          verificationMethod: 'clicked',
+          verifiedCoworkerUserID: req.body.coworker,
+        }
+      });
       res.apiSuccess({});
     })
     .catch(next)
