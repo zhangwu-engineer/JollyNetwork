@@ -662,6 +662,7 @@ class UserController {
     try {
       const workData = invite.work;
       workData.user = user.id;
+      workData.addMethod = 'tagged';
       await self.saveWork(workData);
       if (workData.verifiers) {
         analytics.track({
