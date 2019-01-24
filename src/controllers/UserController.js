@@ -9,6 +9,7 @@ const Analytics = require('analytics-node');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
   EntityWork = require('../entities/EntityWork'),
+  EntityRole = require('../entities/EntityRole'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -667,6 +668,7 @@ class UserController {
       workData.user = user.id;
       workData.addMethod = 'tagged';
       await self.saveWork(workData);
+      await self.saveRole(workData.role, user);
       if (workData.verifiers) {
         analytics.track({
           userId: user.id.toString(),
@@ -718,6 +720,41 @@ class UserController {
     } catch (err) {
       throw err;
     }
+  }
+
+  saveRole (role, user) {
+		let db = this.getDefaultDB(),
+			collectionName = 'roles';
+
+		return new Promise((resolve, reject) => {
+
+      db.collection(collectionName)
+        .findOne({ name: role, user_id: new mongodb.ObjectID(user.id.toString())})
+        .then((data) => {
+          if (data) {
+            resolve();
+          } else {
+            const newRole = new EntityRole({
+              name: role,
+              user_id: user.id.toString(),
+              minRate: '',
+              maxRate: '',
+              unit: 'hour',
+              dateStarted: new Date(),
+            });
+            const roleData = newRole.toJson();
+            if (roleData.id == null) {
+              delete (roleData.id);
+            }
+            return db.collection(collectionName).insertOne(roleData);
+          }
+        })
+        .then(() => {
+          resolve();
+        })
+				.catch(reject);
+
+			});
   }
 }
 
