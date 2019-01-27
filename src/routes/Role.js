@@ -55,14 +55,43 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
 });
 
 router.get('/user/:slug', (req, res, next) => {
-
+  let user;
   userController.getUserBySlug(req.params.slug)
     .then(userData => {
+      user = userData;
       return roleController.getUserRoles(userData.id);
     })
-    .then((userRoleList) => {
+    .then((roles) =>
+      Promise.map(roles, (role) => {
+        return new Promise((resolve, reject) => {
+          workController
+            .getUserVerifiedWorksForRole(user.id, role.name)
+            .then(count => {
+              const newRole = role;
+              newRole.verifiedJobs = count;
+              resolve(newRole);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then((roles) =>
+      Promise.map(roles, (role) => {
+        return new Promise((resolve, reject) => {
+          endorsementController
+            .getUserEndorsementsForRole(user.id, role.name)
+            .then(count => {
+              const newRole = role;
+              newRole.endorsements = count;
+              resolve(newRole);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then((roles) => {
       res.apiSuccess({
-        roles: userRoleList
+        roles,
       });
     })
     .catch(next);
