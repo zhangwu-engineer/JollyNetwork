@@ -113,11 +113,16 @@ router.post('/work/:workSlug/endorsers', (req, res, next) => {
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
   const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
   let workData = null;
+  let toRole = "";
   workController
     .findWorkById(req.body.work)
     .then(work => {
       workData = work.toJson({});
-      return endorsementController.addEndorsement(Object.assign({}, req.body, { from: req.userId }))
+      return workController.getUserRoleInJob(req.body.to, req.body.work_slug);
+    })
+    .then(role => {
+      toRole = role;
+      return endorsementController.addEndorsement(Object.assign({}, req.body, { from: req.userId, role: toRole }));
     })
 		.then((endorsementData) => {
       analytics.track({

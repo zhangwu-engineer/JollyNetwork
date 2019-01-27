@@ -6,6 +6,7 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {ObjectId} from
  * @property {ObjectId} work
  * @property {String} work_slug
+ * @property {String} role
  * @property {String} quality
  * @property {Date|String} date_created
  *
@@ -28,6 +29,7 @@ class EntityEndorsement extends BaseEntityWithID {
         this._from = new ObjectId(options.from);
         this._work = new ObjectId(options.work);
         this._work_slug = options.work_slug;
+        this._role = options.role;
         this._quality = options.quality;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
     }
@@ -44,6 +46,7 @@ class EntityEndorsement extends BaseEntityWithID {
       data.from = this._from;
       data.work = this._work;
       data.work_slug = this._work_slug;
+      data.role = this._role;
       data.quality = this._quality;
       data.date_created = this._dateCreated;
 
