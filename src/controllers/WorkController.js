@@ -207,6 +207,27 @@ class WorkController {
     });
   }
 
+  getUserVerifiedWorksForRole(userId, role) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+
+      db
+        .collection('works')
+        .find({
+          user: new mongodb.ObjectID(userId),
+          role,
+          $where: 'this.verifiers.length > 0',
+        })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          if (result) {
+            resolve(result.length);
+          }
+          resolve(0);
+        });
+    });
+  }
+
   findWorkById (id) {
 
 		let db = this.getDefaultDB(),
