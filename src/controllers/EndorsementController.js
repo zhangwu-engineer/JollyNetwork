@@ -47,7 +47,7 @@ class EndorsementController {
 
 		return new Promise((resolve, reject) => {
 
-			let {to, from, work, work_slug, quality} = options,
+			let {to, from, work, work_slug, role, quality} = options,
         newEndorsement;
 
       newEndorsement = new EntityEndorsement({
@@ -55,6 +55,7 @@ class EndorsementController {
         from,
         work,
         work_slug,
+        role,
         quality,
 			});
 
