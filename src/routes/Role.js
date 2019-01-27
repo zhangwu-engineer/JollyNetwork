@@ -7,6 +7,7 @@ const Promise = require('bluebird');
 let authService = JOLLY.service.Authentication,
   userController = JOLLY.controller.UserController,
   workController = JOLLY.controller.WorkController,
+  endorsementController = JOLLY.controller.EndorsementController,
 	roleController = JOLLY.controller.RoleController;
 
 
@@ -25,6 +26,20 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
             .then(count => {
               const newRole = role;
               newRole.verifiedJobs = count;
+              resolve(newRole);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then((roles) =>
+      Promise.map(roles, (role) => {
+        return new Promise((resolve, reject) => {
+          endorsementController
+            .getUserEndorsementsForRole(req.userId, role.name)
+            .then(count => {
+              const newRole = role;
+              newRole.endorsements = count;
               resolve(newRole);
             })
             .catch(reject);
