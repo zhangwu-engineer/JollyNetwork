@@ -250,6 +250,29 @@ class WorkController {
 		});
   }
 
+  getUserRoleInJob (userId, workSlug) {
+
+		let db = this.getDefaultDB(),
+			work = null;
+		return new Promise((resolve, reject) => {
+
+			db.collection('works').findOne({
+        user: new mongodb.ObjectID(userId),
+				slug: workSlug,
+			}).then((data) => {
+
+				if (data) {
+
+					resolve(data.role);
+				}
+
+				resolve ('');
+
+			}).catch(reject);
+
+		});
+  }
+
   searchWorks (options) {
 
 		let db = this.getDefaultDB(),
