@@ -3,9 +3,10 @@
  */
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-
+const Promise = require('bluebird');
 let authService = JOLLY.service.Authentication,
-  userController = JOLLY.controller.UserController
+  userController = JOLLY.controller.UserController,
+  workController = JOLLY.controller.WorkController,
 	roleController = JOLLY.controller.RoleController;
 
 
@@ -16,9 +17,23 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
 
   roleController
     .getUserRoles(req.userId)
-    .then((userRoleList) => {
+    .then((roles) =>
+      Promise.map(roles, (role) => {
+        return new Promise((resolve, reject) => {
+          workController
+            .getUserVerifiedWorksForRole(req.userId, role.name)
+            .then(count => {
+              const newRole = role;
+              newRole.verifiedJobs = count;
+              resolve(newRole);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then((roles) => {
       res.apiSuccess({
-        roles: userRoleList
+        roles,
       });
 		})
 		.catch(next);
