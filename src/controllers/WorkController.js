@@ -371,11 +371,13 @@ class WorkController {
                   users.push({
                     type: "verified",
                     user: workData.user,
+                    role: workData.role,
                   });
                 } else {
                   users.push({
                     type: "verifiable",
                     user: workData.user,
+                    role: workData.role,
                   });
                 }
               })
