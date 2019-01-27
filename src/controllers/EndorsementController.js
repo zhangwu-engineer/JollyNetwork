@@ -119,6 +119,28 @@ class EndorsementController {
     });
   }
 
+  getUserEndorsementsForRole(userId, role) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+
+      db
+        .collection('endorsements')
+        .find({
+          to: new mongodb.ObjectID(userId),
+          role,
+        })
+        .toArray((err, result) => {
+          if (err) reject(err);
+
+          if (result) {
+            resolve(result.length);
+          }
+
+          resolve(0);
+        });
+    });
+  }
+
   getEndorsementsForWork(workId, userId) {
     let db = this.getDefaultDB();
     return new Promise((resolve, reject) => {
