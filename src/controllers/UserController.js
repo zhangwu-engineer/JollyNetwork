@@ -259,17 +259,17 @@ class UserController {
       keyword = options.keyword.trim(),
       userId = options.user_id,
 			user = null;
-
+    const regex = new RegExp(`^${keyword}`, "i");
 		return new Promise((resolve, reject) => {
 
       db
         .collection('users')
         .find({
           $or: [
-            { firstName: { $regex: `(?i)${keyword}` } },
-            { lastName: { $regex: `(?i)${keyword}` } },
-            { email: { $regex: `(?i)${keyword}` } },
-            { slug: { $regex: `(?i)${keyword.split(' ').join('-')}` } }
+            { firstName: { $regex: regex } },
+            { lastName: { $regex: regex } },
+            { email: { $regex: regex } },
+            { slug: { $regex: new RegExp(`^${keyword.split(' ').join('-')}`, "i") } }
           ],
           _id: { $ne: new mongodb.ObjectID(userId) },
         })
