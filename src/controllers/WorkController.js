@@ -432,8 +432,6 @@ class WorkController {
                 db.collection('users').findOne({
                   _id: new mongodb.ObjectID(coworker),
                 }).then((userData) => {
-                  console.log('------coworker', coworker);
-                  console.log('********', userData);
                   analytics.track({
                     userId: user.id.toString(),
                     event: 'Coworker Tagged on Job',
@@ -443,7 +441,7 @@ class WorkController {
                       eventID: workData.slug,
                       jobAddedMethod: workData.addMethod || 'created',
                       taggedCoworker: {
-                        userID: userData.id.toString(),
+                        userID: userData._id.toString(),
                         email: userData.email,
                         name: `${userData.firstName} ${userData.lastName}`
                       },
