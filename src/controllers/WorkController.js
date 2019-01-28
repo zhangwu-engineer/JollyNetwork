@@ -432,6 +432,7 @@ class WorkController {
                 db.collection('users').findOne({
                   _id: new mongodb.ObjectID(coworker),
                 }).then((userData) => {
+                  console.log('********', userData);
                   analytics.track({
                     userId: user.id.toString(),
                     event: 'Coworker Tagged on Job',
