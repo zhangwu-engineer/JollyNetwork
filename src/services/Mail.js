@@ -3,6 +3,7 @@
  */
 
 const mandrill = require('mandrill-api/mandrill'),
+  _ = require('lodash'),
   jwt = require('jsonwebtoken');
 
 class Mail {
@@ -31,7 +32,7 @@ class Mail {
     var message = {
       "to": [{
         "email": data.email,
-        "name": `${data.firstName} ${data.lastName}`,
+        "name": `${_.capitalize(data.firstName)} ${_.capitalize(data.lastName)}`,
         "type": "to"
       }],
       "merge_vars": [{
@@ -65,7 +66,7 @@ class Mail {
     var message = {
       "to": [{
         "email": data.email,
-        "name": `${data.firstName} ${data.lastName}`,
+        "name": `${_.capitalize(data.firstName)} ${_.capitalize(data.lastName)}`,
         "type": "to"
       }],
       "merge_vars": [{
@@ -111,8 +112,8 @@ class Mail {
 				expiresIn: 86400
       });
       tokens.push(token);
-      const taggerFirstName = `${tagger.firstName}`;
-      const taggerLastName = `${tagger.lastName}`;
+      const taggerFirstName = `${_.capitalize(tagger.firstName)}`;
+      const taggerLastName = `${_.capitalize(tagger.lastName)}`;
       var message = {
         "subject": `${taggerFirstName} ${taggerLastName} tagged you on a job.`,
         "to": [{
