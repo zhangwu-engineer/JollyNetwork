@@ -3,6 +3,7 @@
  */
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
+const Promise = require('bluebird');
 
 let authService = JOLLY.service.Authentication,
   smsService = JOLLY.service.SMS,
@@ -29,9 +30,21 @@ router.post('/search', authService.verifyUserAuthentication, (req, res, next) =>
 
   userController
     .findUserByKeyword(Object.assign({}, req.body, { user_id: req.userId }))
-    .then((userList) => {
+    .then((userIds) => 
+      Promise.map(userIds, (userId) => {
+        return new Promise((resolve, reject) => {
+          userController
+            .getUserById(userId)
+            .then(user => {
+              resolve(user);
+            })
+            .catch(reject);
+        });
+      })
+    )
+    .then(users => {
       res.apiSuccess({
-        user_list: userList.sort((a,b) => (a.slug > b.slug) ? 1 : ((b.slug > a.slug) ? -1 : 0))
+        user_list: users
       });
     })
     .catch(next);

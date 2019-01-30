@@ -253,45 +253,39 @@ class UserController {
     }
   }
 
-  findUserByKeyword (options) {
+  async findUserByKeyword (options) {
 
 		let db = this.getDefaultDB(),
       keyword = options.keyword.trim(),
       userId = options.user_id,
-			user = null;
-    const regex = new RegExp(`^${keyword}`, "i");
-		return new Promise((resolve, reject) => {
-
-      db
-        .collection('users')
-        .find({
-          $or: [
-            { firstName: { $regex: regex } },
-            { lastName: { $regex: regex } },
-            { email: { $regex: regex } },
-            { slug: { $regex: new RegExp(`^${keyword.split(' ').join('-')}`, "i") } }
-          ],
-          _id: { $ne: new mongodb.ObjectID(userId) },
-        })
-        .toArray((err, result) => {
-          if (err) reject(err);
-          let userList = [];
-
-          if (result) {
-
-            result.forEach((userData) => {
-
-              userList.push(this.getUserById(userData._id));
-            })
-
-          }
-          Promise.all(userList).then(users => {
-            resolve (users);
-          })
-
-        });
-
-		});
+      user = null;
+      
+    try {
+      const result1 = await db.collection('users').find({
+        slug: { $regex: new RegExp(`^${keyword.split(' ').join('-')}`, "i") },
+        _id: { $ne: new mongodb.ObjectID(userId) },
+      }).toArray();
+      const result2 = await db.collection('users').find({
+        email: { $regex: new RegExp(`^${keyword.split(' ').join('-')}`, "i") },
+        _id: { $ne: new mongodb.ObjectID(userId) },
+      }).toArray();
+      const userList1 = result1.sort((a,b) => (a.slug > b.slug) ? 1 : ((b.slug > a.slug) ? -1 : 0));
+      const userList2 = result2.sort((a,b) => (a.slug > b.slug) ? 1 : ((b.slug > a.slug) ? -1 : 0));
+      const userIds = [];
+      userList1.forEach((userData) => {
+        if (!userIds.includes(userData._id.toString())) {
+          userIds.push(userData._id.toString());
+        }
+      });
+      userList2.forEach((userData) => {
+        if (!userIds.includes(userData._id.toString())) {
+          userIds.push(userData._id.toString());
+        }
+      });
+      return userIds;
+    } catch (err) {
+      throw err;
+    }
   }
 
 	findUserByUsername (options) {
