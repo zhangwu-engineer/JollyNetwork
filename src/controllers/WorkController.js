@@ -51,7 +51,7 @@ class WorkController {
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     try {
       const S3 = new AWS.S3();
-      const {title, role, from, to, caption, pinToProfile, photos, user, firstName, lastName, userSlug} = options;
+      const {title, role, from, to, caption, pinToProfile, photos, user, email, firstName, lastName, userSlug} = options;
       const fromString = dateFns.format(new Date(from), 'YYYYMMDD');
       const toString = dateFns.format(new Date(to), 'YYYYMMDD');
       let slug = `${title.toLowerCase().split(' ').join('-')}-${fromString}-${toString}`;
@@ -104,6 +104,26 @@ class WorkController {
       const work = workData.toJson({});
 
       this.saveRole(role, user);
+
+      analytics.track({
+        userId: user,
+        event: 'Job Added',
+        properties: {
+          userID: user,
+          userFullname: `${firstName} ${lastName}`,
+          userEmail: email,
+          jobID: work.id,
+          eventID: work.slug,
+          role: work.role,
+          beginDate: work.from,
+          endDate: work.to,
+          jobCreatedTimestamp: work.date_created,
+          caption: work.caption,
+          numberOfImages: work.photos.length,
+          jobAddedMethod: 'created',
+          isEventCreator: true,
+        }
+      });
 
       originalCoworkers.map(c => {
         if (c.id) {
