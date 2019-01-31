@@ -54,9 +54,6 @@ router.post('/login', (req, res, next) => {
           });
         }
     })
-    .then(() => {
-      throw new ApiError('Please check your email. You should reset your password.', 404);
-    })
     .catch(next);
 
 });
