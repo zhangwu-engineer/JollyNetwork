@@ -103,7 +103,7 @@ router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
   let work = null;
   userController.getUserById(req.userId)
     .then(user => {
-      return workController.addWork(Object.assign({}, req.body, { user: req.userId, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }));
+      return workController.addWork(Object.assign({}, req.body, { user: req.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }));
     })
     .then((result) => {
       work = result.work;
