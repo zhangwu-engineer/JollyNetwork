@@ -259,7 +259,7 @@ class UserController {
       keyword = options.keyword.trim(),
       userId = options.user_id,
       user = null;
-      
+
     try {
       const result1 = await db.collection('users').find({
         slug: { $regex: new RegExp(`^${keyword.split(' ').join('-')}`, "i") },
@@ -661,7 +661,8 @@ class UserController {
       const originalAddMethod = workData.addMethod;
       workData.user = user.id;
       workData.addMethod = 'tagged';
-      await self.saveWork(workData);
+      const newWork = await self.saveWork(workData);
+      const newWorkData = newWork.toJson({});
       await self.saveRole(workData.role, user);
       if (workData.verifiers) {
         analytics.track({
@@ -703,6 +704,27 @@ class UserController {
           taggingUserID: invite.tagger && invite.tagger.userId,
         }
       });
+
+      analytics.track({
+        userId: user.id.toString(),
+        event: 'Job Added',
+        properties: {
+          userID: user.id.toString(),
+          userFullname: `${user.firstName} ${user.lastName}`,
+          userEmail: user.email,
+          jobID: newWorkData.id,
+          eventID: newWorkData.slug,
+          role: newWorkData.role,
+          beginDate: newWorkData.from,
+          endDate: newWorkData.to,
+          jobCreatedTimestamp: newWorkData.date_created,
+          caption: newWorkData.caption,
+          numberOfImages: newWorkData.photos.length,
+          jobAddedMethod: 'tagged',
+          isEventCreator: false,
+        }
+      });
+
       await self.clearEmail(workData.slug, user.email);
       if (invite.rootWorkId) {
         await self.addCoworker(invite.rootWorkId, user.id.toString(), user.email);
