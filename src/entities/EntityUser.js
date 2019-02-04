@@ -11,6 +11,7 @@
  * @property {String} [firstName]
  * @property {String} [lastName]
  * @property {String} slug
+ * @property {String} source
  * @property {Date} joindate
  * @property {String} resetToken
  */
@@ -38,6 +39,7 @@ class EntityUser extends BaseEntityWithID {
         this._firstName = options.firstName;
         this._lastName = options.lastName;
         this._slug = options.slug;
+        this._source = options.source;
     }
 
     /**
@@ -73,6 +75,7 @@ class EntityUser extends BaseEntityWithID {
         data.firstName = this._firstName;
         data.lastName = this._lastName;
         data.slug = this._slug;
+        data.source = this._source;
 
         return data;
     }
