@@ -63,6 +63,7 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
         firstName: req.user.name.givenName,
         lastName: req.user.name.familyName,
         email: req.user.emails[0].value,
+        invite: req.body.invite,
     };
     if (req.user.photos && req.user.photos.length) {
       data.avatar = req.user.photos[0].value;
@@ -75,9 +76,9 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
                 .registerUser(data)
                 .then((userData) => {
 
-                    if (req.body.invite) {
-                      userController.acceptInvite(req.body.invite, userData);
-                    }
+                    // if (req.body.invite) {
+                    //   userController.acceptInvite(req.body.invite, userData);
+                    // }
 
                     authToken = authService.generateToken({
                         userId: userData.id
@@ -117,6 +118,7 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
       firstName: req.user.name.givenName,
       lastName: req.user.name.familyName,
       email: req.user.emails[0].value,
+      invite: req.body.invite,
   };
   if (req.user.photos && req.user.photos.length) {
     data.avatar = req.user.photos[0];
@@ -128,9 +130,9 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
           userController
               .registerUser(data)
               .then((userData) => {
-                  if (req.body.invite) {
-                    userController.acceptInvite(req.body.invite, userData);
-                  }
+                  // if (req.body.invite) {
+                  //   userController.acceptInvite(req.body.invite, userData);
+                  // }
 
                   authToken = authService.generateToken({
                       userId: userData.id

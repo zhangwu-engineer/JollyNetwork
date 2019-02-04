@@ -59,6 +59,7 @@ class UserController {
       email = email.toLowerCase();
 			firstName = firstName.toLowerCase();
       lastName = lastName.toLowerCase();
+    const source = invite ? 'v-jobtag' : '';
 
     try {
       const isExistingEmail = await self.isExistingEmail(options.email);
@@ -71,12 +72,14 @@ class UserController {
 					firstName,
 					lastName,
 					password: encryptedPassword,
-					slug,
+          slug,
+          source,
 				} : {
 					email,
 					firstName,
 					lastName,
-					slug,
+          slug,
+          source,
         });
         const userData = await self.saveUser(newUser);
         const newProfileData = { userId: userData._id };
