@@ -9,7 +9,6 @@ const Promise = require('bluebird');
 const Analytics = require('analytics-node');
 const EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
-  Role = require('../enum/Role'),
   DbNames = require('../enum/DbNames');
 
 class WorkController {
@@ -103,7 +102,7 @@ class WorkController {
       const workData = await this.saveWork(newWork);
       const work = workData.toJson({});
 
-      this.saveRole(role, user);
+      const newRole = await this.saveRole(role, user);
 
       analytics.track({
         userId: user,
@@ -124,6 +123,25 @@ class WorkController {
           isEventCreator: true,
         }
       });
+
+      if (newRole) {
+        analytics.track({
+          userId: user,
+          event: 'Role Added',
+          properties: {
+            userID: user,
+            userFullname: `${firstName} ${lastName}`,
+            userEmail: email,
+            roleName: newRole.name,
+            roleRateLow: newRole.minRate,
+            roleRateHigh: newRole.maxRate,
+            dateStarted: newRole.dateStarted,
+            throughJob: true,
+            jobID: work.id,
+            eventID: work.slug,
+          }
+        });
+      }
 
       originalCoworkers.map(c => {
         if (c.id) {
@@ -574,7 +592,8 @@ class WorkController {
 
   saveRole (role, user) {
 		let db = this.getDefaultDB(),
-			collectionName = 'roles';
+      collectionName = 'roles',
+      roleData = null;
 
 		return new Promise((resolve, reject) => {
 
@@ -592,7 +611,7 @@ class WorkController {
               unit: 'hour',
               dateStarted: new Date(),
             });
-            const roleData = newRole.toJson();
+            roleData = newRole.toJson();
             if (roleData.id == null) {
               delete (roleData.id);
             }
@@ -600,7 +619,8 @@ class WorkController {
           }
         })
         .then(() => {
-          resolve();
+          const roleEntity = new EntityRole(roleData);
+          resolve(roleEntity.toJson({}));
         })
 				.catch(reject);
 

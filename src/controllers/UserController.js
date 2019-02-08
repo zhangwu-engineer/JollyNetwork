@@ -666,7 +666,7 @@ class UserController {
       workData.addMethod = 'tagged';
       const newWork = await self.saveWork(workData);
       const newWorkData = newWork.toJson({});
-      await self.saveRole(workData.role, user);
+      const newRole = await self.saveRole(workData.role, user);
       if (workData.verifiers) {
         analytics.track({
           userId: user.id.toString(),
@@ -728,6 +728,25 @@ class UserController {
         }
       });
 
+      if (newRole) {
+        analytics.track({
+          userId: user.id.toString(),
+          event: 'Role Added',
+          properties: {
+            userID: user.id.toString(),
+            userFullname: `${user.firstName} ${user.lastName}`,
+            userEmail: user.email,
+            roleName: newRole.name,
+            roleRateLow: newRole.minRate,
+            roleRateHigh: newRole.maxRate,
+            dateStarted: newRole.dateStarted,
+            throughJob: true,
+            jobID: newWorkData.id,
+            eventID: newWorkData.slug,
+          }
+        });
+      }
+
       await self.clearEmail(workData.slug, user.email);
       if (invite.rootWorkId) {
         await self.addCoworker(invite.rootWorkId, user.id.toString(), user.email);
@@ -743,7 +762,8 @@ class UserController {
 
   saveRole (role, user) {
 		let db = this.getDefaultDB(),
-			collectionName = 'roles';
+      collectionName = 'roles',
+      roleData = null;
 
 		return new Promise((resolve, reject) => {
 
@@ -761,7 +781,7 @@ class UserController {
               unit: 'hour',
               dateStarted: new Date(),
             });
-            const roleData = newRole.toJson();
+            roleData = newRole.toJson();
             if (roleData.id == null) {
               delete (roleData.id);
             }
@@ -769,7 +789,8 @@ class UserController {
           }
         })
         .then(() => {
-          resolve();
+          const roleEntity = new EntityRole(roleData);
+          resolve(roleEntity.toJson({}));
         })
 				.catch(reject);
 
