@@ -45,7 +45,7 @@ const Role = [
     'Greeter',
     'Host / Hostess',
     'Registration Desk Attendant',
-    'icketing Attendant',
+    'Ticketing Attendant',
     'Usher',
     'Accountant',
     'Art Installer',
