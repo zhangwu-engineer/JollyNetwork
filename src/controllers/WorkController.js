@@ -87,7 +87,7 @@ class WorkController {
       coworkers = coworkers.map(c => c.id ? c.id : c.email);
 
       newWork = new EntityWork({
-        title,
+        title: title.trim(),
         role,
         from,
         to,
