@@ -439,7 +439,7 @@ class WorkController {
       db.collection('works')
         .updateOne({
           _id: new mongodb.ObjectID(id),
-        }, { $push: { coworkers: coworker } })
+        }, { $addToSet: { coworkers: coworker } })
         .then(() => {
           db.collection('works').findOne({
             _id: new mongodb.ObjectID(id),
