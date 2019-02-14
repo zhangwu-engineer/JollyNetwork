@@ -291,6 +291,30 @@ class UserController {
     }
   }
 
+  async searchCityUsers(city, page, perPage) {
+    const db = this.getDefaultDB();
+    const skip = (page - 1) * perPage;
+    try {
+      const data = await db.collection('profiles').aggregate([
+        { $match : { location : city } },
+        { $sort  : { userId : -1 } },
+        { $facet : {
+          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
+          data: [ { $skip:  skip}, { $limit:  perPage } ]
+        }}
+      ]).toArray();
+      const profiles = data[0].data;
+      const users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
+      return {
+        total: data[0].meta[0].total,
+        page: data[0].meta[0].page,
+        users,
+      };
+    } catch (err) {
+      throw err;
+    }
+  }
+
 	findUserByUsername (options) {
 
 		let db = this.getDefaultDB(),
