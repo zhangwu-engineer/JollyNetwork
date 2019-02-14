@@ -30,7 +30,7 @@ router.post('/search', authService.verifyUserAuthentication, (req, res, next) =>
 
   userController
     .findUserByKeyword(Object.assign({}, req.body, { user_id: req.userId }))
-    .then((userIds) => 
+    .then((userIds) =>
       Promise.map(userIds, (userId) => {
         return new Promise((resolve, reject) => {
           userController
@@ -153,6 +153,14 @@ router.get('/files', authService.verifyUserAuthentication, (req, res, next) => {
   fileController.getUserFiles(req.userId)
     .then(files => {
       res.apiSuccess(files);
+    })
+    .catch(next);
+});
+
+router.post('/city', (req, res, next) => {
+  userController.searchCityUsers(req.body.city, req.body.page, req.body.perPage)
+    .then(data => {
+      res.apiSuccess(data);
     })
     .catch(next);
 });
