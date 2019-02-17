@@ -2,7 +2,7 @@
  * Token controller class, in charge of transactions related to tokens.
  */
 const mongodb = require('mongodb');
-
+const Promise = require('bluebird');
 const EntityToken = require('../entities/EntityToken'),
 	DbNames = require('../enum/DbNames');
 
@@ -57,6 +57,18 @@ class TokenController {
         })
         .catch(reject)
 		});
+  }
+
+  addTokens (tokens) {
+    return Promise.map(tokens, (token) => {
+      return new Promise((resolve, reject) => {
+        this.addToken({ token })
+          .then(() => {
+            resolve();
+          })
+          .catch(reject);
+      });
+    });
   }
 
   verify (token) {
