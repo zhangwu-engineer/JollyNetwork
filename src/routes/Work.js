@@ -100,28 +100,14 @@ router.get('/user/:slug', (req, res, next) => {
  * create new unit into system.
  */
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
-  let work = null;
   userController.getUserById(req.userId)
     .then(user => {
-      return workController.addWork(Object.assign({}, req.body, { user: req.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }));
-    })
-    .then((result) => {
-      work = result.work;
-      return Promise.map(result.tokens, (token) => {
-        return new Promise((resolve, reject) => {
-          tokenController
-            .addToken({ token })
-            .then(() => {
-              resolve();
-            })
-            .catch(reject);
-        });
+      return Promise.map(req.body.jobs, job => {
+        return workController.addWork(Object.assign({}, job, { user: req.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }))
       });
     })
     .then(() => {
-      res.apiSuccess({
-				work: work
-			});
+      res.apiSuccess({});
     })
     .catch(next);
 });

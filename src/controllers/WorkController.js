@@ -45,6 +45,7 @@ class WorkController {
 	 * @returns {Promise<Object>}
 	 */
 	async addWork (options) {
+    const tokenController = JOLLY.controller.TokenController;
     const mailService = JOLLY.service.Mail;
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
@@ -61,7 +62,7 @@ class WorkController {
 
       let photo_urls = [];
 
-      for (let i = 0; i < photos.length; i += 1) {
+      for (let i = 0; i < photos && photos.length; i += 1) {
         const block = photos[i].split(';');
         const [, base64] = block;
         const [, realData] = base64.split(',');
@@ -182,11 +183,8 @@ class WorkController {
       });
 
       const tokens = mailService.sendInvite(emails, work, { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
-
-      return {
-        tokens: tokens,
-        work: work,
-      };
+      await tokenController.addTokens(tokens);
+      return work;
 
     } catch (err) {
       throw new ApiError(err.message);
