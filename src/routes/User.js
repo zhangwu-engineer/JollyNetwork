@@ -7,6 +7,7 @@ const Promise = require('bluebird');
 
 let authService = JOLLY.service.Authentication,
   smsService = JOLLY.service.SMS,
+  mailService = JOLLY.service.Mail,
   userController = JOLLY.controller.UserController,
   fileController = JOLLY.controller.FileController,
   tokenController = JOLLY.controller.TokenController;
@@ -161,6 +162,14 @@ router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
   userController.searchCityUsers(req.body.city, req.body.page, req.body.perPage, req.userId)
     .then(data => {
       res.apiSuccess(data);
+    })
+    .catch(next);
+});
+
+router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, next) => {
+  mailService.sendSignupInvite(req.body.email)
+    .then(() => {
+      res.apiSuccess({});
     })
     .catch(next);
 });
