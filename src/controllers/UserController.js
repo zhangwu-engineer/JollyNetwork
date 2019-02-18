@@ -291,12 +291,15 @@ class UserController {
     }
   }
 
-  async searchCityUsers(city, page, perPage) {
+  async searchCityUsers(city, page, perPage, userId) {
     const db = this.getDefaultDB();
     const skip = (page - 1) * perPage;
     try {
       const data = await db.collection('profiles').aggregate([
-        { $match : { location : city } },
+        { $match : {
+          location : city,
+          userId: { $ne: new mongodb.ObjectID(userId) },
+        }},
         { $sort  : { userId : -1 } },
         { $facet : {
           meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],

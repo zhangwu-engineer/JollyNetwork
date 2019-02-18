@@ -157,8 +157,8 @@ router.get('/files', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
-router.post('/city', (req, res, next) => {
-  userController.searchCityUsers(req.body.city, req.body.page, req.body.perPage)
+router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
+  userController.searchCityUsers(req.body.city, req.body.page, req.body.perPage, req.userId)
     .then(data => {
       res.apiSuccess(data);
     })
