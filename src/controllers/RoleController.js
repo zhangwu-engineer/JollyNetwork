@@ -2,7 +2,7 @@
  * Role controller class, in charge of transactions related to user's roles.
  */
 const mongodb = require('mongodb');
-
+const Promise = require('bluebird');
 const EntityRole = require('../entities/EntityRole'),
 	DbNames = require('../enum/DbNames');
 
@@ -47,12 +47,12 @@ class RoleController {
 
 		return new Promise((resolve, reject) => {
 
-			let {name, dateStarted, minRate, maxRate, unit, user_id} = options,
+			let {name, years, minRate, maxRate, unit, user_id} = options,
         newRole;
 
       newRole = new EntityRole({
 				name,
-				dateStarted,
+				years,
 				minRate,
         maxRate,
         unit,
@@ -158,11 +158,16 @@ class RoleController {
 		}
 
 		return new Promise((resolve, reject) => {
-
-			db.collection(collectionName)
-				.insertOne(roleData)
-				.then((result) => {
-					//roleData.id = result.insertedId;
+      db.collection(collectionName)
+        .findOne({ name: roleData.name, user_id: new mongodb.ObjectID(roleData.user_id) })
+        .then((data) => {
+          if (data) {
+            resolve(new EntityRole(data));
+          } else {
+            return db.collection(collectionName).insertOne(roleData)
+          }
+        })
+				.then(() => {
 					roleEntity = new EntityRole(roleData);
 					resolve(roleEntity);
 				})
@@ -215,6 +220,31 @@ class RoleController {
 				.catch(reject);
 
 			});
+  }
+
+  async cleanDateStarted() {
+    const db = this.getDefaultDB();
+    try {
+      const roles = await db.collection('roles').find({}).toArray();
+      const res = await Promise.map(roles, role =>
+        db
+          .collection('roles')
+          .updateOne(
+            { _id: new mongodb.ObjectID(role._id) },
+            {
+              $set: {
+                years: new Date().getFullYear() - new Date(role.dateStarted).getFullYear()
+              },
+              $unset: {
+                dateStarted: '',
+              },
+            }
+          )
+      );
+      return res;
+    } catch(err) {
+      throw new ApiError(err.message);
+    }
   }
 }
 

@@ -136,7 +136,7 @@ class WorkController {
             roleName: newRole.name,
             roleRateLow: newRole.minRate,
             roleRateHigh: newRole.maxRate,
-            dateStarted: newRole.dateStarted,
+            years: newRole.years,
             throughJob: true,
             jobID: work.id,
             eventID: work.slug,
@@ -607,7 +607,7 @@ class WorkController {
               minRate: '',
               maxRate: '',
               unit: 'hour',
-              dateStarted: new Date(),
+              years: 0,
             });
             roleData = newRole.toJson();
             if (roleData.id == null) {

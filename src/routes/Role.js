@@ -133,4 +133,13 @@ router.delete('/:id', authService.verifyUserAuthentication, (req, res, next) => 
 		.catch(next);
 });
 
+router.get('/clean-date-started', (req, res, next) => {
+	roleController
+		.cleanDateStarted()
+		.then(() => {
+			res.apiSuccess({});
+		})
+		.catch(next);
+});
+
 module.exports = router;

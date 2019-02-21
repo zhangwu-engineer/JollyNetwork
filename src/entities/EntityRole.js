@@ -3,7 +3,7 @@ const ObjectId = require('mongodb').ObjectID;
  * Role type
  * @typedef {Object} Role
  * @property {String} name
- * @property {Date|String} date_started
+ * @property {Number} years
  * @property {String} minRate
  * @property {String} maxRate
  * @property {String} unit
@@ -26,7 +26,7 @@ class EntityRole extends BaseEntityWithID {
         super (options);
 
         this._name = options.name;
-        this._dateStarted = options.dateStarted ? new Date(options.dateStarted) : null;
+        this._years = options.years;
         this._minRate = options.minRate || null;
         this._maxRate = options.maxRate || null;
         this._unit = options.unit;
@@ -44,8 +44,8 @@ class EntityRole extends BaseEntityWithID {
       let data = super.toJson();
 
       data.name = this._name;
-      if (this._dateStarted) {
-        data.dateStarted = this._dateStarted;
+      if (this._years) {
+        data.years = this._years;
       }
       if (this._minRate) {
         data.minRate = this._minRate;
