@@ -44,9 +44,7 @@ class EntityRole extends BaseEntityWithID {
       let data = super.toJson();
 
       data.name = this._name;
-      if (this._years) {
-        data.years = this._years;
-      }
+
       if (this._minRate) {
         data.minRate = this._minRate;
       }
