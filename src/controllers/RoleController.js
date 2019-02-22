@@ -40,13 +40,8 @@ class RoleController {
 	 * @param {Object} options
 	 * @returns {Promise<Object>}
 	 */
-	addRole (options) {
-
-		let self = this,
-			authService = JOLLY.service.Authentication;
-
-		return new Promise((resolve, reject) => {
-
+	async addRole (options) {
+    try {
 			let {name, years, minRate, maxRate, unit, user_id} = options,
         newRole;
 
@@ -58,13 +53,11 @@ class RoleController {
         unit,
         user_id,
 			});
-
-      self.saveRole(newRole)
-        .then((roleData) => {
-          resolve (roleData.toJson({}));
-        })
-        .catch(reject)
-		});
+      const roleData = await this.saveRole(newRole);
+      return roleData.toJson({});
+    } catch(err) {
+      throw new ApiError(err.message);
+    }
 	}
 
 	listRoles(cb) {
