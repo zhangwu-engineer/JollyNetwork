@@ -4,6 +4,7 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
+const asyncMiddleware = require('../lib/AsyncMiddleware');
 let authService = JOLLY.service.Authentication,
   userController = JOLLY.controller.UserController,
   workController = JOLLY.controller.WorkController,
@@ -100,17 +101,12 @@ router.get('/user/:slug', (req, res, next) => {
 /**
  * create new role into system.
  */
-router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
-
-	roleController
-		.addRole(Object.assign({}, req.body, { user_id: req.userId }))
-		.then((roleData) => {
-			res.apiSuccess({
-				role: roleData
-			});
-		})
-		.catch(next);
-});
+router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const rolesData = await Promise.map(req.body.roles, role => roleController.addRole(Object.assign({}, role, { user_id: req.userId })))
+  res.apiSuccess({
+    roles: rolesData
+  });
+}));
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
 	roleController
