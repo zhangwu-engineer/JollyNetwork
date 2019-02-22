@@ -309,8 +309,8 @@ class UserController {
       const profiles = data[0].data;
       const users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
       return {
-        total: data[0].meta[0].total,
-        page: data[0].meta[0].page,
+        total: data[0].meta[0] ? data[0].meta[0].total : 0,
+        page: data[0].meta[0] ? data[0].meta[0].page : 1,
         users,
       };
     } catch (err) {
