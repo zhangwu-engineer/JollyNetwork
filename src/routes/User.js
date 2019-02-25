@@ -167,7 +167,11 @@ router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
 });
 
 router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, next) => {
-  mailService.sendSignupInvite(req.body.email)
+  userController
+    .getUserById(req.userId)
+    .then(user => {
+      return  mailService.sendSignupInvite(req.body.email, user);
+    })
     .then(() => {
       res.apiSuccess({});
     })
