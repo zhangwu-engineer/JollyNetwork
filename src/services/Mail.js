@@ -156,11 +156,12 @@ class Mail {
     return tokens;
   }
 
-  sendSignupInvite(email) {
+  sendSignupInvite(email, user) {
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
     var template_name = "signup-invite";
     var template_content = [];
     var message = {
+      "subject": `${_.capitalize(user.firstName)} ${_.capitalize(user.lastName)} invited you.`,
       "to": [{
         "email": email,
         "type": "to"
