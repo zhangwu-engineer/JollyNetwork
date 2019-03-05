@@ -41,7 +41,8 @@ class ConnectionController {
 	 * @returns {Promise<Object>}
 	 */
 	async addConnection (options) {
-
+    const userController = JOLLY.controller.UserController;
+    const mailService = JOLLY.service.Mail;
     try {
       let {to, from } = options,
       newConnection;
@@ -52,6 +53,9 @@ class ConnectionController {
       });
 
       const connectionData = await this.saveConnection(newConnection);
+      const toUser = await userController.getUserById(to);
+      const fromUser = await userController.getUserById(from);
+      await mailService.sendConnectionInvite(toUser.email, fromUser);
 
       return connectionData.toJson({});
     } catch (err) {
