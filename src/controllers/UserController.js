@@ -293,28 +293,40 @@ class UserController {
 
   async searchCityUsers(city, page, perPage, userId) {
     const db = this.getDefaultDB();
-    const skip = (page - 1) * perPage;
-    try {
-      const data = await db.collection('profiles').aggregate([
-        { $match : {
-          location : city,
-          userId: { $ne: new mongodb.ObjectID(userId) },
-        }},
-        { $sort  : { userId : -1 } },
-        { $facet : {
+    const skip = page && perPage ? (page - 1) * perPage : 0;
+    const aggregates = [
+      { $match : {
+        location : city,
+        userId: { $ne: new mongodb.ObjectID(userId) },
+      }},
+      { $sort  : { userId : -1 } },
+    ];
+    if (page && perPage) {
+      aggregates.push({
+        $facet : {
           meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
           data: [ { $skip:  skip}, { $limit:  perPage } ]
-        }}
-      ]).toArray();
+        }
+      })
+    } else {
+      aggregates.push({
+        $facet : {
+          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
+          data: [ { $skip:  skip} ]
+        }
+      })
+    }
+    try {
+      const data = await db.collection('profiles').aggregate(aggregates).toArray();
       const profiles = data[0].data;
       const users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
-        page: data[0].meta[0] ? data[0].meta[0].page : 1,
+        page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
         users,
       };
     } catch (err) {
-      throw err;
+      throw new ApiError(err.message);
     }
   }
 
