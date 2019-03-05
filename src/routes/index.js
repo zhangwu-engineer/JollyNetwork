@@ -32,6 +32,11 @@ const ApplicationRouteList = [
     {
       path: '/endorsement',
       handler: require ('../routes/Endorsement')
+    },
+
+    {
+      path: '/connection',
+      handler: require ('../routes/Connection')
     }
 ];
 

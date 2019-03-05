@@ -20,6 +20,7 @@ let Database = require('./services/Database'),
   FileController = require('./controllers/FileController'),
   UnitController = require('./controllers/UnitController'),
   EndorsementController = require('./controllers/EndorsementController'),
+  ConnectionController = require('./controllers/ConnectionController'),
   WorkController = require('./controllers/WorkController');
 
 
@@ -160,7 +161,9 @@ class App {
       /** Token controller */
       TokenController: new TokenController(),
       /** File controller */
-      FileController: new FileController()
+      FileController: new FileController(),
+      /** Connection controller */
+      ConnectionController: new ConnectionController()
 		};
 	}
 
