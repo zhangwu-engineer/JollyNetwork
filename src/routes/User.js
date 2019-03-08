@@ -4,12 +4,16 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
-
+const asyncMiddleware = require('../lib/AsyncMiddleware');
+const checkEmail = require('../lib/CheckEmail');
+ConnectionStatus = require('../enum/ConnectionStatus');
 let authService = JOLLY.service.Authentication,
   smsService = JOLLY.service.SMS,
   mailService = JOLLY.service.Mail,
   userController = JOLLY.controller.UserController,
   fileController = JOLLY.controller.FileController,
+  workController = JOLLY.controller.WorkController,
+  connectionController = JOLLY.controller.ConnectionController,
   tokenController = JOLLY.controller.TokenController;
 
 /**
@@ -177,6 +181,26 @@ router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, n
     })
     .catch(next);
 });
+
+router.get('/:id/coworkers', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const user = await userController.getUserById(req.params.id);
+  const connections1 = await connectionController
+    .findConnections({ to: { $in: [req.params.id, user.email] }, status: ConnectionStatus.CONNECTED});
+  const coworkersFromConnection1 = connections1.map(connection => connection.from);
+  const connections2 = await connectionController
+    .findConnections({ from: req.params.id, status: ConnectionStatus.CONNECTED});
+  const coworkersFromConnection2 = connections2.map(connection => connection.to);
+  const coworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
+  const coworkers = await Promise.map(coworkerIds, coworkerId =>
+    checkEmail(coworkerId)
+      ? userController.getUserByEmail(coworkerId)
+      : userController.getUserById(coworkerId)
+    );
+  const works = await workController.getUserWorks(req.params.id);
+  res.apiSuccess({
+    coworkers,
+  });
+}));
 
 
 module.exports = router;
