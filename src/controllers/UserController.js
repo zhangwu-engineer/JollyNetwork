@@ -120,6 +120,25 @@ class UserController {
     }
   }
 
+  async getUserByEmail(email) {
+    let self = this,
+      user = null,
+      profile = null;
+
+    try {
+      user = await self.findUserByEmail({ email });
+      if (user) {
+        const userData = user.toJson({ isSafeOutput: true });
+        profile = await self.getUserProfile(userData.id.toString());
+        userData.profile = profile.toJson();
+        return userData;
+      }
+      throw new ApiError('User not found');
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async getUserBySlug(slug) {
     let self = this,
       user = null,
