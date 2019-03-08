@@ -2,7 +2,7 @@
  * Unit controller class, in charge of transactions related to user's units.
  */
 const mongodb = require('mongodb');
-
+const checkEmail = require('../lib/CheckEmail');
 const EntityConnection = require('../entities/EntityConnection'),
   DbNames = require('../enum/DbNames');
 
@@ -53,10 +53,13 @@ class ConnectionController {
       });
 
       const connectionData = await this.saveConnection(newConnection);
-      const toUser = await userController.getUserById(to);
       const fromUser = await userController.getUserById(from);
-      await mailService.sendConnectionInvite(toUser.email, fromUser);
-
+      if(checkEmail(to)) {
+        await mailService.sendConnectionInvite(to, fromUser);
+      } else {
+        const toUser = await userController.getUserById(to);
+        await mailService.sendConnectionInvite(toUser.email, fromUser);
+      }
       return connectionData.toJson({});
     } catch (err) {
       throw new ApiError(err.message);
