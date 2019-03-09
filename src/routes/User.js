@@ -190,13 +190,22 @@ router.get('/:id/coworkers', authService.verifyUserAuthentication, asyncMiddlewa
   const connections2 = await connectionController
     .findConnections({ from: req.params.id, status: ConnectionStatus.CONNECTED});
   const coworkersFromConnection2 = connections2.map(connection => connection.to);
-  const coworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
+  const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
+
+  const works = await workController.getUserWorks(req.params.id);
+  const workSlugs = works.map(work => work.slug);
+  const allWorks = await workController.getWorksBySlugs(workSlugs, req.params.id);
+  const workCoworkerIds = allWorks.map(work => work.user.toString());
+
+  const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
+  console.log('coworker ids', coworkerIds);
+
   const coworkers = await Promise.map(coworkerIds, coworkerId =>
     checkEmail(coworkerId)
       ? userController.getUserByEmail(coworkerId)
       : userController.getUserById(coworkerId)
     );
-  const works = await workController.getUserWorks(req.params.id);
+
   res.apiSuccess({
     coworkers,
   });

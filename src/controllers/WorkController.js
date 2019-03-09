@@ -243,6 +243,36 @@ class WorkController {
     });
   }
 
+  getWorksBySlugs(slugs, userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+
+      db
+        .collection('works')
+        .find({
+          slug: { $in: slugs },
+          user: { $ne: new mongodb.ObjectID(userId) },
+        })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          let itemList = [];
+
+          if (result) {
+
+            result.forEach((workData) => {
+
+              let workObject = new EntityWork(workData);
+
+              itemList.push(workObject.toJson({}));
+            })
+
+          }
+
+          resolve (itemList);
+        });
+    });
+  }
+
   getUserVerifiedWorksForRole(userId, role) {
     let db = this.getDefaultDB();
     return new Promise((resolve, reject) => {
