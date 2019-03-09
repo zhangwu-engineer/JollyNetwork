@@ -607,7 +607,7 @@ class WorkController {
               minRate: '',
               maxRate: '',
               unit: 'hour',
-              years: 0,
+              years: '',
             });
             roleData = newRole.toJson();
             if (roleData.id == null) {
