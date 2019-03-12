@@ -51,7 +51,7 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-	const connection = await connectionController.updateConnection(req.params.id, {
+	const connection = await connectionController.updateConnection(req.params.id, req.userId, {
     status: ConnectionStatus.CONNECTED,
     connected_at: new Date(),
   });
@@ -61,7 +61,7 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const result = await connectionController.deleteConnection(req.params.id)
+  const result = await connectionController.deleteConnection(req.params.id, req.userId)
 	res.apiSuccess({});
 }));
 
