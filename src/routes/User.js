@@ -198,7 +198,6 @@ router.get('/:id/coworkers', authService.verifyUserAuthentication, asyncMiddlewa
   const workCoworkerIds = allWorks.map(work => work.user.toString());
 
   const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
-  console.log('coworker ids', coworkerIds);
 
   const coworkers = await Promise.map(coworkerIds, coworkerId =>
     checkEmail(coworkerId)
