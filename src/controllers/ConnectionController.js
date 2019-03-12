@@ -52,15 +52,20 @@ class ConnectionController {
         from
       });
 
-      const connectionData = await this.saveConnection(newConnection);
-      const fromUser = await userController.getUserById(from);
-      if(checkEmail(to)) {
-        await mailService.sendConnectionInvite(to, fromUser);
+      const existing = await this.findConnections({ to, from });
+      if (existing.length === 0) {
+        const connectionData = await this.saveConnection(newConnection);
+        const fromUser = await userController.getUserById(from);
+        if(checkEmail(to)) {
+          await mailService.sendConnectionInvite(to, fromUser);
+        } else {
+          const toUser = await userController.getUserById(to);
+          await mailService.sendConnectionInvite(toUser.email, fromUser);
+        }
+        return connectionData.toJson({});
       } else {
-        const toUser = await userController.getUserById(to);
-        await mailService.sendConnectionInvite(toUser.email, fromUser);
+        throw new ApiError('Connection request already sent');
       }
-      return connectionData.toJson({});
     } catch (err) {
       throw new ApiError(err.message);
     }
