@@ -37,6 +37,11 @@ const ApplicationRouteList = [
     {
       path: '/connection',
       handler: require ('../routes/Connection')
+    },
+
+    {
+      path: '/post',
+      handler: require ('../routes/Post')
     }
 ];
 
