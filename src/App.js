@@ -21,6 +21,7 @@ let Database = require('./services/Database'),
   UnitController = require('./controllers/UnitController'),
   EndorsementController = require('./controllers/EndorsementController'),
   ConnectionController = require('./controllers/ConnectionController'),
+  PostController = require('./controllers/PostController'),
   WorkController = require('./controllers/WorkController');
 
 
@@ -163,7 +164,9 @@ class App {
       /** File controller */
       FileController: new FileController(),
       /** Connection controller */
-      ConnectionController: new ConnectionController()
+      ConnectionController: new ConnectionController(),
+      /** Post controller */
+      PostController: new PostController()
 		};
 	}
 
