@@ -185,6 +185,14 @@ class PostController {
 
   }
 
+  async deletePost(id) {
+    const db = this.getDefaultDB();
+    try {
+      await db.collection("posts").deleteOne({_id: new mongodb.ObjectID(id)});
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
 }
 
 module.exports = PostController;

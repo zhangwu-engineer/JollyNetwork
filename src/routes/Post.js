@@ -48,13 +48,9 @@ router.post('/:id/vote', authService.verifyUserAuthentication, asyncMiddleware(a
 	res.apiSuccess({});
 }));
 
-// router.delete('/:id', authService.verifyUserAuthentication, (req, res) => {
-
-// 	unitController
-// 		.deleteUnit(req.params.id)
-// 		.then(() => {
-// 			res.apiSuccess({});
-// 		});
-// });
+router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  await postController.deletePost(req.params.id);
+	res.apiSuccess({});
+}));
 
 module.exports = router;
