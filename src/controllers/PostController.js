@@ -2,6 +2,7 @@
  * Unit controller class, in charge of transactions related to user's units.
  */
 const mongodb = require('mongodb');
+const Analytics = require('analytics-node');
 const Promise = require('bluebird');
 const EntityPost = require('../entities/EntityPost'),
 	DbNames = require('../enum/DbNames');
@@ -43,6 +44,7 @@ class PostController {
 	async addPost (options) {
     try {
       const {category, content, location, user} = options;
+      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
       const newPost = new EntityPost({
         category,
@@ -51,8 +53,21 @@ class PostController {
         user,
       });
 
-     const postData = await this.savePost(newPost);
-     return postData.toJson({});
+      const post = await this.savePost(newPost);
+      const postData = post.toJson({});
+
+      analytics.track({
+        userId: user,
+        event: 'Post Created',
+        properties: {
+          postID: postData.id,
+          posterID: user,
+          postType: postData.category,
+          city: postData.location,
+        }
+      });
+
+      return postData;
 
     } catch (err) {
       throw new ApiError(err.message);
