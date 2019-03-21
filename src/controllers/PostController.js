@@ -151,6 +151,7 @@ class PostController {
 
   async votePost(postId, userId) {
     const db = this.getDefaultDB();
+    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     try {
       await db
         .collection('posts')
@@ -160,6 +161,14 @@ class PostController {
           $push: { votes: userId },
         });
       const post = await db.collection('posts').findOne({ _id: new mongodb.ObjectID(postId) });
+      analytics.track({
+        userId,
+        event: 'Helpful Clicked',
+        properties: {
+          postID: postId,
+          userID: userId,
+        }
+      });
       await db
         .collection('profiles')
         .updateOne({
