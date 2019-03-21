@@ -11,30 +11,25 @@ let authService = JOLLY.service.Authentication,
 /**
  * Display user's posts.
  */
-router.get('/', authService.verifyUserAuthentication, (req, res) => {
+router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
 
-  postController
-    .findPosts({})
-    .then((posts) => {
-      res.apiSuccess({
-        posts,
-      });
-    });
-});
+  const posts = await postController.findPosts({});
+  res.apiSuccess({
+    posts,
+  });
+
+}));
 
 /**
  * create new post into system.
  */
-router.post('/', authService.verifyUserAuthentication, (req, res) => {
+router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
 
-	postController
-		.addPost(Object.assign({}, req.body, { user: req.userId }))
-		.then((postData) => {
-			res.apiSuccess({
-				post: postData
-			});
-		});
-});
+	const postData = await postController.addPost(Object.assign({}, req.body, { user: req.userId }));
+  res.apiSuccess({
+    post: postData
+  });
+}));
 
 router.post('/search', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const posts = await postController.findPosts(req.body.query, req.userId);
