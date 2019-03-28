@@ -28,6 +28,7 @@ class EntityPost extends BaseEntityWithID {
         this._location = options.location;
         this._user = new ObjectId(options.user);
         this._votes = options.votes || [];
+        this._comments = options.comments || [];
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
     }
 
@@ -44,6 +45,7 @@ class EntityPost extends BaseEntityWithID {
       data.location = this._location;
       data.user = this._user;
       data.votes = this._votes;
+      data.comments = this._comments;
       data.date_created = this._dateCreated;
 
       return data;
