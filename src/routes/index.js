@@ -42,6 +42,11 @@ const ApplicationRouteList = [
     {
       path: '/post',
       handler: require ('../routes/Post')
+    },
+
+    {
+      path: '/comment',
+      handler: require ('../routes/Comment')
     }
 ];
 
