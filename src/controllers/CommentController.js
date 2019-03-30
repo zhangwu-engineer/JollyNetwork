@@ -44,7 +44,7 @@ class CommentController {
 	async addComment (options) {
 
     const db = this.getDefaultDB();
-    
+    const userController = JOLLY.controller.UserController;
     try {
       const { content, post, user} = options;
       const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
@@ -57,7 +57,7 @@ class CommentController {
 
       const comment = await this.saveComment(newComment);
       const commentData = comment.toJson({});
-
+      commentData.user = await userController.getUserById(commentData.user);
       await db
         .collection('posts')
         .updateOne({
@@ -96,6 +96,28 @@ class CommentController {
       throw new ApiError(err.message);
     }
     
+  }
+
+  async findComments (query) {
+    const db = this.getDefaultDB();
+    const userController = JOLLY.controller.UserController;
+    try {
+      const rawComments = await db.collection('comments').find(query).sort({ date_created: -1 }).toArray();
+      const comments = rawComments.map(comment => (new EntityComment(comment)).toJson({}));
+      const populatedComments = await Promise.map(comments, async comment => {
+        try {
+          const populatedComment = comment;
+          const user = await userController.getUserById(comment.user);
+          populatedComment.user = user;
+          return populatedComment;
+        } catch(err) {
+        }
+      }, { concurrency: 1 });
+
+      return populatedComments;
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
   }
 
 	/**
