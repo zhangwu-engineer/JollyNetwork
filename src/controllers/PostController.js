@@ -123,6 +123,8 @@ class PostController {
   async findPosts(query, userId) {
     const db = this.getDefaultDB();
     const userController = JOLLY.controller.UserController;
+    const commentController = JOLLY.controller.CommentController;
+
     const searchQuery = {
       category: { $in: query.categories },
     }
@@ -139,6 +141,7 @@ class PostController {
           const populatedPost = post;
           const user = await userController.getUserById(post.user);
           populatedPost.user = user;
+          populatedPost.fullComments = await commentController.findComments({ post: new mongodb.ObjectID(post.id)});
           return populatedPost;
         } catch(err) {
         }
