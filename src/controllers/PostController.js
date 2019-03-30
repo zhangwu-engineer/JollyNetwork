@@ -220,6 +220,15 @@ class PostController {
       throw new ApiError(err.message);
     }
   }
+
+  async updatePost(id, data) {
+    const db = this.getDefaultDB();
+    try {
+      await db.collection("posts").updateOne({_id: new mongodb.ObjectID(id)}, { $set: data });
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
 }
 
 module.exports = PostController;
