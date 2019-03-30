@@ -43,6 +43,11 @@ router.post('/:id/vote', authService.verifyUserAuthentication, asyncMiddleware(a
 	res.apiSuccess({});
 }));
 
+router.put('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  await postController.updatePost(req.params.id, req.body);
+	res.apiSuccess({});
+}));
+
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   await postController.deletePost(req.params.id);
 	res.apiSuccess({});
