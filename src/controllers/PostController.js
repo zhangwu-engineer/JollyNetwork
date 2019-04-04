@@ -142,6 +142,8 @@ class PostController {
           const user = await userController.getUserById(post.user);
           populatedPost.user = user;
           populatedPost.fullComments = await commentController.findComments({ post: new mongodb.ObjectID(post.id)});
+          populatedPost.showComments = false;
+          populatedPost.commentPage = 1;
           return populatedPost;
         } catch(err) {
         }
