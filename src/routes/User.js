@@ -163,7 +163,7 @@ router.get('/files', authService.verifyUserAuthentication, (req, res, next) => {
 });
 
 router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
-  userController.searchCityUsers(req.body.city, req.body.page, req.body.perPage, req.userId)
+  userController.searchCityUsers(req.body.city, req.body.query, req.body.page, req.body.perPage, req.userId)
     .then(data => {
       res.apiSuccess(data);
     })
