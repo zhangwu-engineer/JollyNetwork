@@ -310,16 +310,36 @@ class UserController {
     }
   }
 
-  async searchCityUsers(city, page, perPage, userId) {
+  async searchCityUsers(city, query, page, perPage, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
     const aggregates = [
-      { $match : {
-        location : city,
-        userId: { $ne: new mongodb.ObjectID(userId) },
-      }},
+      {
+        $match : {
+          location : city,
+          userId: { $ne: new mongodb.ObjectID(userId) },
+        }
+      },
       { $sort  : { userId : -1 } },
     ];
+    if (query) {
+      aggregates.push({
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      });
+      aggregates.push({
+        $unwind: "$user"
+      });
+      aggregates.push({
+        $match : {
+          'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+        }
+      });
+    }
     if (page && perPage) {
       aggregates.push({
         $facet : {
