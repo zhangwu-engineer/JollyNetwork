@@ -40,6 +40,7 @@ class EntityUser extends BaseEntityWithID {
         this._lastName = options.lastName;
         this._slug = options.slug;
         this._source = options.source;
+        this._role = options.role || SystemUserRoles.USER;
     }
 
     /**
@@ -76,6 +77,7 @@ class EntityUser extends BaseEntityWithID {
         data.lastName = this._lastName;
         data.slug = this._slug;
         data.source = this._source;
+        data.role = this._role;
 
         return data;
     }
