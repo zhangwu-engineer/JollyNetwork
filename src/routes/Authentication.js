@@ -3,6 +3,7 @@
  */
 const router = require('express').Router();
 const passport = require('passport');
+const SystemUserRoles = require('../enum/SystemUserRoles');
 
 /** Define/Import system defined dependencies */
 let userController = JOLLY.controller.UserController,
@@ -212,6 +213,46 @@ router.get('/logout', authService.verifyUserAuthentication, (req, res) => {
 	res.apiSuccess({
 		userId: req.userId
 	});
+
+});
+
+router.post('/admin-login', (req, res, next) => {
+
+	let {email, password} = req.body,
+		authToken,
+		userData;
+
+    userController.findUserByEmail({
+        email,
+        role: SystemUserRoles.ADMIN,
+    }).then((userObject) => {
+
+        if ( !userObject ) {
+            throw new ApiError('The email or password entered is incorrect', 404);
+        }
+
+        userData = userObject.toJson({
+          isSafeOutput: true
+        });
+
+        if (userObject.getPassword() === null) {
+          return mailService.sendPasswordResetEmail(userData);
+        } else {
+          if ( !authService.verifyPassword(password, userObject.getPassword()) ) {
+            throw new ApiError('The email or password entered is incorrect', 404);
+          }
+
+          authToken = authService.generateToken({
+              userId: userData.id
+          });
+
+          res.apiSuccess({
+            auth_token: authToken,
+            user: userData,
+          });
+        }
+    })
+    .catch(next);
 
 });
 
