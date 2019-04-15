@@ -6,6 +6,7 @@ const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
+const checkEmail = require('../lib/CheckEmail');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
   EntityWork = require('../entities/EntityWork'),
@@ -310,6 +311,43 @@ class UserController {
     }
   }
 
+  async searchUsers(options) {
+    try {
+      const { page, perPage } = options;
+      const db = this.getDefaultDB();
+      const skip = page && perPage ? (page - 1) * perPage : 0;
+      const aggregates = [];
+      if (page && perPage) {
+        aggregates.push({
+          $skip: skip,
+        });
+        aggregates.push({
+          $limit: perPage,
+        });
+      }
+      let users = await db.collection('users').aggregate(aggregates).toArray();
+      const count = await db.collection('users').countDocuments({});
+      const pages = perPage ? Math.ceil(count/perPage) : 1;
+      users = await Promise.map(users, async user => {
+        const works = await db.collection('works').find({ user: user._id }).toArray();
+        const posts = await db.collection('posts').find({ user: user._id }).toArray();
+        const coworkers = await this.getUserCoworkers(user._id.toString());
+        return {
+          ...user,
+          jobs: works.length,
+          posts: posts.length,
+          coworkers: coworkers.length,
+        }
+      });
+      return {
+        data: users,
+        page: page || 1,
+        pages,
+      };
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
   async searchCityUsers(city, query, page, perPage, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
@@ -369,6 +407,36 @@ class UserController {
     }
   }
 
+  async getUserCoworkers(userId) {
+    try {
+      const connectionController = JOLLY.controller.ConnectionController;
+      const workController = JOLLY.controller.WorkController;
+      const user = await this.getUserById(userId);
+      const connections1 = await connectionController
+        .findConnections({ to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED});
+      const coworkersFromConnection1 = connections1.map(connection => connection.from);
+      const connections2 = await connectionController
+        .findConnections({ from: userId, status: ConnectionStatus.CONNECTED});
+      const coworkersFromConnection2 = connections2.map(connection => connection.to);
+      const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
+
+      const works = await workController.getUserWorks(userId);
+      const workSlugs = works.map(work => work.slug);
+      const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
+      const workCoworkerIds = allWorks.map(work => work.user.toString());
+
+      const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
+
+      const coworkers = await Promise.map(coworkerIds, coworkerId =>
+        checkEmail(coworkerId)
+          ? this.getUserByEmail(coworkerId)
+          : this.getUserById(coworkerId)
+        );
+      return coworkers;
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
 	findUserByUsername (options) {
 
 		let db = this.getDefaultDB(),
