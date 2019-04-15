@@ -332,11 +332,31 @@ class UserController {
         const works = await db.collection('works').find({ user: user._id }).toArray();
         const posts = await db.collection('posts').find({ user: user._id }).toArray();
         const coworkers = await this.getUserCoworkers(user._id.toString());
+        const roleCounts = works.map(w => w.role).reduce((p, c) => {
+          const newP = p;
+          if (!newP[c]) {
+            newP[c] = 0;
+          }
+          newP[c] += 1;
+          return newP;
+        }, {});
+        var sortable = [];
+        for (var role in roleCounts) {
+            sortable.push([role, roleCounts[role]]);
+        }
+
+        sortable.sort(function(a, b) {
+            return b[1] - a[1];
+        });
+        const topPosition = sortable[0] ? sortable[0][0] : '';
+        const top2ndPosition = sortable[1] ? sortable[1][0] : '';
         return {
           ...user,
           jobs: works.length,
           posts: posts.length,
           coworkers: coworkers.length,
+          topPosition,
+          top2ndPosition,
         }
       });
       return {
