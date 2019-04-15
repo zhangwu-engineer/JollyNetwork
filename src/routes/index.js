@@ -47,6 +47,11 @@ const ApplicationRouteList = [
     {
       path: '/comment',
       handler: require ('../routes/Comment')
+    },
+
+    {
+      path: '/admin',
+      handler: require ('../routes/Admin')
     }
 ];
 
