@@ -313,10 +313,25 @@ class UserController {
 
   async searchUsers(options) {
     try {
-      const { page, perPage } = options;
+      const { email, firstName, lastName, page, perPage } = options;
       const db = this.getDefaultDB();
       const skip = page && perPage ? (page - 1) * perPage : 0;
       const aggregates = [];
+      const match = {};
+      if (email) {
+        match.email = { $regex: new RegExp(`^${email}`, "i") };
+      }
+      if (firstName) {
+        match.firstName = { $regex: new RegExp(`^${firstName}`, "i") };
+      }
+      if (lastName) {
+        match.lastName = { $regex: new RegExp(`^${lastName}`, "i") };
+      }
+      if (match.email || match.firstName || match.lastName) {
+        aggregates.push({
+          $match: match,
+        });
+      }
       if (page && perPage) {
         aggregates.push({
           $skip: skip,
