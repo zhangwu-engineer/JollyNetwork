@@ -341,7 +341,7 @@ class UserController {
         });
       }
       let users = await db.collection('users').aggregate(aggregates).toArray();
-      const count = await db.collection('users').countDocuments({});
+      const count = await db.collection('users').countDocuments(match);
       const pages = perPage ? Math.ceil(count/perPage) : 1;
       users = await Promise.map(users, async user => {
         const works = await db.collection('works').find({ user: user._id }).toArray();
