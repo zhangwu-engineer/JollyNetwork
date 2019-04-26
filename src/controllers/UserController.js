@@ -276,6 +276,36 @@ class UserController {
     }
   }
 
+  async uploadResume(userId, resume) {
+    AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
+    const S3 = new AWS.S3();
+    try {
+      const fileBuffer = Buffer.from(resume, 'base64');
+      const fileTypeInfo = fileType(fileBuffer);
+
+      const filePath = `${userId}.${fileTypeInfo.ext}`;
+      const params = {
+        Bucket: JOLLY.config.S3.RESUME_BUCKET,
+        Key: filePath,
+        Body: fileBuffer,
+        ACL: 'public-read',
+        ContentEncoding: 'base64',
+        ContentType: fileTypeInfo.mime,
+      };
+      await S3.putObject(params).promise();
+      await this.updateUserProfile(
+        userId,
+        {
+          resume: `${JOLLY.config.S3.RESUME_BUCKET_LINK}/${filePath}`,
+        }
+      );
+
+      return `${JOLLY.config.S3.RESUME_BUCKET_LINK}/${filePath}`;
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async findUserByKeyword (options) {
 
 		let db = this.getDefaultDB(),

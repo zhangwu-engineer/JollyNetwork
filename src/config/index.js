@@ -77,6 +77,8 @@ module.exports = (callbackOnComplete) => {
         S3: {
           BUCKET: env.get('S3_BUCKET', ''),
           BUCKET_LINK: env.get('S3_BUCKET_LINK', ''),
+          RESUME_BUCKET: env.get('S3_RESUME_BUCKET', ''),
+          RESUME_BUCKET_LINK: env.get('S3_RESUME_BUCKET_LINK', ''),
         },
         SEGMENT: {
           WRITE_KEY: env.get('SEGMENT_WRITE_KEY', ''),

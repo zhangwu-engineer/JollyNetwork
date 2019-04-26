@@ -154,6 +154,14 @@ router.post('/image', authService.verifyUserAuthentication, (req, res, next) => 
     .catch(next);
 });
 
+router.post('/resume', authService.verifyUserAuthentication, (req, res, next) => {
+  userController.uploadResume(req.userId, req.body.resume)
+    .then(path => {
+      res.apiSuccess({ resume: path });
+    })
+    .catch(next);
+});
+
 router.get('/files', authService.verifyUserAuthentication, (req, res, next) => {
   fileController.getUserFiles(req.userId)
     .then(files => {
