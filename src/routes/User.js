@@ -154,13 +154,10 @@ router.post('/image', authService.verifyUserAuthentication, (req, res, next) => 
     .catch(next);
 });
 
-router.post('/resume', authService.verifyUserAuthentication, (req, res, next) => {
-  userController.uploadResume(req.userId, req.body.resume)
-    .then(path => {
-      res.apiSuccess({ resume: path });
-    })
-    .catch(next);
-});
+router.post('/resume', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const path = await userController.uploadResume(req.userId, req.body.resume);
+  res.apiSuccess({ resume: path });
+}));
 
 router.delete('/:id/resume', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   await userController.deleteResume(req.userId)
