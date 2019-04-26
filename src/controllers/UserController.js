@@ -306,6 +306,33 @@ class UserController {
     }
   }
 
+  async deleteResume(userId) {
+    AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
+    const db = this.getDefaultDB();
+    const S3 = new AWS.S3();
+    try {
+      const filePath = `${userId}.pdf`;
+      const params = {
+        Bucket: JOLLY.config.S3.RESUME_BUCKET,
+        Key: filePath,
+      };
+      await S3.deleteObject(params).promise();
+      await db
+        .collection('profiles')
+        .updateOne(
+          { userId: new mongodb.ObjectID(userId) },
+          {
+            $unset: {
+              resume: '',
+            },
+          }
+        );
+      return true;
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async findUserByKeyword (options) {
 
 		let db = this.getDefaultDB(),

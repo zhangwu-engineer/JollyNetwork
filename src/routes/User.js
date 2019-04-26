@@ -162,6 +162,11 @@ router.post('/resume', authService.verifyUserAuthentication, (req, res, next) =>
     .catch(next);
 });
 
+router.delete('/:id/resume', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  await userController.deleteResume(req.userId)
+  res.apiSuccess({});
+}));
+
 router.get('/files', authService.verifyUserAuthentication, (req, res, next) => {
   fileController.getUserFiles(req.userId)
     .then(files => {
