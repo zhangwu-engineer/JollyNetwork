@@ -220,5 +220,10 @@ router.get('/:id/coworkers', authService.verifyUserAuthentication, asyncMiddlewa
   });
 }));
 
+router.get('/:id/badges', asyncMiddleware(async (req, res, next) => {
+  const badges = await userController.getUserBadges(req.params.id);
+  res.apiSuccess(badges);
+}));
+
 
 module.exports = router;

@@ -159,6 +159,108 @@ class UserController {
     }
   }
 
+  async getUserBadges(userSlug) {
+    try {
+      const db = this.getDefaultDB();
+      const user = await this.getUserBySlug(userSlug);
+      const userProfile = user.profile;
+
+      const userRoles = await db.collection('roles').find({ user_id: new mongodb.ObjectID(user.id.toString()) }).toArray();
+      const cityFreelancer = {
+        name: 'city_freelancer',
+        earned: userProfile.location && userRoles.length > 0 ? true : false,
+        actions: [
+          {
+            name: 'Set your city',
+            completed: !!userProfile.location,
+          },
+          {
+            name: 'Add at least 1 Position for hire',
+            completed: userRoles.length > 0,
+          }
+        ],
+      };
+
+      const userJobCountWithin60Days = await db.collection('works').countDocuments({
+        user: new mongodb.ObjectID(user.id.toString()),
+        date_created: { $gt:new Date(Date.now() - 24*60*60*1000*60) }
+      });
+      const activeFreelancer = {
+        name: 'active_freelancer',
+        earned: userJobCountWithin60Days > 0 ? true : false,
+        actions: [
+          {
+            name: 'Add a past job to your profile',
+            completed: userJobCountWithin60Days > 0,
+          }
+        ],
+      };
+
+      const setContactOptions = userProfile.receiveEmail || userProfile.receiveSMS || userProfile.receiveCall;
+      const readyAndWilling = {
+        name: 'ready_and_willing',
+        earned: userProfile.avatar && userProfile.bio && userProfile.resume && userProfile.verifiedPhone && setContactOptions ? true : false,
+        actions: [
+          {
+            name: 'Add a profile picture headshot',
+            completed: !!userProfile.avatar,
+          },
+          {
+            name: 'Fill out your bio',
+            completed: !!userProfile.bio,
+          },
+          {
+            name: 'Upload your resume',
+            completed: !!userProfile.resume,
+          },
+          {
+            name: 'Connect your phone number',
+            completed: userProfile.verifiedPhone,
+          },
+          {
+            name: 'Set your contact options',
+            completed: setContactOptions,
+          },
+        ],
+      };
+
+      const connected = {
+        name: 'connected',
+        earned: false,
+        actions: [
+          {
+            name: 'Connect with a Coworker',
+            completed: false,
+          },
+          {
+            name: 'Accept an invitation',
+            completed: false,
+          },
+          {
+            name: 'Add a coworker to a job',
+            completed: false,
+          },
+          {
+            name: 'Verify a coworker did a job',
+            completed: false,
+          },
+          {
+            name: 'Get Verified on a job by another coworker',
+            completed: false,
+          },
+          {
+            name: 'Get 10 total Coworker Connections',
+            completed: false,
+          },
+        ],
+      };
+
+      return [cityFreelancer, activeFreelancer, readyAndWilling, connected];
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async updateUser(userId, data) {
     let self = this,
       currentUser = null,
