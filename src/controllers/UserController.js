@@ -235,9 +235,19 @@ class UserController {
         user: new mongodb.ObjectID(user.id.toString()),
         coworkers: { $exists: true, $not: { $size: 0 } },
       });
+      const jobWhereVerifiedCoworkerCount = await db.collection('works').countDocuments({
+        verifiers: user.id.toString(),
+      });
+      const jobWhereVerifiedByCoworkerCount = await db.collection('works').countDocuments({
+        user: new mongodb.ObjectID(user.id.toString()),
+        verifiers: { $exists: true, $not: { $size: 0 } },
+      });
+      const userCoworkers = await this.getUserCoworkers(user.slug);
+      const userCoworkerCount = userCoworkers.length;
       const connected = {
         name: 'connected',
-        earned: false,
+        earned: sentConnectionRequestCount > 0 && acceptedInvitationCount > 0 && jobWithCoworkerCount > 0 && jobWhereVerifiedCoworkerCount > 0 && jobWhereVerifiedByCoworkerCount > 0 && userCoworkerCount > 9 ? true : false,
+        coworkerCount: userCoworkerCount,
         actions: [
           {
             name: 'Connect with a Coworker',
@@ -253,15 +263,15 @@ class UserController {
           },
           {
             name: 'Verify a coworker did a job',
-            completed: false,
+            completed: jobWhereVerifiedCoworkerCount > 0 ? true : false,
           },
           {
             name: 'Get Verified on a job by another coworker',
-            completed: false,
+            completed: jobWhereVerifiedByCoworkerCount > 0 ? true : false,
           },
           {
             name: 'Get 10 total Coworker Connections',
-            completed: false,
+            completed: userCoworkerCount > 9 ? true : false,
           },
         ],
       };
@@ -525,7 +535,7 @@ class UserController {
       users = await Promise.map(users, async user => {
         const works = await db.collection('works').find({ user: user._id }).toArray();
         const posts = await db.collection('posts').find({ user: user._id }).toArray();
-        const coworkers = await this.getUserCoworkers(user._id.toString());
+        const coworkers = await this.getUserCoworkers(user.slug);
         const roleCounts = works.map(w => w.role).reduce((p, c) => {
           const newP = p;
           if (!newP[c]) {
@@ -621,11 +631,12 @@ class UserController {
     }
   }
 
-  async getUserCoworkers(userId) {
+  async getUserCoworkers(userSlug) {
     try {
       const connectionController = JOLLY.controller.ConnectionController;
       const workController = JOLLY.controller.WorkController;
-      const user = await this.getUserById(userId);
+      const user = await this.getUserBySlug(userSlug);
+      const userId = user.id.toString();
       const connections1 = await connectionController
         .findConnections({ to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED});
       const coworkersFromConnection1 = connections1.map(connection => connection.from);
