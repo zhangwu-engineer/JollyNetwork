@@ -7,6 +7,7 @@ const fileType = require('file-type');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
 const checkEmail = require('../lib/CheckEmail');
+const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
   EntityWork = require('../entities/EntityWork'),
@@ -223,22 +224,32 @@ class UserController {
           },
         ],
       };
-
+      const sentConnectionRequestCount = await db.collection('connections').countDocuments({
+        from: user.id.toString(),
+      });
+      const acceptedInvitationCount = await db.collection('connections').countDocuments({
+        to: user.id.toString(),
+        status: ConnectionStatus.CONNECTED,
+      });
+      const jobWithCoworkerCount = await db.collection('works').countDocuments({
+        user: new mongodb.ObjectID(user.id.toString()),
+        coworkers: { $exists: true, $not: { $size: 0 } },
+      });
       const connected = {
         name: 'connected',
         earned: false,
         actions: [
           {
             name: 'Connect with a Coworker',
-            completed: false,
+            completed: sentConnectionRequestCount > 0 ? true : false,
           },
           {
             name: 'Accept an invitation',
-            completed: false,
+            completed: acceptedInvitationCount > 0 ? true : false,
           },
           {
             name: 'Add a coworker to a job',
-            completed: false,
+            completed: jobWithCoworkerCount > 0 ? true : false,
           },
           {
             name: 'Verify a coworker did a job',
