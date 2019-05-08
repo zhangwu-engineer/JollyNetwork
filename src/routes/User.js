@@ -192,28 +192,8 @@ router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, n
     .catch(next);
 });
 
-router.get('/:id/coworkers', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const user = await userController.getUserById(req.params.id);
-  const connections1 = await connectionController
-    .findConnections({ to: { $in: [req.params.id, user.email] }, status: ConnectionStatus.CONNECTED});
-  const coworkersFromConnection1 = connections1.map(connection => connection.from);
-  const connections2 = await connectionController
-    .findConnections({ from: req.params.id, status: ConnectionStatus.CONNECTED});
-  const coworkersFromConnection2 = connections2.map(connection => connection.to);
-  const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
-
-  const works = await workController.getUserWorks(req.params.id);
-  const workSlugs = works.map(work => work.slug);
-  const allWorks = await workController.getWorksBySlugs(workSlugs, req.params.id);
-  const workCoworkerIds = allWorks.map(work => work.user.toString());
-
-  const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
-
-  const coworkers = await Promise.map(coworkerIds, coworkerId =>
-    checkEmail(coworkerId)
-      ? userController.getUserByEmail(coworkerId)
-      : userController.getUserById(coworkerId)
-    );
+router.get('/:slug/coworkers', asyncMiddleware(async (req, res, next) => {
+  const coworkers = await userController.getUserCoworkers(req.params.slug);
 
   res.apiSuccess({
     coworkers,
