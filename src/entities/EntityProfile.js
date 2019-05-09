@@ -24,6 +24,7 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {Number} cred
  * @property {Boolean} clickedRoleButton
  * @property {Boolean} clickedJobButton
+ * @property {Boolean} openedShareModal
  * @property {ObjectId} user_id
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
@@ -64,6 +65,7 @@ class EntityProfile extends BaseEntityWithID {
         this._cred = options.cred || 1;
         this._clickedRoleButton = options.clickedRoleButton === undefined ? false : options.clickedRoleButton;
         this._clickedJobButton = options.clickedJobButton === undefined ? false : options.clickedJobButton;
+        this._openedShareModal = options.openedShareModal === undefined ? false : options.openedShareModal;
         this._userId = new ObjectId(options.userId);
         this._dateCreated = options.dateCreated ? new Date(options.dateCreated) : new Date();
         this._dateUpdated = options.dateUpdated ? new Date(options.dateUpdated) : this._dateCreated;

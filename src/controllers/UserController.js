@@ -222,6 +222,10 @@ class UserController {
             name: 'Set your contact options',
             completed: setContactOptions,
           },
+          {
+            name: 'Get your profile sharing link',
+            completed: userProfile.openedShareModal,
+          }
         ],
       };
       const sentConnectionRequestCount = await db.collection('connections').countDocuments({
