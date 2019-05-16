@@ -223,6 +223,7 @@ class WorkController {
         .find({
           user: new mongodb.ObjectID(userId),
         })
+        .sort({to: -1})
         .toArray((err, result) => {
           if (err) reject(err);
           let itemList = [];
