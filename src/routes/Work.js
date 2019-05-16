@@ -155,7 +155,7 @@ router.post('/search', (req, res, next) => {
 
 router.get('/:id/user', (req, res, next) => {
   const emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-	workController
+  workController
 		.findWorkUsers(req.params.id)
 		.then((users) =>
 			Promise.map(users, (user) => {
@@ -175,14 +175,17 @@ router.get('/:id/user', (req, res, next) => {
                 populatedUser.user = u;
                 resolve(populatedUser);
               })
-              .catch(reject);
+              .catch(e => {
+                resolve(null);
+              });
           });
         }
       })
     )
     .then(populatedUsers => {
+      const validUsers = populatedUsers.filter(u => !!u);
       res.apiSuccess({
-        users: populatedUsers
+        users: validUsers
       });
     })
     .catch(next);
