@@ -47,9 +47,9 @@ class EntityProfile extends BaseEntityWithID {
         this._phone = options.phone || null;
         this._verifiedPhone = options.verifiedPhone || false;
         this._bio = options.bio || null;
-        this._receiveEmail = options.receiveEmail === undefined ? true : options.receiveEmail;
-        this._receiveSMS = options.receiveSMS === undefined ? true : options.receiveSMS;
-        this._receiveCall = options.receiveCall === undefined ? true : options.receiveCall;
+        this._receiveEmail = options.receiveEmail === undefined ? false : options.receiveEmail;
+        this._receiveSMS = options.receiveSMS === undefined ? false : options.receiveSMS;
+        this._receiveCall = options.receiveCall === undefined ? false : options.receiveCall;
         this._location = options.location || null;
         this._distance = options.distance || null;
         this._facebook = options.facebook || null;
