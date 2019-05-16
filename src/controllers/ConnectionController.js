@@ -123,6 +123,7 @@ class ConnectionController {
       db
         .collection('connections')
         .find(query)
+        .sort({ date_created: -1 })
         .toArray((err, result) => {
           if (err) reject(err);
           let itemList = [];
