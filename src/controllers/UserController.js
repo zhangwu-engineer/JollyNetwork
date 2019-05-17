@@ -322,13 +322,40 @@ class UserController {
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
-          userData.profile = updatedProfile.toJson();
+          const updatedProfileData = updatedProfile.toJson();
+          userData.profile = updatedProfileData;
+
+          await this.checkCityFreelancerBadge(userId);
+
         }
         return userData;
       }
       throw new ApiError('Wrong user id');
     } catch (err) {
       throw err;
+    }
+  }
+
+  async checkCityFreelancerBadge(userId) {
+    try {
+      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const db = this.getDefaultDB();
+      const userRoles = await db.collection('roles').find({ user_id: new mongodb.ObjectID(userId) }).toArray();
+      const user = await this.getUserById(userId);
+      if (userRoles.length > 0 && user.profile.location) {
+        if (!user.profile.cityFreelancer) {
+          await this.updateUserProfile(userId, { cityFreelancer: true });
+          analytics.track({
+            userId,
+            event: 'Badge Earned',
+            properties: {
+              type: 'city freelancer',
+            }
+          });
+        }
+      }
+    } catch (err) {
+      throw new ApiError(err.message);
     }
   }
 
