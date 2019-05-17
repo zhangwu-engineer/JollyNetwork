@@ -231,10 +231,10 @@ class UserController {
       const sentConnectionRequestCount = await db.collection('connections').countDocuments({
         from: user.id.toString(),
       });
-      const acceptedInvitationCount = await db.collection('connections').countDocuments({
-        to: user.id.toString(),
-        status: ConnectionStatus.CONNECTED,
-      });
+      // const acceptedInvitationCount = await db.collection('connections').countDocuments({
+      //   to: user.id.toString(),
+      //   status: ConnectionStatus.CONNECTED,
+      // });
       const jobWithCoworkerCount = await db.collection('works').countDocuments({
         user: new mongodb.ObjectID(user.id.toString()),
         coworkers: { $exists: true, $not: { $size: 0 } },
@@ -242,25 +242,25 @@ class UserController {
       const jobWhereVerifiedCoworkerCount = await db.collection('works').countDocuments({
         verifiers: user.id.toString(),
       });
-      const jobWhereVerifiedByCoworkerCount = await db.collection('works').countDocuments({
-        user: new mongodb.ObjectID(user.id.toString()),
-        verifiers: { $exists: true, $not: { $size: 0 } },
-      });
+      // const jobWhereVerifiedByCoworkerCount = await db.collection('works').countDocuments({
+      //   user: new mongodb.ObjectID(user.id.toString()),
+      //   verifiers: { $exists: true, $not: { $size: 0 } },
+      // });
       const userCoworkers = await this.getUserCoworkers(user.slug);
       const userCoworkerCount = userCoworkers.length;
       const connected = {
         name: 'connected',
-        earned: sentConnectionRequestCount > 0 && acceptedInvitationCount > 0 && jobWithCoworkerCount > 0 && jobWhereVerifiedCoworkerCount > 0 && jobWhereVerifiedByCoworkerCount > 0 && userCoworkerCount > 9 ? true : false,
+        earned: sentConnectionRequestCount > 0 && jobWithCoworkerCount > 0 && jobWhereVerifiedCoworkerCount > 0 && userCoworkerCount > 9 ? true : false,
         coworkerCount: userCoworkerCount,
         actions: [
           {
             name: 'Connect with a Coworker',
             completed: sentConnectionRequestCount > 0 ? true : false,
           },
-          {
-            name: 'Accept an invitation',
-            completed: acceptedInvitationCount > 0 ? true : false,
-          },
+          // {
+          //   name: 'Accept an invitation',
+          //   completed: acceptedInvitationCount > 0 ? true : false,
+          // },
           {
             name: 'Add a coworker to a job',
             completed: jobWithCoworkerCount > 0 ? true : false,
@@ -269,10 +269,10 @@ class UserController {
             name: 'Verify a coworker did a job',
             completed: jobWhereVerifiedCoworkerCount > 0 ? true : false,
           },
-          {
-            name: 'Get Verified on a job by another coworker',
-            completed: jobWhereVerifiedByCoworkerCount > 0 ? true : false,
-          },
+          // {
+          //   name: 'Get Verified on a job by another coworker',
+          //   completed: jobWhereVerifiedByCoworkerCount > 0 ? true : false,
+          // },
           {
             name: 'Get 10 total Coworker Connections',
             completed: userCoworkerCount > 9 ? true : false,
