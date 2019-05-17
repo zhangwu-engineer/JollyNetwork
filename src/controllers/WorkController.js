@@ -46,6 +46,7 @@ class WorkController {
 	 */
 	async addWork (options) {
     const tokenController = JOLLY.controller.TokenController;
+    const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
@@ -184,6 +185,7 @@ class WorkController {
 
       const tokens = mailService.sendInvite(emails, work, { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
       await tokenController.addTokens(tokens);
+      await userController.checkActiveFreelancerBadge(user);
       return work;
 
     } catch (err) {

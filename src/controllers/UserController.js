@@ -359,6 +359,32 @@ class UserController {
     }
   }
 
+  async checkActiveFreelancerBadge(userId) {
+    try {
+      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const db = this.getDefaultDB();
+      const userJobCountWithin60Days = await db.collection('works').countDocuments({
+        user: new mongodb.ObjectID(userId),
+        date_created: { $gt:new Date(Date.now() - 24*60*60*1000*60) }
+      });
+      const user = await this.getUserById(userId);
+      if (userJobCountWithin60Days > 0) {
+        if (!user.profile.activeFreelancer) {
+          await this.updateUserProfile(userId, { activeFreelancer: true });
+          analytics.track({
+            userId,
+            event: 'Badge Earned',
+            properties: {
+              type: 'active job streak',
+            }
+          });
+        }
+      }
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async verifyUserEmail(userId) {
     let self = this,
       user = null,
