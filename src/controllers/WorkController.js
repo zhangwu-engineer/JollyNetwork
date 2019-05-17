@@ -186,6 +186,9 @@ class WorkController {
       const tokens = mailService.sendInvite(emails, work, { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });
       await tokenController.addTokens(tokens);
       await userController.checkActiveFreelancerBadge(user);
+      if (originalCoworkers.length > 0) {
+        await userController.checkConnectedBadge(user);
+      }
       return work;
 
     } catch (err) {

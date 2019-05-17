@@ -5,6 +5,7 @@ const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
+const asyncMiddleware = require('../lib/AsyncMiddleware');
 let authService = JOLLY.service.Authentication,
   workController = JOLLY.controller.WorkController,
   tokenController = JOLLY.controller.TokenController,
@@ -191,56 +192,43 @@ router.get('/:id/user', (req, res, next) => {
     .catch(next);
 });
 
-router.post('/:id/addCoworker', authService.verifyUserAuthentication, (req, res, next) => {
-  userController
-    .getUserById(req.userId)
-    .then((user) => {
-      return workController.addCoworker(req.params.id, req.body.coworker, user);
-    })
-		.then((tokens) => {
-      return Promise.map(tokens, (token) => {
-        return new Promise((resolve, reject) => {
-          tokenController
-            .addToken({ token })
-            .then(() => {
-              resolve();
-            })
-            .catch(reject);
-        });
-      });
-    })
-    .then(() => {
-      res.apiSuccess({});
-    })
-    .catch(next)
-});
+router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const user = await userController.getUserById(req.userId);
+  const tokens = await workController.addCoworker(req.params.id, req.body.coworker, user);
+  await Promise.map(tokens, (token) => {
+    return new Promise((resolve, reject) => {
+      tokenController
+        .addToken({ token })
+        .then(() => {
+          resolve();
+        })
+        .catch(reject);
+    });
+  });
+  await userController.checkConnectedBadge(req.userId);
+  res.apiSuccess({});
+}));
 
-router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, (req, res, next) => {
+router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
-  let workData = null;
-  workController
-    .findWorkById(req.params.id)
-    .then(work => {
-      workData = work.toJson({});
-      return workController.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }));
-    })
-		.then(() => {
-      analytics.track({
-        userId: req.userId,
-        event: 'Coworker Job Verified',
-        properties: {
-          userID: req.userId,
-          jobID: workData.id,
-          eventID: workData.slug,
-          jobAddedMethod: workData.addMethod,
-          verificationMethod: 'clicked',
-          verifiedCoworkerUserID: req.body.coworker,
-        }
-      });
-      res.apiSuccess({});
-    })
-    .catch(next)
-});
+  const work = await workController.findWorkById(req.params.id);
+  const workData = work.toJson({});
+  await workController.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }));
+  analytics.track({
+    userId: req.userId,
+    event: 'Coworker Job Verified',
+    properties: {
+      userID: req.userId,
+      jobID: workData.id,
+      eventID: workData.slug,
+      jobAddedMethod: workData.addMethod,
+      verificationMethod: 'clicked',
+      verifiedCoworkerUserID: req.body.coworker,
+    }
+  });
+  await userController.checkConnectedBadge(req.userId);
+  res.apiSuccess({});
+}));
 
 router.post('/invite', (req, res, next) => {
   const authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET;

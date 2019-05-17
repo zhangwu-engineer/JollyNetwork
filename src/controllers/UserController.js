@@ -417,6 +417,57 @@ class UserController {
     }
   }
 
+  async checkConnectedBadge(userId) {
+    try {
+      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const db = this.getDefaultDB();
+      const user = await this.getUserById(userId);
+      const userProfile = user.profile;
+      const sentConnectionRequestCount = await db.collection('connections').countDocuments({
+        from: user.id.toString(),
+      });
+      const jobWithCoworkerCount = await db.collection('works').countDocuments({
+        user: new mongodb.ObjectID(user.id.toString()),
+        coworkers: { $exists: true, $not: { $size: 0 } },
+      });
+      const jobWhereVerifiedCoworkerCount = await db.collection('works').countDocuments({
+        verifiers: user.id.toString(),
+      });
+      const userCoworkers = await this.getUserCoworkers(user.slug);
+      const userCoworkerCount = userCoworkers.length;
+
+      if (
+        sentConnectionRequestCount > 0 &&
+        jobWithCoworkerCount > 0 &&
+        jobWhereVerifiedCoworkerCount > 0
+      ) {
+        const howConnected = '';
+        if (userCoworkerCount > 99) {
+          howConnected = 'super connected';
+        } else if (userCoworkerCount > 49) {
+          howConnected = 'very connected';
+        } else if (userCoworkerCount > 24) {
+          howConnected = 'well connected';
+        } else if (userCoworkerCount > 9) {
+          howConnected = 'connected';
+        }
+
+        if (howConnected !== '' && userProfile.connected !== howConnected) {
+          await this.updateUserProfile(userId, { connected: howConnected });
+          analytics.track({
+            userId,
+            event: 'Badge Earned',
+            properties: {
+              type: howConnected,
+            }
+          });
+        }
+      }
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async verifyUserEmail(userId) {
     let self = this,
       user = null,

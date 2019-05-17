@@ -84,6 +84,7 @@ class ConnectionController {
             }
           });
         }
+        await userController.checkConnectedBadge(from);
         return connectionData.toJson({});
       } else {
         throw new ApiError('Connection request already sent');
