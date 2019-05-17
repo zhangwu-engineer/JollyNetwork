@@ -326,6 +326,7 @@ class UserController {
           userData.profile = updatedProfileData;
 
           await this.checkCityFreelancerBadge(userId);
+          await this.checkReadyAndWillingBadge(userId);
 
         }
         return userData;
@@ -376,6 +377,37 @@ class UserController {
             event: 'Badge Earned',
             properties: {
               type: 'active job streak',
+            }
+          });
+        }
+      }
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
+  async checkReadyAndWillingBadge(userId) {
+    try {
+      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const db = this.getDefaultDB();
+      const user = await this.getUserById(userId);
+      const userProfile = user.profile;
+      const setContactOptions = userProfile.receiveEmail || userProfile.receiveSMS || userProfile.receiveCall;
+      if (
+        userProfile.avatar &&
+        userProfile.bio &&
+        userProfile.resume &&
+        userProfile.verifiedPhone &&
+        setContactOptions &&
+        userProfile.openedShareModal
+      ) {
+        if (!user.profile.readyAndWilling) {
+          await this.updateUserProfile(userId, { readyAndWilling: true });
+          analytics.track({
+            userId,
+            event: 'Badge Earned',
+            properties: {
+              type: 'ready and willing',
             }
           });
         }
