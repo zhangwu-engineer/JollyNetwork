@@ -44,6 +44,7 @@ class CommentController {
 	async addComment (options) {
 
     const db = this.getDefaultDB();
+    const mailService = JOLLY.service.Mail;
     const userController = JOLLY.controller.UserController;
     try {
       const { content, post, user} = options;
@@ -58,6 +59,13 @@ class CommentController {
       const comment = await this.saveComment(newComment);
       const commentData = comment.toJson({});
       commentData.user = await userController.getUserById(commentData.user);
+      const postData = await db.collection('posts').findOne({ _id: new mongodb.ObjectID(post) });
+      if (postData.comments.length === 0) {
+        const postCreator = await userController.getUserById(postData.user.toString());
+        const userData = await userController.getUserById(user.toString());
+        await mailService.sendFirstCommentEmail(postCreator.email, userData, content, postData);
+      }
+
       await db
         .collection('posts')
         .updateOne({
@@ -85,17 +93,17 @@ class CommentController {
   async findCommentById (id) {
 
     const db = this.getDefaultDB();
-    
+
     try {
       const data = await db.collection('comments').findOne({ _id: new mongodb.ObjectID(id) });
-  
+
       const comment = new EntityComment(data);
 
       return comment;
     } catch (err) {
       throw new ApiError(err.message);
     }
-    
+
   }
 
   async findComments (query) {

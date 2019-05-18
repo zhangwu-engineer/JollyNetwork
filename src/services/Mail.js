@@ -255,6 +255,50 @@ class Mail {
       });
     });
   }
+
+  sendFirstCommentEmail(email, user, comment, post) {
+    const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
+    var template_name = "first-comment-alert";
+    var template_content = [];
+    var message = {
+      "subject": `${_.capitalize(user.firstName)} ${_.capitalize(user.lastName)} commented on your post!`,
+      "to": [{
+        "email": email,
+        "type": "to"
+      }],
+      "merge_vars": [{
+        "rcpt": email,
+        "vars": [{
+          "name": "comment",
+          "content": comment
+        }, {
+          "name": "post",
+          "content": post.content
+        }, {
+          "name": "link",
+          "content": `<a href="${JOLLY.config.APP.APP_DOMAIN}/feed">Join the conversation</a>`
+        }]
+      }],
+    }
+    var async = false;
+    var ip_pool = "Main Pool";
+    var send_at = new Date();
+
+    return new Promise((resolve, reject) => {
+      mandrill_client.messages.sendTemplate({
+        "template_name": template_name,
+        "template_content": template_content,
+        "message": message,
+        "async": async,
+        "ip_pool": ip_pool,
+        "send_at": send_at,
+      }, function(result) {
+        resolve(result);
+      }, function(e) {
+        reject(e);
+      });
+    });
+  }
 }
 
 module.exports = Mail;
