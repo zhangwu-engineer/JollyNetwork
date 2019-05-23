@@ -12,6 +12,7 @@ const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
+  SystemUserRoles = require('../enum/SystemUserRoles'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -53,7 +54,7 @@ class UserController {
       authService = JOLLY.service.Authentication,
       mailService = JOLLY.service.Mail;
 
-    let {email, firstName, lastName, password, avatar, invite} = options,
+    let {email, firstName, lastName, password, avatar, isBusiness, invite} = options,
 				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
         newUser,
         newUserProfile;
@@ -62,7 +63,7 @@ class UserController {
 			firstName = firstName.toLowerCase();
       lastName = lastName.toLowerCase();
     const source = invite ? 'v-jobtag' : '';
-
+    const role = isBusiness ? SystemUserRoles.BUSINESS : SystemUserRoles.USER;
     try {
       const isExistingEmail = await self.isExistingEmail(options.email);
       if (isExistingEmail) {
@@ -76,12 +77,14 @@ class UserController {
 					password: encryptedPassword,
           slug,
           source,
+          role,
 				} : {
 					email,
 					firstName,
 					lastName,
           slug,
           source,
+          role,
         });
         const userData = await self.saveUser(newUser);
         const newProfileData = { userId: userData._id };
