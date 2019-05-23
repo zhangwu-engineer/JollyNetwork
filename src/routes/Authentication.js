@@ -64,6 +64,7 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
         firstName: req.user.name.givenName,
         lastName: req.user.name.familyName,
         email: req.user.emails[0].value,
+        isBusiness: req.body.isBusiness,
         invite: req.body.invite,
     };
     if (req.user.photos && req.user.photos.length) {
@@ -119,6 +120,7 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
       firstName: req.user.name.givenName,
       lastName: req.user.name.familyName,
       email: req.user.emails[0].value,
+      isBusiness: req.body.isBusiness,
       invite: req.body.invite,
   };
   if (req.user.photos && req.user.photos.length) {
