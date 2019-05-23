@@ -10,6 +10,7 @@ const checkEmail = require('../lib/CheckEmail');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
+  EntityBusiness = require('../entities/EntityBusiness'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
@@ -95,6 +96,12 @@ class UserController {
         const userProfileData = await self.saveUserProfile(newUserProfile)
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
+
+        const newBusinessData = { user: userData._id };
+        const newUserBusiness = new EntityBusiness(newBusinessData);
+        const userBusinessData = await self.saveUserBusiness(newUserBusiness)
+        res.business = userBusinessData.toJson();
+
         if (invite) {
           await self.acceptInvite(invite, res);
         }
@@ -331,6 +338,11 @@ class UserController {
           await this.checkCityFreelancerBadge(userId);
           await this.checkReadyAndWillingBadge(userId);
 
+        }
+        if (data.business) {
+          const updatedBusiness = await self.updateUserBusiness(userId, data.business);
+          const updatedBusinessData = updatedBusiness.toJson();
+          userData.business = updatedBusinessData;
         }
         return userData;
       }
@@ -1081,6 +1093,70 @@ class UserController {
           }
 
           resolve (profile);
+
+        })
+				.catch(reject);
+
+			});
+  }
+
+  /**
+	 * Save user business into database.
+	 * @param {EntityBusiness} business - User business entity we are going to save into system.
+	 * @returns {Promise}
+	 * @resolve {EntityBusiness}
+	 */
+	saveUserBusiness (business) {
+
+		let db = this.getDefaultDB(),
+			collectionName = 'businesses',
+			businessData = business.toJson(),
+			businessEntity;
+
+    const fieldNames = ['id', 'name', 'category'];
+
+    fieldNames.forEach(field => {
+      if (businessData[field] == null) {
+        delete (businessData[field]);
+      }
+    })
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.insertOne(businessData)
+				.then((result) => {
+          //userData.id = result.insertedId;
+          businessEntity = new EntityBusiness(businessData);
+
+					resolve(businessEntity);
+				})
+				.catch(reject);
+
+			});
+  }
+
+  updateUserBusiness(userId, data) {
+    let db = this.getDefaultDB(),
+      collectionName = 'businesses',
+      business = null;
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.updateOne({ user: new mongodb.ObjectID(userId) }, { $set: data })
+				.then(() => {
+					return db.collection(collectionName).findOne({
+            user: new mongodb.ObjectID(userId),
+          });
+        })
+        .then((data) => {
+
+          if (data) {
+
+            business = new EntityBusiness(data);
+          }
+
+          resolve (business);
 
         })
 				.catch(reject);
