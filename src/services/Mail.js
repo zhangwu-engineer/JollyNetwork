@@ -270,7 +270,13 @@ class Mail {
         "rcpt": email,
         "vars": [{
           "name": "comment",
-          "content": comment
+          "content": `"${comment}"`
+        }, {
+          "name": "fname",
+          "content": _.capitalize(user.firstName)
+        }, {
+          "name": "lname",
+          "content": _.capitalize(user.lastName)
         }, {
           "name": "post",
           "content": post.content
