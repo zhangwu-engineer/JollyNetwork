@@ -124,6 +124,10 @@ class UserController {
         profile = await self.getUserProfile(userId);
         const userData = user.toJson({ isSafeOutput: true });
         userData.profile = profile.toJson();
+        if (userData.role === SystemUserRoles.BUSINESS) {
+          const business = await self.getUserBusiness(userId);
+          userData.business = business.toJson();
+        }
         return userData;
       }
       throw new ApiError('User not found');
@@ -161,6 +165,10 @@ class UserController {
       if (user) {
         profile = await self.getUserProfile(user.getId());
         const userData = user.toJson({ isSafeOutput: true });
+        if (userData.role === SystemUserRoles.BUSINESS) {
+          const business = await self.getUserBusiness(user.getId());
+          userData.business = business.toJson();
+        }
         userData.profile = profile.toJson();
         return userData;
       }
@@ -340,9 +348,15 @@ class UserController {
 
         }
         if (data.business) {
+          const businessName = data.business.name;
+          const bSlug = businessName.toLowerCase().split(' ').join('-');
+          const newSlug = `${bSlug}-${userData.slug}`;
+          const businessData = data.business;
           const updatedBusiness = await self.updateUserBusiness(userId, data.business);
           const updatedBusinessData = updatedBusiness.toJson();
           userData.business = updatedBusinessData;
+          await self.updateUserCollection(userId, { slug: newSlug });
+          userData.slug = newSlug;
         }
         return userData;
       }
@@ -925,6 +939,28 @@ class UserController {
 				}
 
 				resolve (profile);
+
+			}).catch(reject);
+
+		});
+  }
+
+  getUserBusiness (userId) {
+
+		let db = this.getDefaultDB(),
+      business = null;
+		return new Promise((resolve, reject) => {
+
+			db.collection('businesses').findOne({
+				user: new mongodb.ObjectID(userId),
+			}).then((data) => {
+
+				if (data) {
+
+					business = new EntityBusiness(data);
+				}
+
+				resolve (business);
 
 			}).catch(reject);
 

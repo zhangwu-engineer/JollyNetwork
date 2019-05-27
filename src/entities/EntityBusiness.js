@@ -23,7 +23,7 @@ class EntityBusiness extends BaseEntityWithID {
         super (options);
 
         this._name = options.name || null;
-        this._phone = options.category || null;
+        this._category = options.category || null;
         this._user = new ObjectId(options.user);
         this._dateCreated = options.dateCreated ? new Date(options.dateCreated) : new Date();
         this._dateUpdated = options.dateUpdated ? new Date(options.dateUpdated) : this._dateCreated;
