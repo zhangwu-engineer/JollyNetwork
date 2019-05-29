@@ -712,7 +712,7 @@ class UserController {
       throw new ApiError(err.message);
     }
   }
-  async searchCityUsers(city, query, page, perPage, userId) {
+  async searchCityUsers(city, query, page, perPage, role, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
     const aggregates = [
@@ -739,6 +739,24 @@ class UserController {
       aggregates.push({
         $match : {
           'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+        }
+      });
+    }
+    if (role) {
+      aggregates.push({
+        $lookup: {
+          from: "roles",
+          localField: "userId",
+          foreignField: "user_id",
+          as: "roles"
+        }
+      });
+      aggregates.push({
+        $unwind: "$roles"
+      });
+      aggregates.push({
+        $match : {
+          'roles.name': role,
         }
       });
     }
