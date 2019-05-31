@@ -7,7 +7,7 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {ObjectId} user
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
- *
+ * @property {String} slug
  */
 
 const BaseEntityWithID = require('./base/BaseEntityWithID');
@@ -24,6 +24,7 @@ class EntityBusiness extends BaseEntityWithID {
 
         this._name = options.name || null;
         this._category = options.category || null;
+        this._slug = options.slug || null;
         this._user = new ObjectId(options.user);
         this._dateCreated = options.dateCreated ? new Date(options.dateCreated) : new Date();
         this._dateUpdated = options.dateUpdated ? new Date(options.dateUpdated) : this._dateCreated;

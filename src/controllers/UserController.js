@@ -100,7 +100,7 @@ class UserController {
         const newBusinessData = { user: userData._id };
         const newUserBusiness = new EntityBusiness(newBusinessData);
         const userBusinessData = await self.saveUserBusiness(newUserBusiness)
-        res.business = userBusinessData.toJson();
+        res.businesses = [userBusinessData.toJson()];
 
         if (invite) {
           await self.acceptInvite(invite, res);
@@ -125,8 +125,11 @@ class UserController {
         const userData = user.toJson({ isSafeOutput: true });
         userData.profile = profile.toJson();
         if (userData.role === SystemUserRoles.BUSINESS) {
-          const business = await self.getUserBusiness(userId);
-          userData.business = business.toJson();
+          const businesses = await self.getUserBusinesses(userId);
+          userData.businesses = businesses;
+          userData.isBusiness = true;
+        } else {
+          userData.isBusiness = false;
         }
         return userData;
       }
@@ -147,6 +150,13 @@ class UserController {
         const userData = user.toJson({ isSafeOutput: true });
         profile = await self.getUserProfile(userData.id.toString());
         userData.profile = profile.toJson();
+        if (userData.role === SystemUserRoles.BUSINESS) {
+          const businesses = await self.getUserBusinesses(userId);
+          userData.businesses = businesses;
+          userData.isBusiness = true;
+        } else {
+          userData.isBusiness = false;
+        }
         return userData;
       }
       throw new ApiError('User not found');
@@ -166,8 +176,11 @@ class UserController {
         profile = await self.getUserProfile(user.getId());
         const userData = user.toJson({ isSafeOutput: true });
         if (userData.role === SystemUserRoles.BUSINESS) {
-          const business = await self.getUserBusiness(user.getId());
-          userData.business = business.toJson();
+          const businesses = await self.getUserBusinesses(user.getId());
+          userData.businesses = businesses;
+          userData.isBusiness = true;
+        } else {
+          userData.isBusiness = false;
         }
         userData.profile = profile.toJson();
         return userData;
@@ -349,14 +362,9 @@ class UserController {
         }
         if (data.business) {
           const businessName = data.business.name;
-          const bSlug = businessName.toLowerCase().split(' ').join('-');
-          const newSlug = `${bSlug}-${userData.slug}`;
-          const businessData = data.business;
-          const updatedBusiness = await self.updateUserBusiness(userId, data.business);
-          const updatedBusinessData = updatedBusiness.toJson();
-          userData.business = updatedBusinessData;
-          await self.updateUserCollection(userId, { slug: newSlug });
-          userData.slug = newSlug;
+          const bSlug = generateBusinessSlug({ user: new mongodb.ObjectID(userId), name: businessName }, userData.slug)
+          data.business.slug = bSlug;
+          await self.updateUserBusiness(userId, data.business);
         }
         return userData;
       }
@@ -945,22 +953,21 @@ class UserController {
 		});
   }
 
-  getUserBusiness (userId) {
+  getUserBusinesses (userId) {
 
 		let db = this.getDefaultDB(),
       business = null;
 		return new Promise((resolve, reject) => {
 
-			db.collection('businesses').findOne({
+			db.collection('businesses').find({
 				user: new mongodb.ObjectID(userId),
-			}).then((data) => {
+			}).toArray().then((dataBusinesses) => {
 
-				if (data) {
-
-					business = new EntityBusiness(data);
+				if (dataBusinesses) {
+          dataBusinesses.map(data => (new EntityBusiness(data)).toJson());
 				}
 
-				resolve (business);
+				resolve (dataBusinesses);
 
 			}).catch(reject);
 
@@ -997,6 +1004,19 @@ class UserController {
 				const slug = count === 0
 					? `${options.firstName}-${options.lastName.split(' ').join('-')}`
 					: `${options.firstName}-${options.lastName.split(' ').join('-')}-${count}`;
+				resolve(slug);
+			})
+			.catch(reject);
+		});
+  }
+  
+  generateBusinessSlug(options, userSlug) {
+		return new Promise((resolve, reject) => {
+			let db = this.getDefaultDB();
+			db.collection('businesses').countDocuments(options).then(count => {
+				const slug = count === 0
+					? `${options.businessName.split(' ').join('-')}-${userSlug}`
+					: `${options.businessName.split(' ').join('-')}-${userSlug}-${count}`;
 				resolve(slug);
 			})
 			.catch(reject);
@@ -1161,7 +1181,6 @@ class UserController {
 			db.collection(collectionName)
 				.insertOne(businessData)
 				.then((result) => {
-          //userData.id = result.insertedId;
           businessEntity = new EntityBusiness(businessData);
 
 					resolve(businessEntity);
@@ -1179,7 +1198,7 @@ class UserController {
 		return new Promise((resolve, reject) => {
 
 			db.collection(collectionName)
-				.updateOne({ user: new mongodb.ObjectID(userId) }, { $set: data })
+				.updateOne({ user: new mongodb.ObjectID(userId), slug: data.slug }, { $set: data })
 				.then(() => {
 					return db.collection(collectionName).findOne({
             user: new mongodb.ObjectID(userId),
