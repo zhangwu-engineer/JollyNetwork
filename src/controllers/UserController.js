@@ -718,12 +718,14 @@ class UserController {
     const aggregates = [
       {
         $match : {
-          location : city,
           userId: { $ne: new mongodb.ObjectID(userId) },
         }
       },
       { $sort  : { userId : -1 } },
     ];
+    if (city) {
+      aggregates[0]['$match']['location'] = city
+    }
     if (query) {
       aggregates.push({
         $lookup: {
