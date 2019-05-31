@@ -362,7 +362,7 @@ class UserController {
         }
         if (data.business) {
           const businessName = data.business.name;
-          const bSlug = generateBusinessSlug({ user: new mongodb.ObjectID(userId), name: businessName }, userData.slug)
+          const bSlug = generateBusinessSlug({ user: new mongodb.ObjectID(userId), name: businessName })
           data.business.slug = bSlug;
           await self.updateUserBusiness(userId, data.business);
         }
@@ -964,7 +964,7 @@ class UserController {
 			}).toArray().then((dataBusinesses) => {
 
 				if (dataBusinesses) {
-          dataBusinesses.map(data => (new EntityBusiness(data)).toJson());
+          dataBusinesses = dataBusinesses.map(data => new EntityBusiness(data).toJson());
 				}
 
 				resolve (dataBusinesses);
@@ -1010,13 +1010,13 @@ class UserController {
 		});
   }
   
-  generateBusinessSlug(options, userSlug) {
+  generateBusinessSlug(options) {
 		return new Promise((resolve, reject) => {
 			let db = this.getDefaultDB();
 			db.collection('businesses').countDocuments(options).then(count => {
 				const slug = count === 0
-					? `${options.businessName.split(' ').join('-')}-${userSlug}`
-					: `${options.businessName.split(' ').join('-')}-${userSlug}-${count}`;
+					? `${options.businessName.split(' ').join('-')}`
+					: `${options.businessName.split(' ').join('-')}-${count}`;
 				resolve(slug);
 			})
 			.catch(reject);
