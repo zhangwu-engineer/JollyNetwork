@@ -362,7 +362,7 @@ class UserController {
         }
         if (data.business) {
           const businessName = data.business.name;
-          const bSlug = generateBusinessSlug({ user: new mongodb.ObjectID(userId), name: businessName })
+          const bSlug = await self.generateBusinessSlug({ name: businessName })
           data.business.slug = bSlug;
           await self.updateUserBusiness(userId, data.business);
         }
@@ -1015,8 +1015,8 @@ class UserController {
 			let db = this.getDefaultDB();
 			db.collection('businesses').countDocuments(options).then(count => {
 				const slug = count === 0
-					? `${options.businessName.split(' ').join('-')}`
-					: `${options.businessName.split(' ').join('-')}-${count}`;
+					? `${options.name.split(' ').join('-')}`
+					: `${options.name.split(' ').join('-')}-${count}`;
 				resolve(slug);
 			})
 			.catch(reject);
@@ -1198,7 +1198,7 @@ class UserController {
 		return new Promise((resolve, reject) => {
 
 			db.collection(collectionName)
-				.updateOne({ user: new mongodb.ObjectID(userId), slug: data.slug }, { $set: data })
+				.updateOne({ user: new mongodb.ObjectID(userId) }, { $set: data })
 				.then(() => {
 					return db.collection(collectionName).findOne({
             user: new mongodb.ObjectID(userId),
