@@ -49,10 +49,22 @@ router.post('/login', (req, res, next) => {
               userId: userData.id
           });
 
-          res.apiSuccess({
-            auth_token: authToken,
-            user: userData,
-          });
+          if (userData.role === SystemUserRoles.BUSINESS) {
+            userController.getUserBusinesses(userData.id).then((businesses) => {
+              userData.businesses = businesses;
+              userData.isBusiness = true;
+              res.apiSuccess({
+                auth_token: authToken,
+                user: userData,
+              })
+            })
+          } else {
+            userData.isBusiness = false;
+            res.apiSuccess({
+              auth_token: authToken,
+              user: userData,
+            });
+          }
         }
     })
     .catch(next);
