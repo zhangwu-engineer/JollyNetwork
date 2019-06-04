@@ -46,45 +46,60 @@ class ConnectionController {
     const mailService = JOLLY.service.Mail;
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     try {
-      let {to, from } = options,
+      let {to, toUserId, from, email, fromUserId, connectionType } = options,
       newConnection;
 
+      if (!to) to = toUserId;
+      if (!from) from = fromUserId;
+      if (!connectionType) connectionType='f2f';
+
       newConnection = new EntityConnection({
-        to,
-        from
+        to: new mongodb.ObjectID(to),
+        from: new mongodb.ObjectID(from),
+        connectionType
       });
 
+      let fromUser;
+      if (fromUserId) {
+        fromUser = await userController.getUserById(fromUserId);
+      } else if (!fromUserId && email) {
+        fromUser = await userController.getUserByEmail(email);
+        fromUserId = fromUser.id;
+      } else {
+        throw new ApiError('User not found');
+      }
+      
       const existing = await this.findConnections({ to, from });
+
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
-        const fromUser = await userController.getUserById(from);
-        if(checkEmail(to)) {
-          await mailService.sendConnectionInvite(to, fromUser);
+        if(checkEmail(toUserId)) {
+          await mailService.sendConnectionInvite(toUserId, fromUser);
           analytics.track({
-            userId: from,
+            userId: fromUserId,
             event: 'Coworker Request',
             properties: {
-              requesterUserId: from,
-              invitedUserId: to,
+              requesterUserId: fromUserId,
+              invitedUserId: toUserId,
               method: 'Email',
               status: 'Pending',
             }
           });
         } else {
-          const toUser = await userController.getUserById(to);
+          const toUser = await userController.getUserById(toUserId);
           await mailService.sendConnectionInvite(toUser.email, fromUser);
           analytics.track({
-            userId: from,
+            userId: fromUserId,
             event: 'Coworker Request',
             properties: {
-              requesterUserId: from,
+              requesterUserId: fromUserId,
               invitedUserId: toUser.id.toString(),
               method: 'Nearby',
               status: 'Pending',
             }
           });
         }
-        await userController.checkConnectedBadge(from);
+        await userController.checkConnectedBadge(fromUserId);
         return connectionData.toJson({});
       } else {
         throw new ApiError('Connection request already sent');
@@ -272,6 +287,25 @@ class ConnectionController {
 				.catch(reject);
 
 			});
+  }
+
+  checkConnection(to, from) {
+    let db = this.getDefaultDB(),
+      connection = null;
+    
+		return new Promise((resolve, reject) => {
+
+			db.collection('connections').findOne({ to: new mongodb.ObjectID(to), from: new mongodb.ObjectID(from) }).then((data) => {
+
+				if (data) {
+					connection = new EntityConnection(data);
+				}
+
+				resolve (connection);
+
+			}).catch(reject);
+
+		});
   }
 }
 
