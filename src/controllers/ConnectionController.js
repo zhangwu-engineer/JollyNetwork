@@ -48,7 +48,6 @@ class ConnectionController {
     try {
       let {to, from, isCoworker } = options,
       newConnection;
-
       newConnection = new EntityConnection({
         to,
         from,
@@ -195,18 +194,12 @@ class ConnectionController {
         .toArray((err, result) => {
           if (err) reject(err);
           let itemList = [];
-
           if (result) {
-
             result.forEach((connectionData) => {
-
               let connectionObject = new EntityConnection(connectionData);
-
               itemList.push(connectionObject.toJson({}));
             })
-
           }
-
           resolve (itemList);
         });
     });
@@ -261,17 +254,18 @@ class ConnectionController {
 
           if (data) {
             connection = new EntityConnection(data);
-            const method = checkEmail(data.to) ? 'Email' : 'Nearby';
-            analytics.track({
-              userId: userId,
-              event: 'Coworker Request',
-              properties: {
-                requesterUserId: data.from,
-                invitedUserId: data.to,
-                method: method,
-                status: 'Accepted',
-              }
-            });
+            if(connection.status === ConnectionStatus.CONNECTED) {
+              const method = checkEmail(data.to) ? 'Email' : 'Nearby';
+              analytics.track({
+                userId: userId, event: 'Coworker Request',
+                properties: {
+                  requesterUserId: data.from,
+                  invitedUserId: data.to,
+                  method: method,
+                  status: 'Accepted',
+                }
+              });
+            }
 
             resolve (connection);
           }
