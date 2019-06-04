@@ -25,6 +25,7 @@ class EntityConnection extends BaseEntityWithID {
 
         this._to = options.to;
         this._from = options.from;
+        this._connectionType = options.connectionType;
         this._status = options.status || ConnectionStatus.PENDING;
         this._connected_at = options.connected_at ? new Date(options.connected_at) : null;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
