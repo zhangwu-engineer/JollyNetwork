@@ -39,7 +39,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
 }));
 
 /**
- * create new endorsement into system.
+ * create new connection into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
 
@@ -48,6 +48,16 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
     connection: connectionData
   });
 
+}));
+
+router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  console.log(req.params.id, req.userId);
+  const connections = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
+  console.log(connections);
+  let connectionType = connections[0] && connections[0].connectionType || 'not-connected';
+  res.apiSuccess({
+    connectionType: connectionType,
+  });
 }));
 
 router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {

@@ -46,12 +46,13 @@ class ConnectionController {
     const mailService = JOLLY.service.Mail;
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     try {
-      let {to, from } = options,
+      let {to, from, isCoworker } = options,
       newConnection;
 
       newConnection = new EntityConnection({
         to,
-        from
+        from,
+        connectionType: isCoworker ? 'coworker' : 'generic',
       });
 
       const existing = await this.findConnections({ to, from });
@@ -166,6 +167,50 @@ class ConnectionController {
 
 		});
 	}
+
+	findConnectionsBetweenUserIds (userIds) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      db.collection('connections')
+        .find({
+          "$and": [
+            {
+              "status": "CONNECTED"
+            },
+            {
+              "$or": [
+                {
+                  "to": userIds[0],
+                  "from": userIds[1]
+                },
+                {
+                  "from": userIds[0],
+                  "to": userIds[1]
+                }
+              ]
+            }
+          ]
+        })
+        .sort({ date_created: -1 })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          let itemList = [];
+
+          if (result) {
+
+            result.forEach((connectionData) => {
+
+              let connectionObject = new EntityConnection(connectionData);
+
+              itemList.push(connectionObject.toJson({}));
+            })
+
+          }
+
+          resolve (itemList);
+        });
+    });
+  }
 	/**
 	 * Save connection into database.
 	 * @param {EntityConnection} connection - Connection entity we are going to register into system.
