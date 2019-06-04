@@ -46,7 +46,7 @@ class ConnectionController {
     const mailService = JOLLY.service.Mail;
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     try {
-      let {to, toUserId, from, email, fromUserId, connectionType } = options,
+      let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,
       newConnection;
 
       if (!to) to = toUserId;
@@ -56,7 +56,7 @@ class ConnectionController {
       newConnection = new EntityConnection({
         to: new mongodb.ObjectID(to),
         from: new mongodb.ObjectID(from),
-        connectionType
+        connectionType: isCoworker ? 'coworker' : 'generic',
       });
 
       let fromUser;
@@ -68,7 +68,7 @@ class ConnectionController {
       } else {
         throw new ApiError('User not found');
       }
-      
+
       const existing = await this.findConnections({ to, from });
 
       if (existing.length === 0) {
@@ -181,6 +181,44 @@ class ConnectionController {
 
 		});
 	}
+
+	findConnectionsBetweenUserIds (userIds) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      db.collection('connections')
+        .find({
+          "$and": [
+            {
+              "status": "CONNECTED"
+            },
+            {
+              "$or": [
+                {
+                  "to": userIds[0],
+                  "from": userIds[1]
+                },
+                {
+                  "from": userIds[0],
+                  "to": userIds[1]
+                }
+              ]
+            }
+          ]
+        })
+        .sort({ date_created: -1 })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          let itemList = [];
+          if (result) {
+            result.forEach((connectionData) => {
+              let connectionObject = new EntityConnection(connectionData);
+              itemList.push(connectionObject.toJson({}));
+            })
+          }
+          resolve (itemList);
+        });
+    });
+  }
 	/**
 	 * Save connection into database.
 	 * @param {EntityConnection} connection - Connection entity we are going to register into system.
@@ -231,17 +269,18 @@ class ConnectionController {
 
           if (data) {
             connection = new EntityConnection(data);
-            const method = checkEmail(data.to) ? 'Email' : 'Nearby';
-            analytics.track({
-              userId: userId,
-              event: 'Coworker Request',
-              properties: {
-                requesterUserId: data.from,
-                invitedUserId: data.to,
-                method: method,
-                status: 'Accepted',
-              }
-            });
+            if(connection.status === ConnectionStatus.CONNECTED) {
+              const method = checkEmail(data.to) ? 'Email' : 'Nearby';
+              analytics.track({
+                userId: userId, event: 'Coworker Request',
+                properties: {
+                  requesterUserId: data.from,
+                  invitedUserId: data.to,
+                  method: method,
+                  status: 'Accepted',
+                }
+              });
+            }
 
             resolve (connection);
           }
@@ -292,7 +331,7 @@ class ConnectionController {
   checkConnection(to, from) {
     let db = this.getDefaultDB(),
       connection = null;
-    
+
 		return new Promise((resolve, reject) => {
 
 			db.collection('connections').findOne({ to: new mongodb.ObjectID(to), from: new mongodb.ObjectID(from) }).then((data) => {
