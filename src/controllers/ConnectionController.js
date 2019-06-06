@@ -54,8 +54,8 @@ class ConnectionController {
       if (!connectionType) connectionType='f2f';
 
       newConnection = new EntityConnection({
-        to: new mongodb.ObjectID(to),
-        from: new mongodb.ObjectID(from),
+        to: to,
+        from: from,
         connectionType
       });
 
@@ -68,7 +68,7 @@ class ConnectionController {
       } else {
         throw new ApiError('User not found');
       }
-      
+
       const existing = await this.findConnections({ to, from });
 
       if (existing.length === 0) {
@@ -292,10 +292,10 @@ class ConnectionController {
   checkConnection(to, from) {
     let db = this.getDefaultDB(),
       connection = null;
-    
+
 		return new Promise((resolve, reject) => {
 
-			db.collection('connections').findOne({ to: new mongodb.ObjectID(to), from: new mongodb.ObjectID(from) }).then((data) => {
+			db.collection('connections').findOne({ to: to, from: from }).then((data) => {
 
 				if (data) {
 					connection = new EntityConnection(data);
