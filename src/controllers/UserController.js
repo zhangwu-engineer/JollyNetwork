@@ -295,9 +295,12 @@ class UserController {
     try {
       currentUser = await self.findUserById(userId);
       const currentUserData = currentUser.toJson({ isSafeOutput: true });
-      const { email, firstName, lastName } = data;
-      if (email || firstName || lastName) {
+      const { email, firstName, lastName, loginCount } = data;
+      if (email || firstName || lastName || loginCount) {
         const data = {};
+        if(loginCount) {
+          data.loginCount = loginCount;
+        }
         if (email && currentUserData.email !== email) {
           data.email = email;
         }
@@ -1307,6 +1310,7 @@ class UserController {
 
 			});
   }
+
 }
 
 module.exports = UserController;

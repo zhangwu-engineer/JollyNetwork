@@ -45,6 +45,8 @@ router.post('/login', (req, res, next) => {
             userController.acceptInvite(req.body.invite, userData);
           }
 
+          userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
+
           authToken = authService.generateToken({
               userId: userData.id
           });
@@ -77,6 +79,7 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
                 .registerUser(data)
                 .then((userData) => {
 
+                    userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
                     // if (req.body.invite) {
                     //   userController.acceptInvite(req.body.invite, userData);
                     // }
@@ -131,6 +134,7 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
           userController
               .registerUser(data)
               .then((userData) => {
+                  userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
                   // if (req.body.invite) {
                   //   userController.acceptInvite(req.body.invite, userData);
                   // }
