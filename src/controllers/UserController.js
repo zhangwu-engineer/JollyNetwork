@@ -791,9 +791,8 @@ class UserController {
     }
   }
 
-  async getUserCoworkers(userSlug, city, query, page, perPage, role) {
+  async getUserCoworkers(userSlug, city, query, role) {
     const db = this.getDefaultDB();
-    const skip = page && perPage ? (page - 1) * perPage : 0;
     try {
       const connectionController = JOLLY.controller.ConnectionController;
       const workController = JOLLY.controller.WorkController;
