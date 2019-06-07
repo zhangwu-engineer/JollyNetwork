@@ -19,7 +19,7 @@ let authService = JOLLY.service.Authentication,
  */
 router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const user = await userController.getUserById(req.userId);
-  const connections = await connectionController.findConnections({ to: { $in: [new mongodb.ObjectId(req.userId), user.email] } });
+  const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
 
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
@@ -40,15 +40,23 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
 }));
 
 /**
- * create new endorsement into system.
+ * create new connection into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-
   const connectionData = await connectionController.addConnection(Object.assign({}, req.body, { fromUserId: req.userId }));
   res.apiSuccess({
     connection: connectionData
   });
 
+}));
+
+router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  console.log(req.params.id, req.userId);
+  const connections = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
+  let connectionType = connections[0] && connections[0].connectionType || 'not-connected';
+  res.apiSuccess({
+    connectionType: connectionType,
+  });
 }));
 
 router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
@@ -66,6 +74,14 @@ router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(asyn
 	res.apiSuccess({});
 }));
 
+router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const connection = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
+  const result = await connectionController.updateConnection(connection[0].id, req.userId, {
+    status: ConnectionStatus.DISCONNECTED, disconnected_At: new Date()
+  });
+	res.apiSuccess({});
+}));
+
 router.post('/check', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const to = await userController.getUserBySlug(req.body.toSlug);
   const connection = await connectionController.checkConnection(to.id.toString(), req.body.from);
@@ -73,5 +89,6 @@ router.post('/check', authService.verifyUserAuthentication, asyncMiddleware(asyn
     connection: connection ? connection.toJson({}) : null,
   });
 }));
+
 
 module.exports = router;
