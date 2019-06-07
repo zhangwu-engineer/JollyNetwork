@@ -41,6 +41,7 @@ class EntityUser extends BaseEntityWithID {
         this._slug = options.slug;
         this._source = options.source;
         this._role = options.role || SystemUserRoles.USER;
+        this._login_count = options.loginCount || 0
     }
 
     /**
@@ -78,6 +79,7 @@ class EntityUser extends BaseEntityWithID {
         data.slug = this._slug;
         data.source = this._source;
         data.role = this._role;
+        data.loginCount = this._login_count;
 
         return data;
     }
