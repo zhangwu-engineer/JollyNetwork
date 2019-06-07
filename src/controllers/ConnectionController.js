@@ -56,7 +56,8 @@ class ConnectionController {
       newConnection = new EntityConnection({
         to: to,
         from: from,
-        connectionType: isCoworker ? 'coworker' : 'generic',
+        connectionType: connectionType,
+        isCoworker: isCoworker
       });
 
       let fromUser;
@@ -69,7 +70,9 @@ class ConnectionController {
         throw new ApiError('User not found');
       }
 
-      const existing = await this.findConnections({ to, from });
+      const existing = await this.findConnections({
+        to, from, status: [ ConnectionStatus.CONNECTED, ConnectionStatus.PENDING]
+      });
 
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
@@ -189,7 +192,14 @@ class ConnectionController {
         .find({
           "$and": [
             {
-              "status": "CONNECTED"
+              "$or": [
+                {
+                  "status": "CONNECTED"
+                },
+                {
+                  "status": "PENDING"
+                }
+              ]
             },
             {
               "$or": [

@@ -51,11 +51,9 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  console.log(req.params.id, req.userId);
-  const connections = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
-  let connectionType = connections[0] && connections[0].connectionType || 'not-connected';
+  const connection = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
   res.apiSuccess({
-    connectionType: connectionType,
+    connections: connection ? connection : null,
   });
 }));
 
