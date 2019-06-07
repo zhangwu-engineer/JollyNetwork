@@ -15,6 +15,11 @@ const ApplicationRouteList = [
     },
 
     {
+      path: '/business',
+      handler: require ('../routes/Business')
+    },
+
+    {
       path: '/role',
       handler: require ('../routes/Role')
     },

@@ -7,8 +7,8 @@ const SystemUserRoles = require('../enum/SystemUserRoles');
 
 /** Define/Import system defined dependencies */
 let userController = JOLLY.controller.UserController,
-  mailService = JOLLY.service.Mail;
-	authService = JOLLY.service.Authentication;
+    mailService = JOLLY.service.Mail;
+    authService = JOLLY.service.Authentication;
 
 /**
  * User login route.
@@ -18,169 +18,159 @@ let userController = JOLLY.controller.UserController,
  */
 router.post('/login', (req, res, next) => {
 
-	let {email, password} = req.body,
-		authToken,
-		userData;
+  let { email, password } = req.body,
+    authToken,
+    userData;
 
-    userController.findUserByEmail({
-        email
-    }).then((userObject) => {
+  userController.findUserByEmail({
+    email
+  }).then((userObject) => {
 
-        if ( !userObject ) {
-            throw new ApiError('The email or password entered is incorrect', 404);
-        }
+    if (!userObject) {
+      throw new ApiError('The email or password entered is incorrect', 404);
+    }
 
-        userData = userObject.toJson({
-          isSafeOutput: true
+    userData = userObject.toJson({
+      isSafeOutput: true
+    });
+
+    if (userObject.getPassword() === null) {
+      return mailService.sendPasswordResetEmail(userData);
+    } else {
+      if (!authService.verifyPassword(password, userObject.getPassword())) {
+        throw new ApiError('The email or password entered is incorrect', 404);
+      }
+
+      if (req.body.invite) {
+        userController.acceptInvite(req.body.invite, userData);
+      }
+      userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
+
+      authToken = authService.generateToken({
+        userId: userData.id
+      });
+
+      if (userData.role === SystemUserRoles.BUSINESS) {
+        userController.getUserBusinesses(userData.id).then((businesses) => {
+          userData.businesses = businesses;
+          userData.isBusiness = true;
+          res.apiSuccess({
+            auth_token: authToken,
+            user: userData,
+          })
+        })
+      } else {
+        userData.isBusiness = false;
+        res.apiSuccess({
+          auth_token: authToken,
+          user: userData,
         });
-
-        if (userObject.getPassword() === null) {
-          return mailService.sendPasswordResetEmail(userData);
-        } else {
-          if ( !authService.verifyPassword(password, userObject.getPassword()) ) {
-            throw new ApiError('The email or password entered is incorrect', 404);
-          }
-
-          if (req.body.invite) {
-            userController.acceptInvite(req.body.invite, userData);
-          }
-
-          userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
-
-          authToken = authService.generateToken({
-              userId: userData.id
-          });
-
-          if (userData.role === SystemUserRoles.BUSINESS) {
-            userController.getUserBusinesses(userData.id).then((businesses) => {
-              userData.businesses = businesses;
-              userData.isBusiness = true;
-              res.apiSuccess({
-                auth_token: authToken,
-                user: userData,
-              })
-            })
-          } else {
-            userData.isBusiness = false;
-            res.apiSuccess({
-              auth_token: authToken,
-              user: userData,
-            });
-          }
-        }
-    })
-    .catch(next);
-
+      }
+    }
+  }).catch(next);
 });
 
 router.post('/facebook', passport.authenticate('facebook-token'), (req, res, next) => {
-    const data = {
-        firstName: req.user.name.givenName,
-        lastName: req.user.name.familyName,
-        email: req.user.emails[0].value,
-        isBusiness: req.body.isBusiness,
-        invite: req.body.invite,
-    };
-    if (req.user.photos && req.user.photos.length) {
-      data.avatar = req.user.photos[0].value;
+  const data = {
+    firstName: req.user.name.givenName,
+    lastName: req.user.name.familyName,
+    email: req.user.emails[0].value,
+    isBusiness: req.body.isBusiness,
+    invite: req.body.invite,
+  };
+  if (req.user.photos && req.user.photos.length) {
+    data.avatar = req.user.photos[0].value;
+  }
+  userController.findUserByEmail({
+    email: data.email,
+  }).then((userObject) => {
+    if (!userObject) {
+      userController
+        .registerUser(data)
+        .then((userData) => {
+          userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
+          authToken = authService.generateToken({
+            userId: userData.id
+          });
+          res.apiSuccess({
+            auth_token: authToken,
+            action: 'signup',
+            type: 'facebook',
+            user: userData,
+
+          });
+        });
+    } else {
+      userController.updateUser(userObject.id, { loginCount: userObject.loginCount + 1 || 1 });
+      userData = userObject.toJson({
+        isSafeOutput: true
+      });
+
+      if (req.body.invite) {
+        userController.acceptInvite(req.body.invite, userData);
+      }
+
+      authToken = authService.generateToken({
+        userId: userData.id
+      });
+      res.apiSuccess({
+        auth_token: authToken,
+        action: 'login',
+        type: 'facebook',
+        user: userData,
+      });
     }
-    userController.findUserByEmail({
-        email: data.email,
-    }).then((userObject) => {
-        if ( !userObject ) {
-            userController
-                .registerUser(data)
-                .then((userData) => {
-
-                    userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
-                    // if (req.body.invite) {
-                    //   userController.acceptInvite(req.body.invite, userData);
-                    // }
-
-                    authToken = authService.generateToken({
-                        userId: userData.id
-                    });
-                    res.apiSuccess({
-                        auth_token: authToken,
-                        action: 'signup',
-                        type: 'facebook',
-                        user: userData,
-
-                    });
-                });
-        } else {
-            userData = userObject.toJson({
-                isSafeOutput: true
-            });
-
-            if (req.body.invite) {
-              userController.acceptInvite(req.body.invite, userData);
-            }
-
-            authToken = authService.generateToken({
-                userId: userData.id
-            });
-            res.apiSuccess({
-                auth_token: authToken,
-                action: 'login',
-                type: 'facebook',
-                user: userData,
-            });
-        }
-    }).catch(next);
+  }).catch(next);
 });
 
 router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, res, next) => {
   const data = {
-      firstName: req.user.name.givenName,
-      lastName: req.user.name.familyName,
-      email: req.user.emails[0].value,
-      isBusiness: req.body.isBusiness,
-      invite: req.body.invite,
+    firstName: req.user.name.givenName,
+    lastName: req.user.name.familyName,
+    email: req.user.emails[0].value,
+    isBusiness: req.body.isBusiness,
+    invite: req.body.invite,
   };
   if (req.user.photos && req.user.photos.length) {
     data.avatar = req.user.photos[0];
   }
   userController.findUserByEmail({
-      email: data.email,
+    email: data.email,
   }).then((userObject) => {
-      if ( !userObject ) {
-          userController
-              .registerUser(data)
-              .then((userData) => {
-                  userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
-                  // if (req.body.invite) {
-                  //   userController.acceptInvite(req.body.invite, userData);
-                  // }
-
-                  authToken = authService.generateToken({
-                      userId: userData.id
-                  });
-                  res.apiSuccess({
-                      auth_token: authToken,
-                      action: 'signup',
-                      type: 'linkedin',
-                      user: userData,
-                  });
-              });
-      } else {
-          userData = userObject.toJson({
-              isSafeOutput: true
-          });
-          if (req.body.invite) {
-            userController.acceptInvite(req.body.invite, userData);
-          }
-
+    if (!userObject) {
+      userController
+        .registerUser(data)
+        .then((userData) => {
+          userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
           authToken = authService.generateToken({
-              userId: userData.id
+            userId: userData.id
           });
           res.apiSuccess({
-              auth_token: authToken,
-              action: 'login',
-              type: 'linkedin',
-              user: userData,
+            auth_token: authToken,
+            action: 'signup',
+            type: 'linkedin',
+            user: userData,
           });
+        });
+    } else {
+      userController.updateUser(userObject.id, { loginCount: userObject.loginCount + 1 || 1 });
+      userData = userObject.toJson({
+        isSafeOutput: true
+      });
+      if (req.body.invite) {
+        userController.acceptInvite(req.body.invite, userData);
       }
+
+      authToken = authService.generateToken({
+        userId: userData.id
+      });
+      res.apiSuccess({
+        auth_token: authToken,
+        action: 'login',
+        type: 'linkedin',
+        user: userData,
+      });
+    }
   }).catch(next);
 });
 
@@ -209,16 +199,15 @@ router.post('/reset-password', authService.verifyUserEmail, (req, res, next) => 
     })
     .catch(next);
 });
+
 /**
  * Verify user authentication token route.
  * @public
  */
 router.get('/verify', authService.verifyUserAuthentication, (req, res) => {
-
-    res.apiSuccess({
-        userId: req.userId
-    });
-
+  res.apiSuccess({
+    userId: req.userId
+  });
 });
 
 
@@ -227,51 +216,46 @@ router.get('/verify', authService.verifyUserAuthentication, (req, res) => {
  * @public
  */
 router.get('/logout', authService.verifyUserAuthentication, (req, res) => {
-
-	res.apiSuccess({
-		userId: req.userId
-	});
-
+  res.apiSuccess({
+    userId: req.userId
+  });
 });
 
 router.post('/admin-login', (req, res, next) => {
+  let { email, password } = req.body,
+    authToken,
+    userData;
 
-	let {email, password} = req.body,
-		authToken,
-		userData;
+  userController.findUserByEmail({
+    email,
+    role: SystemUserRoles.ADMIN,
+  }).then((userObject) => {
 
-    userController.findUserByEmail({
-        email,
-        role: SystemUserRoles.ADMIN,
-    }).then((userObject) => {
+    if (!userObject) {
+      throw new ApiError('The email or password entered is incorrect', 404);
+    }
 
-        if ( !userObject ) {
-            throw new ApiError('The email or password entered is incorrect', 404);
-        }
+    userData = userObject.toJson({
+      isSafeOutput: true
+    });
 
-        userData = userObject.toJson({
-          isSafeOutput: true
-        });
+    if (userObject.getPassword() === null) {
+      return mailService.sendPasswordResetEmail(userData);
+    } else {
+      if (!authService.verifyPassword(password, userObject.getPassword())) {
+        throw new ApiError('The email or password entered is incorrect', 404);
+      }
 
-        if (userObject.getPassword() === null) {
-          return mailService.sendPasswordResetEmail(userData);
-        } else {
-          if ( !authService.verifyPassword(password, userObject.getPassword()) ) {
-            throw new ApiError('The email or password entered is incorrect', 404);
-          }
+      authToken = authService.generateToken({
+        userId: userData.id
+      });
 
-          authToken = authService.generateToken({
-              userId: userData.id
-          });
-
-          res.apiSuccess({
-            auth_token: authToken,
-            user: userData,
-          });
-        }
-    })
-    .catch(next);
-
+      res.apiSuccess({
+        auth_token: authToken,
+        user: userData,
+      });
+    }
+  }).catch(next);
 });
 
 module.exports = router;
