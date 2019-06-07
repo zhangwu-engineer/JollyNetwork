@@ -56,7 +56,8 @@ class ConnectionController {
       newConnection = new EntityConnection({
         to: to,
         from: from,
-        connectionType: isCoworker ? 'coworker' : 'generic',
+        connectionType: connectionType,
+        isCoworker: isCoworker
       });
 
       let fromUser;
@@ -69,7 +70,9 @@ class ConnectionController {
         throw new ApiError('User not found');
       }
 
-      const existing = await this.findConnections({ to, from });
+      const existing = await this.findConnections({
+        to, from, status: [ ConnectionStatus.CONNECTED, ConnectionStatus.PENDING]
+      });
 
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
@@ -181,6 +184,51 @@ class ConnectionController {
 
 		});
 	}
+
+	findConnectionsBetweenUserIds (userIds) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      db.collection('connections')
+        .find({
+          "$and": [
+            {
+              "$or": [
+                {
+                  "status": "CONNECTED"
+                },
+                {
+                  "status": "PENDING"
+                }
+              ]
+            },
+            {
+              "$or": [
+                {
+                  "to": userIds[0],
+                  "from": userIds[1]
+                },
+                {
+                  "from": userIds[0],
+                  "to": userIds[1]
+                }
+              ]
+            }
+          ]
+        })
+        .sort({ date_created: -1 })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          let itemList = [];
+          if (result) {
+            result.forEach((connectionData) => {
+              let connectionObject = new EntityConnection(connectionData);
+              itemList.push(connectionObject.toJson({}));
+            })
+          }
+          resolve (itemList);
+        });
+    });
+  }
 	/**
 	 * Save connection into database.
 	 * @param {EntityConnection} connection - Connection entity we are going to register into system.
