@@ -23,14 +23,18 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
 
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      userController
-        .getUserById(connection.from)
-        .then(user => {
-          const populatedData = connection;
-          populatedData.from = user;
-          resolve(populatedData);
-        })
-        .catch(reject);
+      if(connection.connectionType === 'f2f') {
+        userController
+          .getUserById(connection.from)
+          .then(user => {
+            const populatedData = connection;
+            populatedData.from = user;
+            resolve(populatedData);
+          })
+          .catch(reject);
+      } else {
+        resolve({})
+      }
     });
   });
 
@@ -51,7 +55,8 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const connection = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
+  const connectionToId = req.params.businessId || req.userId;
+  const connection = await connectionController.findConnectionsBetweenUserIds([req.params.id, connectionToId]);
   res.apiSuccess({
     connections: connection ? connection : null,
   });
@@ -68,7 +73,7 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const result = await connectionController.deleteConnection(req.params.id, req.userId)
+  const result = await connectionController.deleteConnection(req.params.id, req.userId);
 	res.apiSuccess({});
 }));
 
