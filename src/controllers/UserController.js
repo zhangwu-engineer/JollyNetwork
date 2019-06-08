@@ -915,8 +915,8 @@ class UserController {
       throw new ApiError(err.message);
     }
   }
-	findUserByUsername (options) {
 
+	findUserByUsername (options) {
 		let db = this.getDefaultDB(),
 			username = options.username,
 			user = null;
@@ -1085,7 +1085,7 @@ class UserController {
 			.catch(reject);
 		});
   }
-  
+
   generateBusinessSlug(options) {
 		return new Promise((resolve, reject) => {
 			let db = this.getDefaultDB();
