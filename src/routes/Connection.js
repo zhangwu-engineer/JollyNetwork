@@ -19,7 +19,7 @@ let authService = JOLLY.service.Authentication,
  */
 router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const user = await userController.getUserById(req.userId);
-  const connections = await connectionController.findConnections({ to: { $in: [new mongodb.ObjectId(req.userId), user.email] } });
+  const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
 
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
