@@ -23,7 +23,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
 
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      if(connection.connectionType === 'f2f') {
+      if(connection.connectionType !== 'b2f' || connection.connectionType !== 'f2b') {
         userController
           .getUserById(connection.from)
           .then(user => {
