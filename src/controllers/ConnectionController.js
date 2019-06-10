@@ -337,25 +337,6 @@ class ConnectionController {
 
 			});
   }
-
-  checkConnection(to, from) {
-    let db = this.getDefaultDB(),
-      connection = null;
-
-		return new Promise((resolve, reject) => {
-
-			db.collection('connections').findOne({ to: to, from: from }).then((data) => {
-
-				if (data) {
-					connection = new EntityConnection(data);
-				}
-
-				resolve (connection);
-
-			}).catch(reject);
-
-		});
-  }
 }
 
 module.exports = ConnectionController;
