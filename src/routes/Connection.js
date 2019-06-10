@@ -55,8 +55,8 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const connectionToId = req.params.businessId || req.userId;
-  const connection = await connectionController.findConnectionsBetweenUserIds([req.params.id, connectionToId]);
+  const to = await userController.getUserBySlug(req.params.id);
+  const connection = await connectionController.findConnectionsBetweenUserIds([to.id.toString(), req.query.from]);
   res.apiSuccess({
     connections: connection ? connection : null,
   });
@@ -84,14 +84,5 @@ router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddle
   });
 	res.apiSuccess({});
 }));
-
-router.post('/check', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const to = await userController.getUserBySlug(req.body.toSlug);
-  const connection = await connectionController.checkConnection(to.id.toString(), req.body.from);
-  res.apiSuccess({
-    connection: connection ? connection.toJson({}) : null,
-  });
-}));
-
 
 module.exports = router;
