@@ -752,7 +752,7 @@ class UserController {
       throw new ApiError(err.message);
     }
   }
-  async searchCityUsers(city, query, page, perPage, role, userId) {
+  async searchCityUsers(city, query, page, perPage, role, activeStatus, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
     const aggregates = [
@@ -819,8 +819,20 @@ class UserController {
     }
     try {
       const data = await db.collection('profiles').aggregate(aggregates).toArray();
+      const userJobCountWithin60Days = await db.collection('works').countDocuments({
+        user: new mongodb.ObjectID(userId),
+        date_created: { $gt:new Date(Date.now() - 24*60*60*1000*60) }
+      });
       const profiles = data[0].data;
-      const users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
+      let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
+      users = users.filter(user => {
+        console.log(activeStatus);
+        if (activeStatus !== 'Active' && activeStatus !== 'Inactive') return true;
+        else if (activeStatus === 'Active' && userJobCountWithin60Days > 0) return true;
+        else if (activeStatus === 'Inactive' && userJobCountWithin60Days < 1) return true;
+        return false;
+      });
+
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
         page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
