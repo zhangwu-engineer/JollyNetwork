@@ -19,18 +19,22 @@ let authService = JOLLY.service.Authentication,
  */
 router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const user = await userController.getUserById(req.userId);
-  const connections = await connectionController.findConnections({ to: { $in: [new mongodb.ObjectId(req.userId), user.email] } });
+  const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
 
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      userController
-        .getUserById(connection.from)
-        .then(user => {
-          const populatedData = connection;
-          populatedData.from = user;
-          resolve(populatedData);
-        })
-        .catch(reject);
+      if(connection.connectionType !== 'b2f' && connection.connectionType !== 'f2b') {
+        userController
+          .getUserById(connection.from)
+          .then(user => {
+            const populatedData = connection;
+            populatedData.from = user;
+            resolve(populatedData);
+          })
+          .catch(reject);
+      } else {
+        resolve({})
+      }
     });
   });
 
@@ -51,11 +55,10 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  console.log(req.params.id, req.userId);
-  const connections = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
-  let connectionType = connections[0] && connections[0].connectionType || 'not-connected';
+  const to = await userController.getUserBySlug(req.params.id);
+  const connection = await connectionController.findConnectionsBetweenUserIds([to.id.toString(), req.query.from]);
   res.apiSuccess({
-    connectionType: connectionType,
+    connections: connection ? connection : null,
   });
 }));
 
@@ -70,10 +73,9 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const result = await connectionController.deleteConnection(req.params.id, req.userId)
+  const result = await connectionController.deleteConnection(req.params.id, req.userId);
 	res.apiSuccess({});
 }));
-
 
 router.post('/check', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const to = await userController.getUserBySlug(req.body.toSlug);
