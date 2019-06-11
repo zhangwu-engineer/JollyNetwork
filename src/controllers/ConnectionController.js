@@ -185,7 +185,10 @@ class ConnectionController {
 		});
 	}
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 517a3acb795b819a8f2e97662441b3217fe9f6c3
 
 	findConnectionsBetweenUserIds (userIds) {
     let db = this.getDefaultDB();
@@ -231,7 +234,10 @@ class ConnectionController {
         });
     });
   }
+<<<<<<< HEAD
 >>>>>>> feature/business
+=======
+>>>>>>> 517a3acb795b819a8f2e97662441b3217fe9f6c3
 	/**
 	 * Save connection into database.
 	 * @param {EntityConnection} connection - Connection entity we are going to register into system.
