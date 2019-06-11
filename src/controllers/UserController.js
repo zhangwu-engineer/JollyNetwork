@@ -826,7 +826,6 @@ class UserController {
       const profiles = data[0].data;
       let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
       users = users.filter(user => {
-        console.log(activeStatus);
         if (activeStatus !== 'Active' && activeStatus !== 'Inactive') return true;
         else if (activeStatus === 'Active' && userJobCountWithin60Days > 0) return true;
         else if (activeStatus === 'Inactive' && userJobCountWithin60Days < 1) return true;
