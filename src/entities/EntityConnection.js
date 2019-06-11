@@ -30,6 +30,7 @@ class EntityConnection extends BaseEntityWithID {
         this._connected_at = options.connected_at ? new Date(options.connected_at) : null;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
         this._connectionType = options.connectionType;
+        this._isCoworker = options.isCoworker;
     }
 
     /**
@@ -48,6 +49,7 @@ class EntityConnection extends BaseEntityWithID {
       }
       data.date_created = this._dateCreated;
       data.connectionType = this._connectionType;
+      data.isCoworker = this._isCoworker;
 
       return data;
     }
