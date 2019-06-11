@@ -90,7 +90,7 @@ router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddle
   const result = await connectionController.updateConnection(connection[0].id, req.userId, {
     status: ConnectionStatus.DISCONNECTED, disconnected_At: new Date()
   });
-  res.apiSuccess({});
+	res.apiSuccess({});
 }));
 
 module.exports = router;
