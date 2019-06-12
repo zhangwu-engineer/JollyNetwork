@@ -56,7 +56,7 @@ class ConnectionController {
       newConnection = new EntityConnection({
         to: to,
         from: from,
-        connectionType: isCoworker ? 'coworker' : 'generic',
+        connectionType: connectionType,
         isCoworker: isCoworker
       });
 
