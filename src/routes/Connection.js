@@ -77,14 +77,6 @@ router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(asyn
 	res.apiSuccess({});
 }));
 
-router.post('/check', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const to = await userController.getUserBySlug(req.body.toSlug);
-  const connection = await connectionController.checkConnection(to.id.toString(), req.body.from);
-  res.apiSuccess({
-    connection: connection ? connection.toJson({}) : null,
-  });
-}));
-
 router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const connection = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
   const result = await connectionController.updateConnection(connection[0].id, req.userId, {
