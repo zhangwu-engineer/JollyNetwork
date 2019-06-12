@@ -78,9 +78,11 @@ router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(asyn
 }));
 
 router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const connection = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
-  const result = await connectionController.updateConnection(connection[0].id, req.userId, {
-    status: ConnectionStatus.DISCONNECTED, disconnected_At: new Date()
+  const connections = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
+  connections.forEach(async (connection) => {
+    await connectionController.updateConnection(connection.id, req.userId, {
+      status: ConnectionStatus.DISCONNECTED, disconnected_At: new Date()
+    });
   });
 	res.apiSuccess({});
 }));
