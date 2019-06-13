@@ -132,7 +132,7 @@ class UserController {
         userData.profile = profile.toJson();
 
         if (userJobCountWithin60Days > 0) userData.activeStatus = 'Active';
-        if (userJobCountWithin60Days < 1) userData.activeStatus = 'Inactive';
+        else userData.activeStatus = 'Inactive';
 
         if (userData.role === SystemUserRoles.BUSINESS) {
           const businesses = await self.getUserBusinesses(userId);
