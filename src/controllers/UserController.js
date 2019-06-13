@@ -117,13 +117,23 @@ class UserController {
     let self = this,
       user = null,
       profile = null;
-
+    const db = this.getDefaultDB();
+    
     try {
       user = await self.findUserById(userId);
+      const userJobCountWithin60Days = await db.collection('works').countDocuments({
+        user: new mongodb.ObjectID(userId),
+        date_created: { $gt:new Date(Date.now() - 24*60*60*1000*60) }
+      });
+      
       if (user) {
         profile = await self.getUserProfile(userId);
         const userData = user.toJson({ isSafeOutput: true });
         userData.profile = profile.toJson();
+
+        if (userJobCountWithin60Days > 0) userData.activeStatus = 'Active';
+        if (userJobCountWithin60Days < 1) userData.activeStatus = 'Inactive';
+
         if (userData.role === SystemUserRoles.BUSINESS) {
           const businesses = await self.getUserBusinesses(userId);
           userData.businesses = businesses;
@@ -819,18 +829,10 @@ class UserController {
     }
     try {
       const data = await db.collection('profiles').aggregate(aggregates).toArray();
-      const userJobCountWithin60Days = await db.collection('works').countDocuments({
-        user: new mongodb.ObjectID(userId),
-        date_created: { $gt:new Date(Date.now() - 24*60*60*1000*60) }
-      });
+      
       const profiles = data[0].data;
       let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
-      users = users.filter(user => {
-        if (activeStatus !== 'Active' && activeStatus !== 'Inactive') return true;
-        else if (activeStatus === 'Active' && userJobCountWithin60Days > 0) return true;
-        else if (activeStatus === 'Inactive' && userJobCountWithin60Days < 1) return true;
-        return false;
-      });
+      users = users.filter(user => user.activeStatus === activeStatus || activeStatus === '' || !activeStatus);
 
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
