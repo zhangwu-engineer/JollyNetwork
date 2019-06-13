@@ -832,7 +832,7 @@ class UserController {
       
       const profiles = data[0].data;
       let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
-      users = users.filter(user => user.activeStatus === activeStatus || activeStatus === '');
+      users = users.filter(user => user.activeStatus === activeStatus || activeStatus === '' || !activeStatus);
 
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
