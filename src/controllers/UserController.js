@@ -869,10 +869,13 @@ class UserController {
       const coworkersFromConnection2 = connections2.map(connection => connection.to);
       const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
 
-      const works = await workController.getUserWorks(userId);
-      const workSlugs = works.map(work => work.slug);
-      const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
-      const workCoworkerIds = allWorks.map(work => work.user.toString());
+      let workCoworkerIds = [];
+      if(connection === undefined || connection.length === 0 || connection === 'All Connections') {
+        const works = await workController.getUserWorks(userId);
+        const workSlugs = works.map(work => work.slug);
+        const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
+        workCoworkerIds = allWorks.map(work => work.user.toString());
+      }
 
       const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
       const userIds = [];
