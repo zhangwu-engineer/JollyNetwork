@@ -842,18 +842,28 @@ class UserController {
     }
   }
 
-  async getUserCoworkers(userSlug, city, query, role) {
+  async getUserCoworkers(userSlug, city, query, role, connection) {
     const db = this.getDefaultDB();
     try {
       const connectionController = JOLLY.controller.ConnectionController;
       const workController = JOLLY.controller.WorkController;
       const user = await this.getUserBySlug(userSlug);
       const userId = user.id.toString();
+      let queryConnections1 = { to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED};
+      let queryConnections2 = { from: userId, status: ConnectionStatus.CONNECTED};
+      if(connection === 'Coworkers'){
+        queryConnections1['isCoworker'] = true;
+        queryConnections2['isCoworker'] = true;
+      }
+      if(connection === 'Connections'){
+        queryConnections1['isCoworker'] = null;
+        queryConnections2['isCoworker'] = null;
+      }
       const connections1 = await connectionController
-        .findConnections({ to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED});
+        .findConnections(queryConnections1);
       const coworkersFromConnection1 = connections1.map(connection => connection.from);
       const connections2 = await connectionController
-        .findConnections({ from: userId, status: ConnectionStatus.CONNECTED});
+        .findConnections(queryConnections2);
       const coworkersFromConnection2 = connections2.map(connection => connection.to);
       const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
 
