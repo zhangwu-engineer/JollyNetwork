@@ -856,8 +856,8 @@ class UserController {
         queryConnections2['isCoworker'] = true;
       }
       if(connection === 'Connections'){
-        queryConnections1['isCoworker'] = null;
-        queryConnections2['isCoworker'] = null;
+        queryConnections1['isCoworker'] = false;
+        queryConnections2['isCoworker'] = false;
       }
       const connections1 = await connectionController
         .findConnections(queryConnections1);
