@@ -878,64 +878,77 @@ class UserController {
       }
 
       const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
-      const userIds = [];
-      coworkerIds.map((stringId) => {
-        userIds.push(new mongodb.ObjectID(stringId));
-      });
-      const aggregates = [
-        {
-          $match : {
-            userId: { $in: userIds },
-          }
-        },
-        { $sort  : { userId : -1 } },
-      ];
-      if (city) {
-        aggregates[0]['$match']['location'] = city
-      }
-      if (query) {
-        aggregates.push({
-          $lookup: {
-            from: "users",
-            localField: "userId",
-            foreignField: "_id",
-            as: "user"
-          }
-        });
-        aggregates.push({
-          $unwind: "$user"
-        });
-        aggregates.push({
-          $match : {
-            'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
-          }
-        });
-      }
-      if (role) {
-        aggregates.push({
-          $lookup: {
-            from: "roles",
-            localField: "userId",
-            foreignField: "user_id",
-            as: "roles"
-          }
-        });
-        aggregates.push({
-          $unwind: "$roles"
-        });
-        aggregates.push({
-          $match : {
-            'roles.name': role,
-          }
-        });
+      let coworkers = [];
+
+      if(city || role || query || connection) {
+        const coworkersIds = await Promise.map(coworkerIds, coworkerId =>
+            checkEmail(coworkerId)
+                ? this.getUserByEmail(coworkerId).id
+                : new mongodb.ObjectID(coworkerId)
+        );
+
+        const aggregates = [
+          {
+            $match : {
+              userId: { $in: coworkersIds },
+            }
+          },
+          { $sort  : { userId : -1 } },
+        ];
+        if (city) {
+          aggregates[0]['$match']['location'] = city
+        }
+        if (query) {
+          aggregates.push({
+            $lookup: {
+              from: "users",
+              localField: "userId",
+              foreignField: "_id",
+              as: "user"
+            }
+          });
+          aggregates.push({
+            $unwind: "$user"
+          });
+          aggregates.push({
+            $match : {
+              'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+            }
+          });
+        }
+        if (role) {
+          aggregates.push({
+            $lookup: {
+              from: "roles",
+              localField: "userId",
+              foreignField: "user_id",
+              as: "roles"
+            }
+          });
+          aggregates.push({
+            $unwind: "$roles"
+          });
+          aggregates.push({
+            $match : {
+              'roles.name': role,
+            }
+          });
+        }
+        const coworkersProfile = await db.collection('profiles').aggregate(aggregates).toArray();
+        coworkers = await Promise.map(coworkersProfile, profile =>
+          checkEmail(profile.userId)
+            ? this.getUserByEmail(profile.userId)
+            : this.getUserById(profile.userId)
+        );
+      } else {
+        coworkers = await Promise.map(coworkerIds, coworkerId =>
+          checkEmail(coworkerId)
+            ? this.getUserByEmail(coworkerId)
+            : this.getUserById(coworkerId)
+        );
       }
 
-      const coworkersProfile = await db.collection('profiles').aggregate(aggregates).toArray();
-      const coworkers = await Promise.map(coworkersProfile, profile =>
-          checkEmail(profile.userId)
-              ? this.getUserByEmail(profile.userId)
-              : this.getUserById(profile.userId)
-      );
+
       return coworkers;
     } catch (err) {
       throw new ApiError(err.message);
