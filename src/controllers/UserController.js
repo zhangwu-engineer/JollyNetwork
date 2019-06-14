@@ -800,11 +800,11 @@ class UserController {
       const userId = user.id.toString();
       let queryConnections1 = { to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED};
       let queryConnections2 = { from: userId, status: ConnectionStatus.CONNECTED};
-      if(connection === 'Coworkers'){
+      if(connection === 'coworkers'){
         queryConnections1['isCoworker'] = true;
         queryConnections2['isCoworker'] = true;
       }
-      if(connection === 'Connections'){
+      if(connection === 'connections'){
         queryConnections1['isCoworker'] = false;
         queryConnections2['isCoworker'] = false;
       }
@@ -817,7 +817,7 @@ class UserController {
       const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
 
       let workCoworkerIds = [];
-      if(connection === undefined || connection.length === 0 || connection === 'All Connections') {
+      if(connection === undefined || connection.length === 0 || connection === 'allconnections') {
         const works = await workController.getUserWorks(userId);
         const workSlugs = works.map(work => work.slug);
         const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
