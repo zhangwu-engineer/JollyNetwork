@@ -18,7 +18,9 @@ JOLLY.enum.SystemUserRoles = {
 
 	GROUP_POWER_USER: 'GROUP_POWER_USER',
 
-	USER: 'USER'
+  USER: 'USER',
+
+  BUSINESS: 'BUSINESS',
 };
 
 module.exports = JOLLY.enum.SystemUserRoles;
