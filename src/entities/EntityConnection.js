@@ -25,9 +25,12 @@ class EntityConnection extends BaseEntityWithID {
 
         this._to = options.to;
         this._from = options.from;
+        this._connectionType = options.connectionType;
         this._status = options.status || ConnectionStatus.PENDING;
         this._connected_at = options.connected_at ? new Date(options.connected_at) : null;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
+        this._connectionType = options.connectionType;
+        this._isCoworker = options.isCoworker;
     }
 
     /**
@@ -45,6 +48,8 @@ class EntityConnection extends BaseEntityWithID {
         data.connected_at = this._connected_at;
       }
       data.date_created = this._dateCreated;
+      data.connectionType = this._connectionType;
+      data.isCoworker = this._isCoworker;
 
       return data;
     }

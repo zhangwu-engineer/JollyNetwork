@@ -14,7 +14,8 @@ let Database = require('./services/Database'),
   Authentication = require('./services/Authentication'),
   Mail = require('./services/Mail'),
   SMS = require('./services/SMS'),
-  UserController = require('./controllers/UserController'),
+	UserController = require('./controllers/UserController'),
+  BusinessController = require('./controllers/BusinessController'),
   RoleController = require('./controllers/RoleController'),
   TokenController = require('./controllers/TokenController'),
   FileController = require('./controllers/FileController'),
@@ -151,7 +152,9 @@ class App {
 		JOLLY.controller = {
 
 			/** User controller */
-      UserController: new UserController(),
+			UserController: new UserController(),
+			/** Business controller */
+      BusinessController: new BusinessController(),
       /** Role controller */
       RoleController: new RoleController(),
       /** Unit controller */

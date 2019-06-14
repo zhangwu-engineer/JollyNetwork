@@ -126,9 +126,7 @@ router.post('/verify-phone', authService.verifyUserAuthentication, (req, res, ne
       return tokenController.addToken({ token: authService.generatePhoneVerificationToken() })
     })
     .then(tokenData => {
-      if (req.body.slug.indexOf('akira-matsui') === -1 && req.body.slug.indexOf('masaaki-tamura') === -1) {
-        smsService.sendSMS(req.body.phone, `Here's your verification code! Thanks! Jolly Team. ${tokenData.token}`);
-      }
+      smsService.sendSMS(req.body.phone, `Here's your verification code! Thanks! Jolly Team. ${tokenData.token}`);
       res.apiSuccess(tokenData);
     })
     .catch(next);
@@ -178,7 +176,7 @@ router.get('/files', authService.verifyUserAuthentication, (req, res, next) => {
 });
 
 router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
-  userController.searchCityUsers(req.body.city, req.body.query, req.body.page, req.body.perPage, req.body.role, req.userId)
+  userController.searchCityUsers(req.body.city, req.body.query, req.body.page, req.body.perPage, req.body.role, req.body.activeStatus, req.userId)
     .then(data => {
       res.apiSuccess(data);
     })

@@ -10,8 +10,10 @@ const checkEmail = require('../lib/CheckEmail');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
+  EntityBusiness = require('../entities/EntityBusiness'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
+  SystemUserRoles = require('../enum/SystemUserRoles'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -53,7 +55,7 @@ class UserController {
       authService = JOLLY.service.Authentication,
       mailService = JOLLY.service.Mail;
 
-    let {email, firstName, lastName, password, avatar, invite} = options,
+    let {email, firstName, lastName, password, avatar, isBusiness, invite} = options,
 				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
         newUser,
         newUserProfile;
@@ -62,7 +64,7 @@ class UserController {
 			firstName = firstName.toLowerCase();
       lastName = lastName.toLowerCase();
     const source = invite ? 'v-jobtag' : '';
-
+    const role = isBusiness ? SystemUserRoles.BUSINESS : SystemUserRoles.USER;
     try {
       const isExistingEmail = await self.isExistingEmail(options.email);
       if (isExistingEmail) {
@@ -76,12 +78,14 @@ class UserController {
 					password: encryptedPassword,
           slug,
           source,
+          role,
 				} : {
 					email,
 					firstName,
 					lastName,
           slug,
           source,
+          role,
         });
         const userData = await self.saveUser(newUser);
         const newProfileData = { userId: userData._id };
@@ -92,6 +96,12 @@ class UserController {
         const userProfileData = await self.saveUserProfile(newUserProfile)
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
+
+        const newBusinessData = { user: userData._id };
+        const newUserBusiness = new EntityBusiness(newBusinessData);
+        const userBusinessData = await self.saveUserBusiness(newUserBusiness)
+        res.businesses = [userBusinessData.toJson()];
+
         if (invite) {
           await self.acceptInvite(invite, res);
         }
@@ -110,10 +120,19 @@ class UserController {
 
     try {
       user = await self.findUserById(userId);
+
       if (user) {
         profile = await self.getUserProfile(userId);
         const userData = user.toJson({ isSafeOutput: true });
         userData.profile = profile.toJson();
+
+        if (userData.role === SystemUserRoles.BUSINESS) {
+          const businesses = await self.getUserBusinesses(userId);
+          userData.businesses = businesses;
+          userData.isBusiness = true;
+        } else {
+          userData.isBusiness = false;
+        }
         return userData;
       }
       throw new ApiError('User not found');
@@ -133,6 +152,13 @@ class UserController {
         const userData = user.toJson({ isSafeOutput: true });
         profile = await self.getUserProfile(userData.id.toString());
         userData.profile = profile.toJson();
+        if (userData.role === SystemUserRoles.BUSINESS) {
+          const businesses = await self.getUserBusinesses(userId);
+          userData.businesses = businesses;
+          userData.isBusiness = true;
+        } else {
+          userData.isBusiness = false;
+        }
         return userData;
       }
       throw new ApiError('User not found');
@@ -151,6 +177,13 @@ class UserController {
       if (user) {
         profile = await self.getUserProfile(user.getId());
         const userData = user.toJson({ isSafeOutput: true });
+        if (userData.role === SystemUserRoles.BUSINESS) {
+          const businesses = await self.getUserBusinesses(user.getId());
+          userData.businesses = businesses;
+          userData.isBusiness = true;
+        } else {
+          userData.isBusiness = false;
+        }
         userData.profile = profile.toJson();
         return userData;
       }
@@ -331,6 +364,12 @@ class UserController {
           await this.checkCityFreelancerBadge(userId);
           await this.checkReadyAndWillingBadge(userId);
 
+        }
+        if (data.business) {
+          const businessName = data.business.name;
+          const bSlug = await self.generateBusinessSlug({ name: businessName })
+          data.business.slug = bSlug;
+          await self.updateUserBusiness(userId, data.business);
         }
         return userData;
       }
@@ -763,7 +802,7 @@ class UserController {
       throw new ApiError(err.message);
     }
   }
-  async searchCityUsers(city, query, page, perPage, role, userId) {
+  async searchCityUsers(city, query, page, perPage, role, activeStatus, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
     const aggregates = [
@@ -813,6 +852,34 @@ class UserController {
         }
       });
     }
+    if (activeStatus && activeStatus !== '') {
+      aggregates.push({
+        $lookup: {
+          from: "works",
+          localField: "userId",
+          foreignField: "user",
+          as: "userworks"
+        }
+      });
+      aggregates.push({
+        $unwind: "$userId"
+      });
+      if (activeStatus === 'Active')
+        aggregates.push({
+          $match : {
+            'userworks.date_created': { $gt: new Date(Date.now() - 24*60*60*1000*60) }
+          }
+        });
+      else if (activeStatus === 'Inactive')
+        aggregates.push({
+          $match : {
+            $or: [
+              { 'userworks.slug': { $exists: false} },
+              { 'userworks.date_created': { $lte: new Date(Date.now() - 24*60*60*1000*60) } }
+            ]
+          }
+        });
+    }
     if (page && perPage) {
       aggregates.push({
         $facet : {
@@ -830,8 +897,10 @@ class UserController {
     }
     try {
       const data = await db.collection('profiles').aggregate(aggregates).toArray();
+
       const profiles = data[0].data;
-      const users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
+      let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
+
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
         page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
@@ -952,8 +1021,8 @@ class UserController {
       throw new ApiError(err.message);
     }
   }
-	findUserByUsername (options) {
 
+	findUserByUsername (options) {
 		let db = this.getDefaultDB(),
 			username = options.username,
 			user = null;
@@ -1064,6 +1133,27 @@ class UserController {
 			}).catch(reject);
 
 		});
+  }
+
+  getUserBusinesses (userId) {
+
+		let db = this.getDefaultDB(),
+      business = null;
+		return new Promise((resolve, reject) => {
+
+			db.collection('businesses').find({
+				user: new mongodb.ObjectID(userId),
+			}).toArray().then((dataBusinesses) => {
+
+				if (dataBusinesses) {
+          dataBusinesses = dataBusinesses.map(data => new EntityBusiness(data).toJson());
+				}
+
+				resolve (dataBusinesses);
+
+			}).catch(reject);
+
+		});
 	}
 
 	listUsers(cb) {
@@ -1096,6 +1186,19 @@ class UserController {
 				const slug = count === 0
 					? `${options.firstName}-${options.lastName.split(' ').join('-')}`
 					: `${options.firstName}-${options.lastName.split(' ').join('-')}-${count}`;
+				resolve(slug);
+			})
+			.catch(reject);
+		});
+  }
+
+  generateBusinessSlug(options) {
+		return new Promise((resolve, reject) => {
+			let db = this.getDefaultDB();
+			db.collection('businesses').countDocuments(options).then(count => {
+				const slug = count === 0
+					? `${options.name.split(' ').join('-')}`
+					: `${options.name.split(' ').join('-')}-${count}`;
 				resolve(slug);
 			})
 			.catch(reject);
@@ -1228,6 +1331,69 @@ class UserController {
           }
 
           resolve (profile);
+
+        })
+				.catch(reject);
+
+			});
+  }
+
+  /**
+	 * Save user business into database.
+	 * @param {EntityBusiness} business - User business entity we are going to save into system.
+	 * @returns {Promise}
+	 * @resolve {EntityBusiness}
+	 */
+	saveUserBusiness (business) {
+
+		let db = this.getDefaultDB(),
+			collectionName = 'businesses',
+			businessData = business.toJson(),
+			businessEntity;
+
+    const fieldNames = ['id', 'name', 'category'];
+
+    fieldNames.forEach(field => {
+      if (businessData[field] == null) {
+        delete (businessData[field]);
+      }
+    })
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.insertOne(businessData)
+				.then((result) => {
+          businessEntity = new EntityBusiness(businessData);
+
+					resolve(businessEntity);
+				})
+				.catch(reject);
+
+			});
+  }
+
+  updateUserBusiness(userId, data) {
+    let db = this.getDefaultDB(),
+      collectionName = 'businesses',
+      business = null;
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.updateOne({ user: new mongodb.ObjectID(userId) }, { $set: data })
+				.then(() => {
+					return db.collection(collectionName).findOne({
+            user: new mongodb.ObjectID(userId),
+          });
+        })
+        .then((data) => {
+
+          if (data) {
+
+            business = new EntityBusiness(data);
+          }
+
+          resolve (business);
 
         })
 				.catch(reject);
