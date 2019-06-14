@@ -842,32 +842,111 @@ class UserController {
     }
   }
 
-  async getUserCoworkers(userSlug) {
+  async getUserCoworkers(userSlug, city, query, role, connection) {
+    const db = this.getDefaultDB();
     try {
       const connectionController = JOLLY.controller.ConnectionController;
       const workController = JOLLY.controller.WorkController;
       const user = await this.getUserBySlug(userSlug);
       const userId = user.id.toString();
+      let queryConnections1 = { to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED};
+      let queryConnections2 = { from: userId, status: ConnectionStatus.CONNECTED};
+      if(connection === 'coworkers'){
+        queryConnections1['isCoworker'] = true;
+        queryConnections2['isCoworker'] = true;
+      }
+      if(connection === 'connections'){
+        queryConnections1['isCoworker'] = false;
+        queryConnections2['isCoworker'] = false;
+      }
       const connections1 = await connectionController
-        .findConnections({ to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED});
+        .findConnections(queryConnections1);
       const coworkersFromConnection1 = connections1.map(connection => connection.from);
       const connections2 = await connectionController
-        .findConnections({ from: userId, status: ConnectionStatus.CONNECTED});
+        .findConnections(queryConnections2);
       const coworkersFromConnection2 = connections2.map(connection => connection.to);
       const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
 
-      const works = await workController.getUserWorks(userId);
-      const workSlugs = works.map(work => work.slug);
-      const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
-      const workCoworkerIds = allWorks.map(work => work.user.toString());
+      let workCoworkerIds = [];
+      if(connection === undefined || connection.length === 0 || connection === 'allconnections') {
+        const works = await workController.getUserWorks(userId);
+        const workSlugs = works.map(work => work.slug);
+        const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
+        workCoworkerIds = allWorks.map(work => work.user.toString());
+      }
 
       const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
+      let coworkers = [];
 
-      const coworkers = await Promise.map(coworkerIds, coworkerId =>
-        checkEmail(coworkerId)
-          ? this.getUserByEmail(coworkerId)
-          : this.getUserById(coworkerId)
+      if(city || role || query || connection) {
+        const coworkersIds = await Promise.map(coworkerIds, coworkerId =>
+            checkEmail(coworkerId)
+                ? this.getUserByEmail(coworkerId).id
+                : new mongodb.ObjectID(coworkerId)
         );
+
+        const aggregates = [
+          {
+            $match : {
+              userId: { $in: coworkersIds },
+            }
+          },
+          { $sort  : { userId : -1 } },
+        ];
+        if (city) {
+          aggregates[0]['$match']['location'] = city
+        }
+        if (query) {
+          aggregates.push({
+            $lookup: {
+              from: "users",
+              localField: "userId",
+              foreignField: "_id",
+              as: "user"
+            }
+          });
+          aggregates.push({
+            $unwind: "$user"
+          });
+          aggregates.push({
+            $match : {
+              'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+            }
+          });
+        }
+        if (role) {
+          aggregates.push({
+            $lookup: {
+              from: "roles",
+              localField: "userId",
+              foreignField: "user_id",
+              as: "roles"
+            }
+          });
+          aggregates.push({
+            $unwind: "$roles"
+          });
+          aggregates.push({
+            $match : {
+              'roles.name': role,
+            }
+          });
+        }
+        const coworkersProfile = await db.collection('profiles').aggregate(aggregates).toArray();
+        coworkers = await Promise.map(coworkersProfile, profile =>
+          checkEmail(profile.userId)
+            ? this.getUserByEmail(profile.userId)
+            : this.getUserById(profile.userId)
+        );
+      } else {
+        coworkers = await Promise.map(coworkerIds, coworkerId =>
+          checkEmail(coworkerId)
+            ? this.getUserByEmail(coworkerId)
+            : this.getUserById(coworkerId)
+        );
+      }
+
+
       return coworkers;
     } catch (err) {
       throw new ApiError(err.message);
