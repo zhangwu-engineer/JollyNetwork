@@ -542,6 +542,54 @@ class UserController {
     }
   }
 
+  async deleteImage(userId, image, avatar, backgroundImage) {
+    AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
+    const S3 = new AWS.S3();
+    const db = this.getDefaultDB();
+    try {
+      const filePath = image.split('/').pop();
+      const params = {
+        Bucket: JOLLY.config.S3.BUCKET,
+        Key: filePath,
+      };
+      const promises = [];
+      promises.concat(await S3.deleteObject(params));
+      promises.concat(
+        await db.collection('files')
+                .deleteOne({user_id: new mongodb.ObjectID(userId), path: image})
+      );
+      if(JSON.parse(avatar)) {
+        promises.concat(
+          await db.collection('profiles')
+            .updateOne(
+              {userId: new mongodb.ObjectID(userId)},
+              {
+                $set: {
+                  avatar: '',
+                },
+              }
+            )
+        );
+      }
+      if(JSON.parse(backgroundImage)) {
+        promises.concat(
+          await db.collection('profiles')
+            .updateOne(
+              {userId: new mongodb.ObjectID(userId)},
+              {
+                $set: {
+                  backgroundImage: '',
+                },
+              }
+            )
+        );
+      }
+      Promise.all(promises).then(() => { return true ;})
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async uploadResume(userId, resume) {
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     const S3 = new AWS.S3();
