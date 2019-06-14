@@ -117,10 +117,10 @@ class UserController {
     let self = this,
       user = null,
       profile = null;
-    
+
     try {
       user = await self.findUserById(userId);
-      
+
       if (user) {
         profile = await self.getUserProfile(userId);
         const userData = user.toJson({ isSafeOutput: true });
@@ -581,6 +581,54 @@ class UserController {
     }
   }
 
+  async deleteImage(userId, image, avatar, backgroundImage) {
+    AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
+    const S3 = new AWS.S3();
+    const db = this.getDefaultDB();
+    try {
+      const filePath = image.split('/').pop();
+      const params = {
+        Bucket: JOLLY.config.S3.BUCKET,
+        Key: filePath,
+      };
+      const promises = [];
+      promises.concat(await S3.deleteObject(params));
+      promises.concat(
+        await db.collection('files')
+                .deleteOne({user_id: new mongodb.ObjectID(userId), path: image})
+      );
+      if(JSON.parse(avatar)) {
+        promises.concat(
+          await db.collection('profiles')
+            .updateOne(
+              {userId: new mongodb.ObjectID(userId)},
+              {
+                $set: {
+                  avatar: '',
+                },
+              }
+            )
+        );
+      }
+      if(JSON.parse(backgroundImage)) {
+        promises.concat(
+          await db.collection('profiles')
+            .updateOne(
+              {userId: new mongodb.ObjectID(userId)},
+              {
+                $set: {
+                  backgroundImage: '',
+                },
+              }
+            )
+        );
+      }
+      Promise.all(promises).then(() => { return true ;})
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async uploadResume(userId, resume) {
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     const S3 = new AWS.S3();
@@ -826,7 +874,7 @@ class UserController {
         aggregates.push({
           $match : {
             $or: [
-              { 'userworks.slug': { $exists: false} }, 
+              { 'userworks.slug': { $exists: false} },
               { 'userworks.date_created': { $lte: new Date(Date.now() - 24*60*60*1000*60) } }
             ]
           }
@@ -849,7 +897,7 @@ class UserController {
     }
     try {
       const data = await db.collection('profiles').aggregate(aggregates).toArray();
-      
+
       const profiles = data[0].data;
       let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
 
@@ -863,85 +911,111 @@ class UserController {
     }
   }
 
-  async getUserCoworkers(userSlug, city, query, role) {
+  async getUserCoworkers(userSlug, city, query, role, connection) {
     const db = this.getDefaultDB();
     try {
       const connectionController = JOLLY.controller.ConnectionController;
       const workController = JOLLY.controller.WorkController;
       const user = await this.getUserBySlug(userSlug);
       const userId = user.id.toString();
+      let queryConnections1 = { to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED};
+      let queryConnections2 = { from: userId, status: ConnectionStatus.CONNECTED};
+      if(connection === 'coworkers'){
+        queryConnections1['isCoworker'] = true;
+        queryConnections2['isCoworker'] = true;
+      }
+      if(connection === 'connections'){
+        queryConnections1['isCoworker'] = false;
+        queryConnections2['isCoworker'] = false;
+      }
       const connections1 = await connectionController
-        .findConnections({ to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED});
+        .findConnections(queryConnections1);
       const coworkersFromConnection1 = connections1.map(connection => connection.from);
       const connections2 = await connectionController
-        .findConnections({ from: userId, status: ConnectionStatus.CONNECTED});
+        .findConnections(queryConnections2);
       const coworkersFromConnection2 = connections2.map(connection => connection.to);
       const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
 
-      const works = await workController.getUserWorks(userId);
-      const workSlugs = works.map(work => work.slug);
-      const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
-      const workCoworkerIds = allWorks.map(work => work.user.toString());
+      let workCoworkerIds = [];
+      if(connection === undefined || connection.length === 0 || connection === 'allconnections') {
+        const works = await workController.getUserWorks(userId);
+        const workSlugs = works.map(work => work.slug);
+        const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
+        workCoworkerIds = allWorks.map(work => work.user.toString());
+      }
 
       const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
-      const userIds = [];
-      coworkerIds.map((stringId) => {
-        userIds.push(new mongodb.ObjectID(stringId));
-      });
-      const aggregates = [
-        {
-          $match : {
-            userId: { $in: userIds },
-          }
-        },
-        { $sort  : { userId : -1 } },
-      ];
-      if (city) {
-        aggregates[0]['$match']['location'] = city
-      }
-      if (query) {
-        aggregates.push({
-          $lookup: {
-            from: "users",
-            localField: "userId",
-            foreignField: "_id",
-            as: "user"
-          }
-        });
-        aggregates.push({
-          $unwind: "$user"
-        });
-        aggregates.push({
-          $match : {
-            'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
-          }
-        });
-      }
-      if (role) {
-        aggregates.push({
-          $lookup: {
-            from: "roles",
-            localField: "userId",
-            foreignField: "user_id",
-            as: "roles"
-          }
-        });
-        aggregates.push({
-          $unwind: "$roles"
-        });
-        aggregates.push({
-          $match : {
-            'roles.name': role,
-          }
-        });
+      let coworkers = [];
+
+      if(city || role || query || connection) {
+        const coworkersIds = await Promise.map(coworkerIds, coworkerId =>
+            checkEmail(coworkerId)
+                ? this.getUserByEmail(coworkerId).id
+                : new mongodb.ObjectID(coworkerId)
+        );
+
+        const aggregates = [
+          {
+            $match : {
+              userId: { $in: coworkersIds },
+            }
+          },
+          { $sort  : { userId : -1 } },
+        ];
+        if (city) {
+          aggregates[0]['$match']['location'] = city
+        }
+        if (query) {
+          aggregates.push({
+            $lookup: {
+              from: "users",
+              localField: "userId",
+              foreignField: "_id",
+              as: "user"
+            }
+          });
+          aggregates.push({
+            $unwind: "$user"
+          });
+          aggregates.push({
+            $match : {
+              'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+            }
+          });
+        }
+        if (role) {
+          aggregates.push({
+            $lookup: {
+              from: "roles",
+              localField: "userId",
+              foreignField: "user_id",
+              as: "roles"
+            }
+          });
+          aggregates.push({
+            $unwind: "$roles"
+          });
+          aggregates.push({
+            $match : {
+              'roles.name': role,
+            }
+          });
+        }
+        const coworkersProfile = await db.collection('profiles').aggregate(aggregates).toArray();
+        coworkers = await Promise.map(coworkersProfile, profile =>
+          checkEmail(profile.userId)
+            ? this.getUserByEmail(profile.userId)
+            : this.getUserById(profile.userId)
+        );
+      } else {
+        coworkers = await Promise.map(coworkerIds, coworkerId =>
+          checkEmail(coworkerId)
+            ? this.getUserByEmail(coworkerId)
+            : this.getUserById(coworkerId)
+        );
       }
 
-      const coworkersProfile = await db.collection('profiles').aggregate(aggregates).toArray();
-      const coworkers = await Promise.map(coworkersProfile, profile =>
-          checkEmail(profile.userId)
-              ? this.getUserByEmail(profile.userId)
-              : this.getUserById(profile.userId)
-      );
+
       return coworkers;
     } catch (err) {
       throw new ApiError(err.message);
