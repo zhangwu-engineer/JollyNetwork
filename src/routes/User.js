@@ -152,6 +152,11 @@ router.post('/image', authService.verifyUserAuthentication, (req, res, next) => 
     .catch(next);
 });
 
+router.delete('/image/delete', authService.verifyUserAuthentication, (req, res, next) => {
+    userController.deleteImage(req.query.userId, req.query.image, req.query.avatar, req.query.backgroundImage);
+    res.apiSuccess({});
+});
+
 router.post('/resume', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const path = await userController.uploadResume(req.userId, req.body.resume);
   res.apiSuccess({ resume: path });
@@ -191,7 +196,8 @@ router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, n
 });
 
 router.get('/:slug/coworkers', asyncMiddleware(async (req, res, next) => {
-  const coworkers = await userController.getUserCoworkers(req.params.slug,req.query.city, req.query.query, req.query.role);
+  const coworkers = await userController.getUserCoworkers(req.params.slug,req.query.city, req.query.query, req.query.role,
+      req.query.connection);
 
   res.apiSuccess({
     coworkers,
