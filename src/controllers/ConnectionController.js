@@ -279,7 +279,7 @@ class ConnectionController {
 
           if (data) {
             connection = new EntityConnection(data);
-            if(connection.status === ConnectionStatus.CONNECTED) {
+            if(data.status === ConnectionStatus.CONNECTED) {
               const method = checkEmail(data.to) ? 'Email' : 'Nearby';
               analytics.track({
                 userId: userId, event: 'Coworker Request',
