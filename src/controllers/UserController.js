@@ -936,15 +936,7 @@ class UserController {
       const coworkersFromConnection2 = connections2.map(connection => connection.to);
       const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
 
-      let workCoworkerIds = [];
-      if(connection === undefined || connection.length === 0 || connection === 'allconnections') {
-        const works = await workController.getUserWorks(userId);
-        const workSlugs = works.map(work => work.slug);
-        const allWorks = await workController.getWorksBySlugs(workSlugs, userId);
-        workCoworkerIds = allWorks.map(work => work.user.toString());
-      }
-
-      const coworkerIds = connectionCoworkerIds.concat(workCoworkerIds).filter((v, i, arr) => arr.indexOf(v) === i);
+      const coworkerIds = connectionCoworkerIds.filter((v, i, arr) => arr.indexOf(v) === i);
       let coworkers = [];
 
       if(city || role || query || connection) {
@@ -1014,8 +1006,6 @@ class UserController {
             : this.getUserById(coworkerId)
         );
       }
-
-
       return coworkers;
     } catch (err) {
       throw new ApiError(err.message);
@@ -1485,15 +1475,20 @@ class UserController {
 
   async acceptInvite(invite, user) {
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const workController = JOLLY.controller.WorkController;
+    const connectionController = JOLLY.controller.ConnectionController;
     const self = this;
     try {
       const workData = invite.work;
       const originalAddMethod = workData.addMethod;
       workData.user = user.id;
       workData.addMethod = 'tagged';
+      workData.coworkers = workData.verifiers;
       const newWork = await self.saveWork(workData);
+      await workController.addVerifiers(invite.rootWorkId, user.id.toString());
       const newWorkData = newWork.toJson({});
       const newRole = await self.saveRole(workData.role, user);
+      const connection = await connectionController.createCoworkerConnection(workData.verifiers[0], user.id.toString());
       if (workData.verifiers) {
         analytics.track({
           userId: user.id.toString(),
