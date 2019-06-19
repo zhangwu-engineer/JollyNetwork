@@ -28,6 +28,11 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {Boolean} cityFreelancer
  * @property {Boolean} activeFreelancer
  * @property {Boolean} readyAndWilling
+ * @property {Boolean} isHirer
+ * @property {Boolean} showBadges
+ * @property {Boolean} showPositions
+ * @property {Boolean} showCoworkers
+ * @property {Boolean} showRecommendations
  * @property {String} connected
  * @property {ObjectId} user_id
  * @property {Date|String} date_created
@@ -73,6 +78,11 @@ class EntityProfile extends BaseEntityWithID {
         this._cityFreelancer = options.cityFreelancer === undefined ? false : options.cityFreelancer;
         this._activeFreelancer = options.activeFreelancer === undefined ? false : options.activeFreelancer;
         this._readyAndWilling = options.readyAndWilling === undefined ? false : options.readyAndWilling;
+        this._isHirer = options.isHirer === undefined ? false : options.isHirer;
+        this._showBadges = options.showBadges === undefined ? true : options.showBadges;
+        this._showPositions = options.showPositions === undefined ? true : options.showPositions;
+        this._showCoworkers = options.showCoworkers === undefined ? true : options.showCoworkers;
+        this._showRecommendations = options.showRecommendations === undefined ? true : options.showRecommendations;
         this._connected = options.connected || null;
         this._userId = new ObjectId(options.userId);
         this._dateCreated = options.dateCreated ? new Date(options.dateCreated) : new Date();
