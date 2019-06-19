@@ -102,7 +102,7 @@ class ConnectionController {
         }
         await userController.checkConnectedBadge(fromUserId);
         return connectionData.toJson({});
-      } else if (existing[0].isCoworker !== isCoworker) {
+      } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
         await this.updateConnection(existing[0].id, '', {isCoworker: isCoworker})
       } else {
         throw new ApiError('Connection request already sent');
