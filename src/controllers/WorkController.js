@@ -535,6 +535,7 @@ class WorkController {
 
   verifyCoworker(id, options) {
     const db = this.getDefaultDB();
+    const connectionController = JOLLY.controller.ConnectionController;
     return Promise.all([
       db.collection('works')
         .updateOne({
@@ -546,9 +547,23 @@ class WorkController {
           slug: options.slug,
           user: new mongodb.ObjectID(options.coworker),
         }, { $push: { verifiers: options.verifier } })
+    ]).then(async () => {
+      let works = await db.collection('works').findOne({ _id: new mongodb.ObjectID(id) });
+      await connectionController.createCoworkerConnection(options.coworker, works.user.toString())
+    });
+  }
+
+  addVerifiers(id, verifier) {
+    const db = this.getDefaultDB();
+    return Promise.all([
+      db.collection('works')
+        .updateOne({
+          _id: new mongodb.ObjectID(id),
+        }, { $push: { verifiers: verifier } })
     ]);
   }
-	/**
+
+  /**
 	 * Save work into database.
 	 * @param {EntityWork} work - work entity we are going to register into system.
 	 * @returns {Promise}
