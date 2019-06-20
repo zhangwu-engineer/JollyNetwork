@@ -2,11 +2,10 @@
  * Unit controller class, in charge of transactions related to user's units.
  */
 const mongodb = require('mongodb');
-const Analytics = require('analytics-node');
 const checkEmail = require('../lib/CheckEmail');
+const ConnectionAnalytics = require('../analytics/connection');
 const EntityConnection = require('../entities/EntityConnection'),
   DbNames = require('../enum/DbNames');
-
 
 class ConnectionController {
 
@@ -42,16 +41,18 @@ class ConnectionController {
 	 * @returns {Promise<Object>}
 	 */
 	async addConnection (options) {
+    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+
     try {
       let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,
       newConnection;
 
-      if (!to) to = toUserId;
+      if (!to) to = toUserId || email;
       if (!from) from = fromUserId;
       if (!connectionType) connectionType='f2f';
+      if (isCoworker === undefined) isCoworker = (email && email.length > 0) ? true : false;
 
       newConnection = new EntityConnection({
         to: to,
@@ -63,9 +64,6 @@ class ConnectionController {
       let fromUser;
       if (fromUserId) {
         fromUser = await userController.getUserById(fromUserId);
-      } else if (!fromUserId && email) {
-        fromUser = await userController.getUserByEmail(email);
-        fromUserId = fromUser.id;
       } else {
         throw new ApiError('User not found');
       }
@@ -76,34 +74,15 @@ class ConnectionController {
 
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
-        if(checkEmail(toUserId)) {
-          await mailService.sendConnectionInvite(toUserId, fromUser);
-          analytics.track({
-            userId: fromUserId,
-            event: connectionData._isCoworker ? 'Coworker Request' : 'Connection Request',
-            properties: {
-              requesterUserId: fromUserId,
-              invitedUserId: toUserId,
-              method: 'Email',
-              status: 'Pending',
-              type: connectionData._connectionType,
-            }
-          });
+
+        if(checkEmail(to)) {
+          await mailService.sendConnectionInvite(to, fromUser);
         } else {
-          const toUser = await userController.getUserById(toUserId);
+          let toUser = await userController.getUserById(toUserId);
           await mailService.sendConnectionInvite(toUser.email, fromUser);
-          analytics.track({
-            userId: fromUserId,
-            event: connectionData._isCoworker ? 'Coworker Request' : 'Connection Request',
-            properties: {
-              requesterUserId: fromUserId,
-              invitedUserId: toUser.id.toString(),
-              method: 'Nearby',
-              status: 'Pending',
-              type: connectionData._connectionType,
-            }
-          });
         }
+        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId});
+
         await userController.checkConnectedBadge(fromUserId);
         return connectionData.toJson({});
       } else {
@@ -266,7 +245,7 @@ class ConnectionController {
     let db = this.getDefaultDB(),
       collectionName = 'connections',
       connection = null;
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
 		return new Promise((resolve, reject) => {
 
@@ -281,21 +260,7 @@ class ConnectionController {
 
           if (data) {
             connection = new EntityConnection(data);
-            if(data.status === ConnectionStatus.CONNECTED) {
-              const method = checkEmail(data.to) ? 'Email' : 'Nearby';
-              analytics.track({
-                userId: userId,
-                event: data.isCoworker? 'Coworker Request' : 'Connection Request',
-                properties: {
-                  requesterUserId: data.from,
-                  invitedUserId: data.to,
-                  method: method,
-                  status: 'Accepted',
-                  type: data.connectionType,
-                }
-              });
-            }
-
+            connectionAnalytics.send(data, { userId: userId });
             resolve (connection);
           }
 
@@ -311,7 +276,7 @@ class ConnectionController {
     let db = this.getDefaultDB(),
       connection = null,
       collectionName = 'connections';
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
 		return new Promise((resolve, reject) => {
       db
@@ -324,18 +289,7 @@ class ConnectionController {
           return db.collection(collectionName).deleteOne({_id: new mongodb.ObjectID(id)});
         })
 				.then(() => {
-          const method = checkEmail(connection.to) ? 'Email' : 'Nearby';
-          analytics.track({
-            userId: userId,
-            event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
-            properties: {
-              requesterUserId: connection.from,
-              invitedUserId: connection.to,
-              method: method,
-              status: 'Ignored',
-              type: connection.connectionType,
-            }
-          });
+				  connectionAnalytics.send(connection, { userId: userId, ignored: true });
           resolve();
         })
 				.catch(reject);
