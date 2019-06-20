@@ -483,7 +483,7 @@ class UserController {
         jobWithCoworkerCount > 0 &&
         jobWhereVerifiedCoworkerCount > 0
       ) {
-        const howConnected = '';
+        let howConnected = '';
         if (userCoworkerCount > 99) {
           howConnected = 'super connected';
         } else if (userCoworkerCount > 49) {

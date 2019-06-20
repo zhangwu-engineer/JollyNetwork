@@ -75,35 +75,30 @@ class Authentication {
     return token;
 	}
 
-	/**
-	 * Verify Authentication Access Token and sets current active user.
-	 * @param {Object} req
-	 * @param {Object} res
-	 * @param {Function} next
-	 *
-	 * @public
-	 */
-	verifyUserAuthentication (req, res, next) {
+  /**
+   * Verify Authentication Access Token and sets current active user.
+   * @param {Object} req
+   * @param {Object} res
+   * @param {Function} next
+   *
+   * @public
+   */
+  verifyUserAuthentication(req, res, next) {
+    let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
+      accessToken = req.headers['x-access-token'];
 
-		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
-			accessToken = req.headers['x-access-token'];
+    if (!accessToken) {
+      next(new ApiError('No access token provided.', 403));
+    }
 
-		if (!accessToken) {
-
-			next (new ApiError('No access token provided.', 403));
-		}
-
-        jwt.verify(accessToken, authSecret, (err, decoded) => {
-            if (err) {
-
-                next (new ApiError(err.message || 'Failed to process authentication token.'));
-            }
-            else {
-
-                req.userId = decoded.id;
-                next();
-            }
-        });
+    jwt.verify(accessToken, authSecret, (err, decoded) => {
+      if (err) {
+        next(new ApiError(err.message || 'Failed to process authentication token.'));
+      } else {
+        req.userId = decoded.id;
+        next();
+      }
+    });
   }
 
   verifyUserEmail (req, res, next) {
