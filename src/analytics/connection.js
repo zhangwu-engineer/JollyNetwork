@@ -9,7 +9,7 @@ class ConnectionAnalytics {
   send(connection, params) {
     const method = checkEmail(connection.to) ? 'Email' : 'Nearby';
     if (params.ignored !== true) {
-      if(connection.status === ConnectionStatus.PENDING) {
+      if (connection.status === ConnectionStatus.PENDING) {
         this.analytics.track({
           userId: params.userId,
           event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
@@ -21,11 +21,10 @@ class ConnectionAnalytics {
             type: connection.connectionType,
           }
         });
-      }
-      else if(connection.status === ConnectionStatus.CONNECTED) {
+      } else if (connection.status === ConnectionStatus.CONNECTED) {
         this.analytics.track({
           userId: params.userId,
-          event: connection.isCoworker? 'Coworker Request' : 'Connection Request',
+          event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
           properties: {
             requesterUserId: connection.from,
             invitedUserId: connection.to,
@@ -37,7 +36,7 @@ class ConnectionAnalytics {
       } else if (connection.status == ConnectionStatus.DISCONNECTED) {
         this.analytics.track({
           userId: params.userId,
-          event: connection.isCoworker? 'Coworker Request' : 'Connection Request',
+          event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
           properties: {
             requesterUserId: connection.from,
             invitedUserId: connection.to,
