@@ -80,12 +80,13 @@ class ConnectionController {
           await mailService.sendConnectionInvite(toUserId, fromUser);
           analytics.track({
             userId: fromUserId,
-            event: 'Coworker Request',
+            event: connectionData._isCoworker ? 'Coworker Request' : 'Connection Request',
             properties: {
               requesterUserId: fromUserId,
               invitedUserId: toUserId,
               method: 'Email',
               status: 'Pending',
+              type: connectionData._connectionType,
             }
           });
         } else {
@@ -93,12 +94,13 @@ class ConnectionController {
           await mailService.sendConnectionInvite(toUser.email, fromUser);
           analytics.track({
             userId: fromUserId,
-            event: 'Coworker Request',
+            event: connectionData._isCoworker ? 'Coworker Request' : 'Connection Request',
             properties: {
               requesterUserId: fromUserId,
               invitedUserId: toUser.id.toString(),
               method: 'Nearby',
               status: 'Pending',
+              type: connectionData._connectionType,
             }
           });
         }
@@ -282,12 +284,14 @@ class ConnectionController {
             if(data.status === ConnectionStatus.CONNECTED) {
               const method = checkEmail(data.to) ? 'Email' : 'Nearby';
               analytics.track({
-                userId: userId, event: 'Coworker Request',
+                userId: userId,
+                event: data.isCoworker? 'Coworker Request' : 'Connection Request',
                 properties: {
                   requesterUserId: data.from,
                   invitedUserId: data.to,
                   method: method,
                   status: 'Accepted',
+                  type: data.connectionType,
                 }
               });
             }
@@ -323,12 +327,13 @@ class ConnectionController {
           const method = checkEmail(connection.to) ? 'Email' : 'Nearby';
           analytics.track({
             userId: userId,
-            event: 'Coworker Request',
+            event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
             properties: {
               requesterUserId: connection.from,
               invitedUserId: connection.to,
               method: method,
               status: 'Ignored',
+              type: connection.connectionType,
             }
           });
           resolve();
