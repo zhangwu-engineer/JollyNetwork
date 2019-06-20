@@ -10,7 +10,6 @@ class ConnectionAnalytics {
     const method = checkEmail(connection.to) ? 'Email' : 'Nearby';
     if (params.ignored !== true) {
       if(connection.status === ConnectionStatus.PENDING) {
-        console.log('inside-pending');
         this.analytics.track({
           userId: params.userId,
           event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
