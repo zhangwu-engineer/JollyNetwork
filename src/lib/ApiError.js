@@ -3,21 +3,21 @@
  */
 class ApiError extends Error {
 
-    /**
-     * Initiate class method.
-     * @param {String} message
-     * @param {Number} [code]
-     */
-    constructor(message, code = 400) {
+  /**
+   * Initiate class method.
+   * @param {String} message
+   * @param {Number} [code]
+   */
+  constructor(message, code = 400) {
 
-        super(message);
+    super(message);
 
-        //Error.captureStackTrace(this, this.constructor);
+    //Error.captureStackTrace(this, this.constructor);
 
-        this.name = this.constructor.name;
-        this.message = message;
-        this.code = code;
-    }
+    this.name = this.constructor.name;
+    this.message = message;
+    this.code = code;
+  }
 }
 
 module.exports = ApiError;

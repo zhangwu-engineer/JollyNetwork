@@ -137,17 +137,23 @@ class PostController {
       const rawPosts = await db.collection('posts').find(searchQuery).sort({ date_created: -1 }).toArray();
       const posts = rawPosts.map(post => (new EntityPost(post)).toJson({}));
       const populatedPosts = await Promise.map(posts, async post => {
-        try {
-          const populatedPost = post;
-          const user = await userController.getUserById(post.user);
-          populatedPost.user = user;
-          populatedPost.fullComments = await commentController.findComments({ post: new mongodb.ObjectID(post.id)});
-          populatedPost.showComments = false;
-          populatedPost.commentPage = 1;
-          return populatedPost;
-        } catch(err) {
-        }
-      }, { concurrency: 1 });
+        return await new Promise(function(resolve, reject) {
+          try {
+            const comment = commentController.findComments({ post: new mongodb.ObjectID(post.id)});
+            const user = userController.getUserById(post.user);
+            Promise.all([comment, user]).then((result) => {
+              const populatedPost = post;
+              populatedPost.user = result[1];
+              populatedPost.fullComments = result[0];
+              populatedPost.showComments = false;
+              populatedPost.commentPage = 1;
+              resolve(populatedPost);
+            });
+          } catch(err) {
+            reject(err);
+          }
+        });
+      }, { concurrency: 20 });
       return populatedPosts;
     } catch (err) {
       throw new ApiError(err.message);

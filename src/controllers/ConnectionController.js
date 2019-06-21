@@ -68,9 +68,7 @@ class ConnectionController {
         throw new ApiError('User not found');
       }
 
-      const existing = await this.findConnections({
-        to, from, status: [ ConnectionStatus.CONNECTED, ConnectionStatus.PENDING]
-      });
+      const existing = await this.findConnectionsBetweenUserIds([to, from]);
 
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
@@ -85,6 +83,8 @@ class ConnectionController {
 
         await userController.checkConnectedBadge(fromUserId);
         return connectionData.toJson({});
+      } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
+        await this.updateConnection(existing[0].id, '', {isCoworker: isCoworker})
       } else {
         throw new ApiError('Connection request already sent');
       }
@@ -257,7 +257,6 @@ class ConnectionController {
           });
         })
         .then((data) => {
-
           if (data) {
             connection = new EntityConnection(data);
             connectionAnalytics.send(data, { userId: userId });
@@ -295,6 +294,30 @@ class ConnectionController {
 				.catch(reject);
 
 			});
+  }
+
+  createCoworkerConnection(to, from) {
+    let db = this.getDefaultDB(),
+      collectionName = 'connections',
+      connection = null;
+    const self = this;
+
+    return new Promise(async (resolve, reject) => {
+      const existingConnection = await self.findConnectionsBetweenUserIds([to, from]);
+      if(existingConnection.length === 0) {
+        let newConnection = new EntityConnection({
+          to: to,
+          from: from,
+          connectionType: 'f2f',
+          status: "CONNECTED",
+          isCoworker: true
+        });
+        await this.saveConnection(newConnection);
+        resolve({});
+      } else {
+        resolve({});
+      }
+    });
   }
 }
 
