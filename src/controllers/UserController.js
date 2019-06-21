@@ -93,13 +93,13 @@ class UserController {
           newProfileData.avatar = avatar;
         }
         newUserProfile = new EntityProfile(newProfileData);
-        const userProfileData = await self.saveUserProfile(newUserProfile)
+        const userProfileData = await self.saveUserProfile(newUserProfile);
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
 
         const newBusinessData = { user: userData._id };
         const newUserBusiness = new EntityBusiness(newBusinessData);
-        const userBusinessData = await self.saveUserBusiness(newUserBusiness)
+        const userBusinessData = await self.saveUserBusiness(newUserBusiness);
         res.businesses = [userBusinessData.toJson()];
 
         if (invite) {
@@ -367,7 +367,7 @@ class UserController {
         }
         if (data.business) {
           const businessName = data.business.name;
-          const bSlug = await self.generateBusinessSlug({ name: businessName })
+          const bSlug = await self.generateBusinessSlug({ name: businessName });
           data.business.slug = bSlug;
           await self.updateUserBusiness(userId, data.business);
         }
@@ -1317,7 +1317,7 @@ class UserController {
       if (profileData[field] == null) {
         delete (profileData[field]);
       }
-    })
+    });
 		return new Promise((resolve, reject) => {
 
 			db.collection(collectionName)
@@ -1381,7 +1381,7 @@ class UserController {
       if (businessData[field] == null) {
         delete (businessData[field]);
       }
-    })
+    });
 		return new Promise((resolve, reject) => {
 
 			db.collection(collectionName)
