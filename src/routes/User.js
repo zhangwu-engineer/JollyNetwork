@@ -196,11 +196,22 @@ router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, n
 });
 
 router.get('/:slug/coworkers', asyncMiddleware(async (req, res, next) => {
-  const coworkers = await userController.getUserCoworkers(req.params.slug,req.query.city, req.query.query, req.query.role,
-      req.query.connection);
-
+  const coworkers = await userController.getUserCoworkers(req.params.slug);
   res.apiSuccess({
     coworkers,
+  });
+}));
+
+router.get('/connections', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const connections = await userController.getUserConnections(
+    req.userId,
+    req.query.city,
+    req.query.query,
+    req.query.role,
+    req.query.connection
+  );
+  res.apiSuccess({
+    connections,
   });
 }));
 
