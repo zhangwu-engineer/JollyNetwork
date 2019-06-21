@@ -1522,7 +1522,9 @@ class UserController {
       await workController.addVerifiers(invite.rootWorkId, user.id.toString());
       const newWorkData = newWork.toJson({});
       const newRole = await self.saveRole(workData.role, user);
-      const connection = await connectionController.createCoworkerConnection(workData.verifiers[0], user.id.toString());
+      if(workData.verifiers && workData.verifiers[0]) {
+        const connection = await connectionController.createCoworkerConnection(workData.verifiers[0], user.id.toString());
+      }
       if (workData.verifiers) {
         analytics.track({
           userId: user.id.toString(),
