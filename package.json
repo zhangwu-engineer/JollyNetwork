@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@types/express": "^4.16.0",
+    "async": "^3.0.1",
     "chai": "^4.2.0",
     "chai-http": "^4.2.0",
     "mocha": "^5.2.0",
