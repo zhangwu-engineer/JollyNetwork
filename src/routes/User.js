@@ -203,7 +203,6 @@ router.get('/:slug/coworkers', asyncMiddleware(async (req, res, next) => {
 }));
 
 router.get('/connections', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  console.log("connections", req.userId);
   const connections = await userController.getUserConnections(
     req.userId,
     req.query.city,
