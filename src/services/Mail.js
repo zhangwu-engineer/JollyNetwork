@@ -348,6 +348,60 @@ class Mail {
       });
     });
   }
+
+  sendMonthlyDigest(profile, freelancerCount, postCount, location) {
+    const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
+    var template_name = "monthly-digest-email";
+    var template_content = [];
+    const email = profile.user[0].email;
+    const avatar = profile.avatar;
+    var message = {
+      "subject": "Monthly Digest",
+      "to": [{
+        "email": email,
+        "type": "to"
+      }],
+      "merge_vars": [{
+        "rcpt": email,
+        "vars": [
+          {
+            "name": "location",
+            "content": location
+          },
+          {
+            "name": "postcount",
+            "content": postCount
+          },
+          {
+            "name": "freelancercount",
+            "content": freelancerCount
+          },{
+            "name": "avatar",
+            "content": avatar
+          }
+        ]
+      }],
+    };
+    var async = false;
+    var ip_pool = "Main Pool";
+    var send_at = new Date();
+
+    return new Promise((resolve, reject) => {
+      mandrill_client.messages.sendTemplate({
+        "template_name": template_name,
+        "template_content": template_content,
+        "message": message,
+        "async": async,
+        "ip_pool": ip_pool,
+        "send_at": send_at,
+      }, function(result) {
+        resolve(result);
+      }, function(e) {
+        console.log(e);
+        reject(e);
+      });
+    });
+  }
 }
 
 module.exports = Mail;
