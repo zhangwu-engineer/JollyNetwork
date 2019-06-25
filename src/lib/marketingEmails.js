@@ -144,7 +144,7 @@ class MarketingEmails {
           }
         }
       });
-      console.log(location, noOfUserWillGetMailInLocation, freelancerCount, postInLocationInLastMonth);
+      console.log(`${location}, ${noOfUserWillGetMailInLocation}, ${freelancerCount}, ${postInLocationInLastMonth}`);
     });
   }
 }
