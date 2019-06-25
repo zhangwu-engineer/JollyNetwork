@@ -138,7 +138,7 @@ class MarketingEmails {
           if (isSendMail && freelancerCount > 1) {
             isSendMail = false;
             const testEmail2 = 'ronakjain90@gmail.com';
-            await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount - 1, postInLocationInLastMonth, city);
+            // await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount - 1, postInLocationInLastMonth, city);
             await mail.sendMonthlyDigest(testEmail2, profile.avatar, freelancerCount - 1, postInLocationInLastMonth, city);
           }
         }
