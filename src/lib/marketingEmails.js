@@ -85,7 +85,7 @@ class MarketingEmails {
     })
   };
 
-  monthlyDigestMailer= async () => {
+  async monthlyDigestMailer() {
     let isSendMail = true;
     var date = new Date();
     date.setDate(date.getDate() - date.getDate());
