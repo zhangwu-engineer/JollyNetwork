@@ -32,7 +32,7 @@ class MarketingEmails {
     });
   }
 
-  coworkersConnectingMailer = async () => {
+  async coworkersConnectingMailer() {
     const db = await this.getDatabase();
     const mail = new Mail();
     var date = new Date();
