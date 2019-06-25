@@ -306,14 +306,13 @@ class Mail {
     });
   }
 
-  sendCoworkersConnecting(user,coworkersCount) {
+  sendCoworkersConnecting(email, user,coworkersCount) {
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
     var template_name = "coworkers-connecting";
     var template_content = [];
-    const email = user.email;
     const avatar = user.profile.avatar;
     var message = {
-      "subject": "Coworkers are connecting",
+      "subject": "Coworkers are connecting on Jolly, you should too",
       "to": [{
         "email": email,
         "type": "to"

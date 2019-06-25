@@ -32,7 +32,7 @@ class MarketingEmails {
     });
   }
 
-  coworkersConnectingMailer = async () => {
+  async coworkersConnectingMailer() {
     const db = await this.getDatabase();
     const mail = new Mail();
     var date = new Date();
@@ -41,7 +41,7 @@ class MarketingEmails {
       $match : {
         date_created: {$gte: date},
         status: 'CONNECTED',
-        connectionType: 'f2f',
+        isCoworker: true
       }
     }]);
     let coworkersIds = [];
@@ -80,8 +80,18 @@ class MarketingEmails {
         $unwind: '$profile'
       }
     ]);
+    let onOfUserWillGetEmail = 0;
+    const testEmail1 = "ronakjain90@gmail.com";
+    const testEmail2 = "lalitkumarjiet@gmail.com";
     await users.forEach(async (user)=> {
-      await mail.sendCoworkersConnecting(user,coworkersIds.length);
-    })
+      onOfUserWillGetEmail += 1;
+      if(onOfUserWillGetEmail == 1){
+        await mail.sendCoworkersConnecting(testEmail1, user,coworkersIds.length);
+        await mail.sendCoworkersConnecting(testEmail2, user,coworkersIds.length);
+      }
+    });
+    console.log(onOfUserWillGetEmail);
   }
 }
+
+module.exports = MarketingEmails;
