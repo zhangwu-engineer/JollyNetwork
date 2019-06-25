@@ -934,7 +934,7 @@ class UserController {
 
       coworkers = await Promise.map(coworkerIds, coworkerId =>
         checkEmail(coworkerId)
-          ? this.getUserByEmail(coworkerId)
+          ? this.getUserByEmail(coworkerId.toLowerCase())
           : this.getUserById(coworkerId)
       );
       return coworkers;
@@ -1033,13 +1033,13 @@ class UserController {
         const connectionProfile = await db.collection('profiles').aggregate(aggregates).toArray();
         connections = await Promise.map(connectionProfile, profile =>
           checkEmail(profile.userId)
-            ? this.getUserByEmail(profile.userId)
+            ? this.getUserByEmail(profile.userId.toLowerCase())
             : this.getUserById(profile.userId)
         );
       } else {
         connections = await Promise.map(userIds, userId =>
           checkEmail(userId)
-            ? this.getUserByEmail(userId)
+            ? this.getUserByEmail(userId.toLowerCase())
             : this.getUserById(userId)
         );
       }
