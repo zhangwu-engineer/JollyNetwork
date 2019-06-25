@@ -26,6 +26,7 @@
   },
   "homepage": "https://bitbucket.org/jollydevelopment/jolly",
   "dependencies": {
+    "async": "^3.0.1",
     "analytics-node": "^3.3.0",
     "aws-sdk": "^2.354.0",
     "bcryptjs": "^2.4.3",

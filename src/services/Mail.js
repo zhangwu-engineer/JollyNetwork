@@ -306,7 +306,7 @@ class Mail {
     });
   }
 
-  sendCoworkersConnecting(email, user,coworkersCount) {
+  sendCoworkersConnecting(email, user, coworkersCount) {
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
     var template_name = "coworkers-connecting";
     var template_content = [];

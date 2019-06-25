@@ -4,6 +4,7 @@ let Database = require('../services/Database');
 const DbNames = require('../enum/DbNames');
 const Promise = require('bluebird');
 const mongodb = require('mongodb');
+const async = require('async');
 const Mail = require('../services/Mail');
 
 class MarketingEmails {
@@ -81,13 +82,11 @@ class MarketingEmails {
       }
     ]);
     let onOfUserWillGetEmail = 0;
-    const testEmail1 = "ronakjain90@gmail.com";
-    const testEmail2 = "lalitkumarjiet@gmail.com";
+    const testEmail = 'lalitkumarjiet@gmail.com';
     await users.forEach(async (user)=> {
       onOfUserWillGetEmail += 1;
-      if(onOfUserWillGetEmail == 1){
-        await mail.sendCoworkersConnecting(testEmail1, user,coworkersIds.length);
-        await mail.sendCoworkersConnecting(testEmail2, user,coworkersIds.length);
+      if(onOfUserWillGetEmail === 1){
+        await mail.sendCoworkersConnecting(testEmail, user, coworkersIds.length);
       }
     });
     console.log(onOfUserWillGetEmail);
