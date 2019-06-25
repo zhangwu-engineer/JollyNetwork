@@ -349,12 +349,10 @@ class Mail {
     });
   }
 
-  sendMonthlyDigest(profile, freelancerCount, postCount, location) {
+  sendMonthlyDigest(email, avatar, freelancerCount, postCount, location) {
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
     var template_name = "monthly-digest-email";
     var template_content = [];
-    const email = profile.user[0].email;
-    const avatar = profile.avatar;
     var message = {
       "subject": "Monthly Digest",
       "to": [{
