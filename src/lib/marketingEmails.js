@@ -137,7 +137,6 @@ class MarketingEmails {
         if(profile.user.length) {
           if (isSendMail && freelancerCount > 1) {
             isSendMail = false;
-            const testEmail1 = 'zach@srvbl.com';
             const testEmail2 = 'ronakjain90@gmail.com';
             await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount - 1, postInLocationInLastMonth, city);
             await mail.sendMonthlyDigest(testEmail2, profile.avatar, freelancerCount - 1, postInLocationInLastMonth, city);
