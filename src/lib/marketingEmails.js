@@ -4,6 +4,7 @@ let Database = require('../services/Database');
 const DbNames = require('../enum/DbNames');
 const Promise = require('bluebird');
 const mongodb = require('mongodb');
+const async = require('async');
 const Mail = require('../services/Mail');
 
 class MarketingEmails {
@@ -81,7 +82,7 @@ class MarketingEmails {
       }
     ]);
     await users.forEach(async (user)=> {
-      await mail.sendCoworkersConnecting(user,coworkersIds.length);
+      // await mail.sendCoworkersConnecting(user,coworkersIds.length);
     })
   };
 
@@ -93,19 +94,14 @@ class MarketingEmails {
     const mail = new Mail();
     const distinctLocations = await db.collection('profiles').distinct("location");
     await distinctLocations.forEach( async location => {
-      let allFreelancersSignUpInLocationInLastMonth = await db.collection('profiles').distinct('userId',
+      let allFreelancersSignUpInLocationIn30days = await db.collection('profiles').distinct('userId',
         { dateCreated: {$gte: date}, location: location,}
       );
-      allFreelancersSignUpInLocationInLastMonth = allFreelancersSignUpInLocationInLastMonth.map((o) => new mongodb.ObjectID(o));
+      const freelancerCount = allFreelancersSignUpInLocationIn30days.length;
 
-      const postInLocationInLastMonth = await db.collection('posts').find({
-        date_created: { $gte: date }, user: { $in: allFreelancersSignUpInLocationInLastMonth}
-      }).count();
-
-      const freelancerCount = allFreelancersSignUpInLocationInLastMonth.length;
-
-      const profilesWithUser = await db.collection('profiles').aggregate([
-        { $match : {location: location }
+      const allFreelancersInLocation = await db.collection('profiles').aggregate([
+        {
+          $match : {location: location }
         },
         {
           $lookup:
@@ -128,22 +124,34 @@ class MarketingEmails {
               }
             }
           }
+        },
+        {
+          $match: { "user": { $not: { $size: 0}}}
         }
       ]);
+
+      let allFreelancersIdsInLocation = [];
+
+      await async.eachOfLimit(allFreelancersInLocation, 1, async (object) => {
+        await new Promise(async (resolve, reject) => {
+          resolve(allFreelancersIdsInLocation.push(new mongodb.ObjectID(object.userId)));
+        });
+      });
+
+      const postCountInLocationIn30days = await db.collection('posts').find({
+        date_created: { $gte: date }, user: { $in: allFreelancersIdsInLocation}
+      }).count();
+
       const city = location.split(',')[0];
-      let noOfUserWillGetMailInLocation = 0;
-      await profilesWithUser.forEach(async profile => {
-        noOfUserWillGetMailInLocation += 1;
-        if(profile.user.length) {
-          if (isSendMail && freelancerCount > 1) {
-            isSendMail = false;
-            const testEmail2 = 'ronakjain90@gmail.com';
-            // await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount - 1, postInLocationInLastMonth, city);
-            await mail.sendMonthlyDigest(testEmail2, profile.avatar, freelancerCount - 1, postInLocationInLastMonth, city);
-          }
+
+      await async.eachOfLimit(allFreelancersInLocation, 1, async (profile) => {
+        if (isSendMail && (freelancerCount > 1 || postCountInLocationIn30days > 1)) {
+          isSendMail = false;
+          const testEmail1 = 'ronakjain90@gmail.com';
+          await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount - 1, postCountInLocationIn30days, city);
         }
       });
-      console.log(`"${location}", ${noOfUserWillGetMailInLocation}, ${freelancerCount}, ${postInLocationInLastMonth}`);
+      console.log(`"${location}", ${allFreelancersIdsInLocation.length}, ${freelancerCount}, ${postCountInLocationIn30days}`);
     });
   }
 }
