@@ -14,6 +14,7 @@ let Database = require('./services/Database'),
   Authentication = require('./services/Authentication'),
   Mail = require('./services/Mail'),
   SMS = require('./services/SMS'),
+	cronJob = require('./services/CronJob'),
 	UserController = require('./controllers/UserController'),
   BusinessController = require('./controllers/BusinessController'),
   RoleController = require('./controllers/RoleController'),
@@ -113,6 +114,9 @@ class App {
 			ip: AppConfig.BIND_IP,
 			port: AppConfig.BIND_PORT
 		});
+
+		/** Load cron jobs */
+		this._cornJobs();
 
 		return this;
 	}
@@ -352,6 +356,13 @@ class App {
 		});
 
 		return this;
+	}
+
+	/**
+	 * start the Cron jobs.
+	 */
+	_cornJobs () {
+		cronJob.monthlyDigestMail();
 	}
 
 }
