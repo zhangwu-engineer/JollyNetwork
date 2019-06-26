@@ -362,7 +362,7 @@ class App {
 	 * start the Cron jobs.
 	 */
 	_cronJobs () {
-		cronJob.monthlyDigestEmailCron();
+		cronJob.monthlyDigestMailCron();
 	}
 
 }
