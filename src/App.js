@@ -116,7 +116,7 @@ class App {
 		});
 
 		/** Load cron jobs */
-		this._cornJobs();
+		this._cronJobs();
 
 		return this;
 	}
@@ -361,8 +361,8 @@ class App {
 	/**
 	 * start the Cron jobs.
 	 */
-	_cornJobs () {
-		cronJob.monthlyDigestMail();
+	_cronJobs () {
+		cronJob.monthlyDigestEmailCron();
 	}
 
 }

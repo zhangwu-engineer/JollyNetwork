@@ -147,7 +147,7 @@ class MarketingEmails {
       await async.eachOfLimit(allFreelancersInLocation, 1, async (profile) => {
         if (isSendMail && (freelancerCount > 1 || postCountInLocationIn30days > 1)) {
           isSendMail = false;
-          const testEmail1 = 'lalitkumarjiet@gmail.com';
+          const testEmail1 = 'ronakjain90@gmail.com';
           await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount - 1, postCountInLocationIn30days, city);
         }
       });

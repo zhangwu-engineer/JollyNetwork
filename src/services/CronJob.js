@@ -1,7 +1,7 @@
 const cron = require("node-cron");
 const marketingEmails = require('../lib/marketingEmails');
 
-const monthlyDigestMail = () => {
+const monthlyDigestEmailCron = () => {
   cron.schedule("*/1 * * * *", function() {
     console.log('cron job running');
     const marketing = new marketingEmails();
@@ -9,4 +9,4 @@ const monthlyDigestMail = () => {
   });
 };
 
-module.exports = { monthlyDigestMail };
+module.exports = { monthlyDigestEmailCron };
