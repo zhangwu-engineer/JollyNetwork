@@ -15,4 +15,12 @@ router.get('/slug/:slug', (req, res, next) => {
 
 });
 
+router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
+  businessController.searchCityBusinesses(req.body.city, req.body.query, req.body.page, req.body.perPage, req.body.role, req.userId)
+    .then(data => {
+      res.apiSuccess(data);
+    })
+    .catch(next);
+});
+
 module.exports = router;
