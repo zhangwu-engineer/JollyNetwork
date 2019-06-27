@@ -123,10 +123,31 @@ class BusinessController {
       },
       { $sort  : { userId : -1 } },
     ];
+    if (city) {
+      aggregates[0]['$match']['location'] = city
+    }
     if (query) {
       aggregates.push({
         $match : {
           'slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+        }
+      });
+    }
+    if (role) {
+      aggregates.push({
+        $lookup: {
+          from: "roles",
+          localField: "user",
+          foreignField: "user_id",
+          as: "roles"
+        }
+      });
+      aggregates.push({
+        $unwind: "$roles"
+      });
+      aggregates.push({
+        $match : {
+          'roles.name': role,
         }
       });
     }
