@@ -115,13 +115,14 @@ class BusinessController {
 	async searchCityBusinesses(city, query, page, perPage, role, activeStatus, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
+    let businesses = [];
     const aggregates = [
       {
         $match : {
-          userId: { $ne: new mongodb.ObjectID(userId) },
+          user: { $ne: new mongodb.ObjectID(userId) },
         }
       },
-      { $sort  : { userId : -1 } },
+      { $sort  : { _id : -1 } },
     ];
     if (city) {
       aggregates[0]['$match']['location'] = city
@@ -170,13 +171,85 @@ class BusinessController {
       const data = await db.collection('businesses').aggregate(aggregates).toArray();
 
 			const businessProfiles = data[0].data;
-      let businesses = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id));
+      businesses = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id));
 
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
         page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
         businesses,
       };
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
+  async getBusinessConnections(userId, city, query, role, connection) {
+    const db = this.getDefaultDB();
+    let connections = [];
+    try {
+      const connectionController = JOLLY.controller.ConnectionController;
+      const userController = JOLLY.controller.UserController;
+      const user = await userController.getUserById(userId);
+      let queryConnections1 = {
+        to: { $in: [userId, user.email] },
+        status: ConnectionStatus.CONNECTED
+      };
+      let queryConnections2 = {
+        from: { $in: [ userId, user.email]},
+        status: ConnectionStatus.CONNECTED,
+      };
+
+      const connections1 = await connectionController
+        .findConnections(queryConnections1);
+      const businessesFromConnection1 = connections1.map(connection => connection.from);
+      const connections2 = await connectionController
+        .findConnections(queryConnections2);
+      const businessesFromConnection2 = connections2.map(connection => connection.to);
+      let businessIds = businessesFromConnection1.concat(businessesFromConnection2);
+      businessIds = businessIds.filter((v, i, arr) => arr.indexOf(v) === i);
+
+      businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId));
+
+      const aggregates = [
+        {
+          $match : {
+            user: { $ne: new mongodb.ObjectID(userId) },
+            _id: { $in: businessIds },
+          }
+        },
+        { $sort  : { _id : -1 } },
+      ];
+      if (city) {
+        aggregates[0]['$match']['location'] = city
+      }
+      if (query) {
+        aggregates.push({
+          $match : {
+            'slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+          }
+        });
+      }
+      if (role) {
+        aggregates.push({
+          $lookup: {
+            from: "roles",
+            localField: "user",
+            foreignField: "user_id",
+            as: "roles"
+          }
+        });
+        aggregates.push({
+          $unwind: "$roles"
+        });
+        aggregates.push({
+          $match : {
+            'roles.name': role,
+          }
+        });
+      }
+      const businessProfiles = await db.collection('businesses').aggregate(aggregates).toArray();
+      connections = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id));
+      return connections;
     } catch (err) {
       throw new ApiError(err.message);
     }

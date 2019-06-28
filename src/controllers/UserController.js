@@ -955,7 +955,7 @@ class UserController {
         status: ConnectionStatus.CONNECTED
       };
       let queryConnections2 = {
-        from: { $in: [ userId, user.email]},
+        from: { $in: [ userId, user.email] },
         status: ConnectionStatus.CONNECTED,
       };
       if(connection === 'coworkers'){
@@ -975,74 +975,65 @@ class UserController {
       let userIds = usersFromConnection1.concat(usersFromConnection2);
       userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
 
-
-      if(city || role || query || connection) {
-        const connectionIds = await Promise.map(userIds, userId =>
-          checkEmail(userId)
-            ? this.getUserByEmail(userId).id
-            : new mongodb.ObjectID(userId)
-        );
-
-        const aggregates = [
-          {
-            $match : {
-              userId: { $in: connectionIds },
-            }
-          },
-          { $sort  : { userId : -1 } },
-        ];
-        if (city) {
-          aggregates[0]['$match']['location'] = city
-        }
-        if (query) {
-          aggregates.push({
-            $lookup: {
-              from: "users",
-              localField: "userId",
-              foreignField: "_id",
-              as: "user"
-            }
-          });
-          aggregates.push({
-            $unwind: "$user"
-          });
-          aggregates.push({
-            $match : {
-              'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
-            }
-          });
-        }
-        if (role) {
-          aggregates.push({
-            $lookup: {
-              from: "roles",
-              localField: "userId",
-              foreignField: "user_id",
-              as: "roles"
-            }
-          });
-          aggregates.push({
-            $unwind: "$roles"
-          });
-          aggregates.push({
-            $match : {
-              'roles.name': role,
-            }
-          });
-        }
-        const connectionProfile = await db.collection('profiles').aggregate(aggregates).toArray();
-        connections = await Promise.map(connectionProfile, profile =>
-          checkEmail(profile.userId)
-            ? this.getUserByEmail(profile.userId.toLowerCase())
-            : this.getUserById(profile.userId)
-        );
-      } else {
-        connections = await Promise.map(userIds, userId =>
-          checkEmail(userId)
-            ? this.getUserByEmail(userId.toLowerCase())
-            : this.getUserById(userId)
-        );
+      const connectionIds = await Promise.map(userIds, userId =>
+        checkEmail(userId)
+          ? this.getUserByEmail(userId).id
+          : new mongodb.ObjectID(userId)
+      );
+      const aggregates = [
+        {
+          $match : {
+            userId: { $in: connectionIds },
+          }
+        },
+        { $sort  : { userId : -1 } },
+      ];
+      if (city) {
+        aggregates[0]['$match']['location'] = city
       }
+      if (query) {
+        aggregates.push({
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user"
+          }
+        });
+        aggregates.push({
+          $unwind: "$user"
+        });
+        aggregates.push({
+          $match : {
+            'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+          }
+        });
+      }
+      if (role) {
+        aggregates.push({
+          $lookup: {
+            from: "roles",
+            localField: "userId",
+            foreignField: "user_id",
+            as: "roles"
+          }
+        });
+        aggregates.push({
+          $unwind: "$roles"
+        });
+        aggregates.push({
+          $match : {
+            'roles.name': role,
+          }
+        });
+      }
+      const connectionProfile = await db.collection('profiles').aggregate(aggregates).toArray();
+      connections = await Promise.map(connectionProfile, profile =>
+        checkEmail(profile.userId)
+          ? this.getUserByEmail(profile.userId.toLowerCase())
+          : this.getUserById(profile.userId)
+      );
+     
       return connections;
     } catch (err) {
       throw new ApiError(err.message);
