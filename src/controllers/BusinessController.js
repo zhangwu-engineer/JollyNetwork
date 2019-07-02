@@ -124,6 +124,11 @@ class BusinessController {
       },
       { $sort  : { _id : -1 } },
     ];
+    aggregates.push({
+      $match : {
+        'name': { $ne: null },
+      }
+    });
     if (city) {
       aggregates[0]['$match']['location'] = city
     }
