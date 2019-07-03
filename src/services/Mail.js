@@ -306,10 +306,14 @@ class Mail {
     });
   }
 
-  sendMonthlyDigest(email, avatar, freelancerCount, postCount, location) {
+  sendMonthlyDigest(email, avatar, freelancerCount, postCount, location, allFreelancersSignUpIn30days, postCountIn30days) {
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
     var template_name = "monthly-digest-email";
     var template_content = [];
+    var allCount = 0;
+    if (parseInt(freelancerCount, 10) < 1 && parseInt(postCount, 10) < 1) {
+      allCount = 1;
+    }
     var message = {
       "subject": "Monthly Digest",
       "to": [{
@@ -324,13 +328,26 @@ class Mail {
             "content": location
           },
           {
+            "name": 'allcount',
+            "content": allCount
+          },
+          {
             "name": "postcount",
             "content": postCount
           },
           {
             "name": "freelancercount",
             "content": freelancerCount
-          },{
+          },
+          {
+            "name": "allpostcount",
+            "content": postCountIn30days
+          },
+          {
+            "name": "allfreelancercount",
+            "content": allFreelancersSignUpIn30days
+          },
+          {
             "name": "avatar",
             "content": avatar
           }

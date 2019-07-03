@@ -39,6 +39,8 @@ class MarketingEmails {
     date.setDate(date.getDate() - date.getDate());
     const db = await this.getDatabase();
     const mail = new Mail();
+    const allFreelancersSignUpIn30days = await db.collection('profiles').find({dateCreated: {$gte: date}}).count();
+    const postCountIn30days = await db.collection('posts').find({date_created: { $gte: date }}).count();
     const distinctLocations = await db.collection('profiles').distinct("location");
     await distinctLocations.forEach( async location => {
       let allFreelancersSignUpInLocationIn30days = await db.collection('profiles').distinct('userId',
@@ -92,10 +94,11 @@ class MarketingEmails {
       const city = location.split(',')[0];
 
       await async.eachOfLimit(allFreelancersInLocation, 1, async (profile) => {
-        if (isSendMail && (freelancerCount > 1 || postCountInLocationIn30days > 1)) {
+        if (isSendMail) {
           isSendMail = false;
           const testEmail1 = 'ronakjain90@gmail.com';
-          await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount - 1, postCountInLocationIn30days, city);
+          await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount, postCountInLocationIn30days, city,
+            allFreelancersSignUpIn30days, postCountIn30days);
         }
       });
       console.log(`"${location}", ${allFreelancersIdsInLocation.length}, ${freelancerCount}, ${postCountInLocationIn30days}`);
