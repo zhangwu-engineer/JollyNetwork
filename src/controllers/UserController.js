@@ -1033,7 +1033,20 @@ class UserController {
           ? this.getUserByEmail(profile.userId.toLowerCase())
           : this.getUserById(profile.userId)
       );
-     
+      connections = await Promise.map(connections, profile => {
+        const newProfile = Object.assign({}, profile);
+        const foundConnection1 = connections1.filter(connection => {
+          return connection.from === profile.id.toString() && connection.to === userId
+        });
+        const foundConnection2 = connections2.filter(connection => {
+          return connection.to === profile.id.toString() && connection.from === userId
+        });
+        let foundConnection = foundConnection1.concat(foundConnection2);
+        foundConnection = foundConnection.filter((v, i, arr) => arr.indexOf(v) === i);
+
+        newProfile.isCoworker = foundConnection.length > 0 ? foundConnection[0].isCoworker : false;
+        return newProfile;
+      });
       return connections;
     } catch (err) {
       throw new ApiError(err.message);
