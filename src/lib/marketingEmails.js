@@ -94,7 +94,7 @@ class MarketingEmails {
       const city = location.split(',')[0];
 
       await async.eachOfLimit(allFreelancersInLocation, 1, async (profile) => {
-        if (isSendMail) {
+        if (isSendMail && (freelancerCount > 1 || postCountInLocationIn30days > 1)) {
           isSendMail = false;
           const testEmail1 = 'ronakjain90@gmail.com';
           await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount, postCountInLocationIn30days, city,
