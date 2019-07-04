@@ -805,10 +805,33 @@ class UserController {
   async searchCityUsers(city, query, page, perPage, role, activeStatus, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
+
+    const connectionController = JOLLY.controller.ConnectionController;
+    const user = await this.getUserById(userId);
+    let queryConnections1 = {
+      to: { $in: [userId, user.email] },
+    };
+    let queryConnections2 = {
+      from: { $in: [ userId, user.email] },
+    };
+
+    const connections1 = await connectionController
+      .findConnections(queryConnections1);
+    const usersFromConnection1 = connections1.map(connection => connection.from);
+    const connections2 = await connectionController
+      .findConnections(queryConnections2);
+    const usersFromConnection2 = connections2.map(connection => connection.to);
+    let userIds = usersFromConnection1.concat(usersFromConnection2);
+    userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
+    userIds.push(userId);
+    userIds = await Promise.map(userIds, userId =>
+      new mongodb.ObjectID(userId)
+    );
+
     const aggregates = [
       {
         $match : {
-          userId: { $ne: new mongodb.ObjectID(userId) },
+          userId: { $nin: userIds },
         }
       },
       { $sort  : { userId : -1 } },
