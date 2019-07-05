@@ -116,14 +116,42 @@ class BusinessController {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
     let businesses = [];
+
+    const connectionController = JOLLY.controller.ConnectionController;
+    const userController = JOLLY.controller.UserController;
+    const user = await userController.getUserById(userId);
+    let queryConnections1 = {
+      to: { $in: [userId, user.email] },
+    };
+    let queryConnections2 = {
+      from: { $in: [ userId, user.email]},
+    };
+
+    const connections1 = await connectionController
+      .findConnections(queryConnections1);
+    const businessesFromConnection1 = connections1.map(connection => connection.from);
+    const connections2 = await connectionController
+      .findConnections(queryConnections2);
+    const businessesFromConnection2 = connections2.map(connection => connection.to);
+    let businessIds = businessesFromConnection1.concat(businessesFromConnection2);
+    businessIds = businessIds.filter((v, i, arr) => arr.indexOf(v) === i);
+
+    businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId));
+    
     const aggregates = [
       {
         $match : {
           user: { $ne: new mongodb.ObjectID(userId) },
+          _id: { $nin: businessIds }
         }
       },
       { $sort  : { _id : -1 } },
     ];
+    aggregates.push({
+      $match : {
+        'name': { $ne: null },
+      }
+    });
     if (city) {
       aggregates[0]['$match']['location'] = city
     }
