@@ -16,7 +16,7 @@ router.get('/slug/:slug', (req, res, next) => {
 });
 
 router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
-  businessController.searchCityBusinesses(req.body.city, req.body.query, req.body.page, req.body.perPage, req.body.role, req.userId)
+  businessController.searchCityBusinesses(req.body.city, req.body.query, req.body.page, req.body.perPage, req.body.role, req.body.activeStatus, req.userId)
     .then(data => {
       res.apiSuccess(data);
     })
