@@ -21,10 +21,11 @@ let authService = JOLLY.service.Authentication,
 router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const user = await userController.getUserById(req.userId);
   const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
-
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      if (connection.connectionType === 'b2f') {
+      let connectionType = connection && connection.connectionType;
+
+      if (connectionType === 'b2f') {
         businessController
         .getBusinessById(connection.from)
         .then(business => {
@@ -32,8 +33,10 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
           populatedData.from = business;
           resolve(populatedData);
         })
-        .catch(reject);
-      } else if (connection.connectionType !== 'b2f' && connection.connectionType !== 'f2b') {
+        .catch(error => {
+          resolve({})
+        });
+      } else if (connectionType === 'f2f') {
         userController
           .getUserById(connection.from)
           .then(user => {
@@ -41,7 +44,9 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
             populatedData.from = user;
             resolve(populatedData);
           })
-          .catch(reject);
+          .catch(error => {
+            resolve({})
+          });
       } else {
         resolve({})
       }
