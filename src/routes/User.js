@@ -202,19 +202,6 @@ router.get('/:slug/coworkers', asyncMiddleware(async (req, res, next) => {
   });
 }));
 
-router.get('/connections', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const connections = await userController.getUserConnections(
-    req.userId,
-    req.query.city,
-    req.query.query,
-    req.query.role,
-    req.query.connection
-  );
-  res.apiSuccess({
-    connections,
-  });
-}));
-
 router.get('/:id/badges', asyncMiddleware(async (req, res, next) => {
   const badges = await userController.getUserBadges(req.params.id);
   res.apiSuccess(badges);
