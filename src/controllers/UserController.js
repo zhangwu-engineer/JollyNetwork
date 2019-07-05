@@ -802,17 +802,17 @@ class UserController {
       throw new ApiError(err.message);
     }
   }
-  async searchCityUsers(city, query, page, perPage, role, activeStatus, userId) {
+  async searchCityUsers(city, query, page, perPage, role, activeStatus, businessId, userId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
 
     const connectionController = JOLLY.controller.ConnectionController;
     const user = await this.getUserById(userId);
     let queryConnections1 = {
-      to: { $in: [userId, user.email] },
+      to: { $in: [userId, user.email, businessId] },
     };
     let queryConnections2 = {
-      from: { $in: [ userId, user.email] },
+      from: { $in: [ userId, user.email, businessId] },
     };
 
     const connections1 = await connectionController
