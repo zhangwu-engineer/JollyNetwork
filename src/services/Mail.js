@@ -311,7 +311,7 @@ class Mail {
     var template_name = "monthly-digest-email";
     var template_content = [];
     var allCount = 0;
-    if (parseInt(freelancerCount, 10) < 1 && parseInt(postCount, 10) < 1) {
+    if (parseInt(freelancerCount, 10) < 11 && parseInt(postCount, 10) < 11) {
       allCount = 1;
     }
     var message = {
