@@ -3,6 +3,7 @@
  */
 const mongodb = require('mongodb');
 const checkEmail = require('../lib/CheckEmail');
+const Analytics = require('analytics-node');
 const ConnectionAnalytics = require('../analytics/connection');
 const EntityConnection = require('../entities/EntityConnection'),
   DbNames = require('../enum/DbNames');
