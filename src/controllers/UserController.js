@@ -825,7 +825,7 @@ class UserController {
     userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
     userIds.push(userId);
     userIds = await Promise.map(userIds, userId =>
-      new mongodb.ObjectID(userId)
+      checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
 
     const aggregates = [
@@ -990,7 +990,7 @@ class UserController {
     let userIds = usersFromConnection1.concat(usersFromConnection2);
     userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
     userIds = await Promise.map(userIds, userId =>
-      new mongodb.ObjectID(userId)
+      checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
 
     const aggregates = [
