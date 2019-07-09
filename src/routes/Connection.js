@@ -11,6 +11,7 @@ const EntityConnection = require('../entities/EntityConnection');
 let authService = JOLLY.service.Authentication,
   workController = JOLLY.controller.WorkController,
   userController = JOLLY.controller.UserController,
+  businessController = JOLLY.controller.BusinessController,
 	connectionController = JOLLY.controller.ConnectionController;
 
 
@@ -20,10 +21,22 @@ let authService = JOLLY.service.Authentication,
 router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const user = await userController.getUserById(req.userId);
   const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
-
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      if(connection.connectionType !== 'b2f' && connection.connectionType !== 'f2b') {
+      let connectionType = connection && connection.connectionType;
+
+      if (connectionType === 'b2f') {
+        businessController
+        .getBusinessById(connection.from)
+        .then(business => {
+          const populatedData = connection;
+          populatedData.from = business;
+          resolve(populatedData);
+        })
+        .catch(error => {
+          resolve({})
+        });
+      } else if (connectionType === 'f2f') {
         userController
           .getUserById(connection.from)
           .then(user => {
@@ -31,7 +44,9 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
             populatedData.from = user;
             resolve(populatedData);
           })
-          .catch(reject);
+          .catch(error => {
+            resolve({})
+          });
       } else {
         resolve({})
       }
@@ -85,6 +100,30 @@ router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddle
     });
   });
 	res.apiSuccess({});
+}));
+
+router.get('/connected', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  let connections = null;
+  if (req.query.connectionType === 'f2f') {
+    connections = await userController.getUserConnections(
+      req.userId,
+      req.query.city,
+      req.query.query,
+      req.query.role,
+      req.query.connection
+    );
+  } else if (req.query.connectionType === 'b2f') {
+    connections = await businessController.getBusinessConnections(
+      req.userId,
+      req.query.city,
+      req.query.query,
+      req.query.role,
+      req.query.connection
+    );
+  }
+  res.apiSuccess({
+    connections,
+  });
 }));
 
 module.exports = router;
