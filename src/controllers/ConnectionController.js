@@ -3,6 +3,7 @@
  */
 const mongodb = require('mongodb');
 const checkEmail = require('../lib/CheckEmail');
+const Analytics = require('analytics-node');
 const ConnectionAnalytics = require('../analytics/connection');
 const EntityConnection = require('../entities/EntityConnection'),
   DbNames = require('../enum/DbNames');
@@ -44,6 +45,7 @@ class ConnectionController {
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
+    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
     try {
       let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,
@@ -80,7 +82,15 @@ class ConnectionController {
           await mailService.sendConnectionInvite(toUser.email, fromUser);
         }
         connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId});
-
+        analytics.track({
+          event: 'Connection Request Sent',
+          properties: {
+            to: to,
+            from: from,
+            connectionType: connectionType,
+            isCoworker: isCoworker
+          }
+        });
         await userController.checkConnectedBadge(fromUserId);
         return connectionData.toJson({});
       } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
