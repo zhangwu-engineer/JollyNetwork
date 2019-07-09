@@ -124,15 +124,21 @@ class PostController {
     const db = this.getDefaultDB();
     const userController = JOLLY.controller.UserController;
     const commentController = JOLLY.controller.CommentController;
+    let searchQuery = {};
 
-    const searchQuery = {
-      category: { $in: query.categories },
-    }
-    if (query.location !== '' && query.location === 'my-posts') {
-      searchQuery.user = new mongodb.ObjectID(userId)
+    if(query.id) {
+      searchQuery._id = new mongodb.ObjectID(query.id);
     } else {
-      searchQuery.location = query.location;
+      searchQuery = {
+        category: { $in: query.categories },
+      };
+      if (query.location !== '' && query.location === 'my-posts') {
+        searchQuery.user = new mongodb.ObjectID(userId)
+      } else {
+        searchQuery.location = query.location;
+      }
     }
+
     try {
       const rawPosts = await db.collection('posts').find(searchQuery).sort({ date_created: -1 }).toArray();
       const posts = rawPosts.map(post => (new EntityPost(post)).toJson({}));
