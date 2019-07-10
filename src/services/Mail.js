@@ -282,7 +282,7 @@ class Mail {
           "content": post.content
         }, {
           "name": "link",
-          "content": `<a href="${JOLLY.config.APP.APP_DOMAIN}/feed">Join the conversation</a>`
+          "content": `<a href="${JOLLY.config.APP.APP_DOMAIN}/feed/${post._id}">Join the conversation</a>`
         }]
       }],
     }
