@@ -52,7 +52,7 @@ class ConnectionController {
       newConnection;
 
       if (!to) to = toUserId || email;
-      if (!from) from = fromUserId;
+      if (!from) from = fromUserId || email;
       if (!connectionType) connectionType='f2f';
       if (isCoworker === undefined) isCoworker = (email && email.length > 0) ? true : false;
 
@@ -77,12 +77,13 @@ class ConnectionController {
 
         if(checkEmail(to)) {
           await mailService.sendConnectionInvite(to, fromUser);
-        } else {
+        } else if (toUserId) {
           let toUser = await userController.getUserById(toUserId);
           await mailService.sendConnectionInvite(toUser.email, fromUser);
         }
-        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId});
+        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId });
         analytics.track({
+          userId: from,
           event: 'Connection Request Sent',
           properties: {
             to: to,
