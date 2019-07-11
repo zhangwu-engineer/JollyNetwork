@@ -183,6 +183,14 @@ router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
+router.post('/city/connected', authService.verifyUserAuthentication, (req, res, next) => {
+  userController.searchCityUsersConnected(req.body.city, req.body.query, req.body.page, req.body.perPage, req.body.role, req.body.activeStatus, req.body.businessId)
+    .then(data => {
+      res.apiSuccess(data);
+    })
+    .catch(next);
+});
+
 router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, next) => {
   userController
     .getUserById(req.userId)
@@ -199,19 +207,6 @@ router.get('/:slug/coworkers', asyncMiddleware(async (req, res, next) => {
   const coworkers = await userController.getUserCoworkers(req.params.slug);
   res.apiSuccess({
     coworkers,
-  });
-}));
-
-router.get('/connections', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const connections = await userController.getUserConnections(
-    req.userId,
-    req.query.city,
-    req.query.query,
-    req.query.role,
-    req.query.connection
-  );
-  res.apiSuccess({
-    connections,
   });
 }));
 
