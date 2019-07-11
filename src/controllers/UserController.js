@@ -167,6 +167,16 @@ class UserController {
     }
   }
 
+  async getUserByEmailIfExists(email) {
+    let self = this,
+      user = null,
+      userData = null;
+
+    user = await self.findUserByEmail({ email });
+    if (user) userData = user.toJson({ isSafeOutput: true });
+    return userData;
+  }
+
   async getUserBySlug(slug) {
     let self = this,
       user = null,
@@ -948,7 +958,6 @@ class UserController {
     let connections = [];
     try {
       const connectionController = JOLLY.controller.ConnectionController;
-      const workController = JOLLY.controller.WorkController;
       const user = await this.getUserById(userId);
       let queryConnections1 = {
         to: { $in: [userId, user.email] },
