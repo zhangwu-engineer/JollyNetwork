@@ -764,6 +764,24 @@ class UserController {
       const pages = perPage ? Math.ceil(count/perPage) : 1;
       users = await Promise.map(users, async user => {
         const works = await db.collection('works').find({ user: user._id }).toArray();
+        const userProfile = await db.collection('profiles').findOne({ userId: user._id });
+        const city = userProfile.location.trim().split(',')[0];
+        const connections = await db.collection('connections')
+          .find({
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "from": user._id.toString()
+                  },
+                  {
+                    "to": user._id.toString()
+                  }
+                ]
+              },
+              { "connectionType" : "f2f"}
+            ]
+          }).count();
         const posts = await db.collection('posts').find({ user: user._id }).toArray();
         const coworkers = await this.getUserCoworkers(user.slug);
         const roleCounts = works.map(w => w.role).reduce((p, c) => {
@@ -791,6 +809,8 @@ class UserController {
           coworkers: coworkers.length,
           topPosition,
           top2ndPosition,
+          city,
+          connections
         }
       });
       return {
@@ -1824,6 +1844,18 @@ class UserController {
 				.catch(reject);
 
 			});
+  }
+
+  async setUserTrusted(userId) {
+    let self = this,
+      user = null;
+    try {
+      const data = { 'trusted' : true };
+      user = await self.updateUserCollection(userId, data);
+      return user;
+    }catch (err) {
+      throw err;
+    }
   }
 
 }

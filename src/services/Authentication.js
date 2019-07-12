@@ -85,7 +85,7 @@ class Authentication {
    */
   verifyUserAuthentication(req, res, next) {
     let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
-      accessToken = req.headers['x-access-token'];
+      accessToken = req.headers['x-access-token'] || req.query.token;;
 
     if (!accessToken) {
       next(new ApiError('No access token provided.', 403));
