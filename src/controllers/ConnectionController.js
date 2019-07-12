@@ -164,13 +164,10 @@ class ConnectionController {
 			db.collection('connections').findOne({
 				_id: new mongodb.ObjectID(id),
 			}).then((data) => {
-
 				if (data) {
-
 					connection = new EntityConnection(data);
 				}
-
-				resolve (connection);
+				resolve (connection.toJson({}));
 
 			}).catch(reject);
 

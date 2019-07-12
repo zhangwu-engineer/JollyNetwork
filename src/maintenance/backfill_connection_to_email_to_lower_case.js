@@ -19,7 +19,6 @@ DefaultConfig(async () => {
     const db = client.db(dbName);
     let connections = await db.collection('connections').find({to : {$regex : /[A-Z]{1}/ } });
     async.eachOfLimit(connections, 1, async (connection) => {
-      console.log(connection);
       await db.collection('connections').updateOne({"_id": new mongodb.ObjectID(connection._id)}, { $set: { "to" : connection.to.toLowerCase() } })
     });
   } catch (err) {
