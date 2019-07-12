@@ -70,7 +70,12 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const to = await userController.getUserBySlug(req.params.id);
+  let to = null;
+  if (req.query.type === 'f2b') {
+    to = await businessController.getBusinessBySlug(req.params.id);
+  } else {
+    to = await userController.getUserBySlug(req.params.id);
+  }
   const connection = await connectionController.findConnectionsBetweenUserIds([to.id.toString(), req.query.from]);
   res.apiSuccess({
     connections: connection ? connection : null,
