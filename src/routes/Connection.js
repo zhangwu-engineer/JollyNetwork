@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const mongodb = require('mongodb');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
+const checkEmail = require('../lib/CheckEmail');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityConnection = require('../entities/EntityConnection');
 let authService = JOLLY.service.Authentication,
@@ -63,13 +64,17 @@ router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(as
 }));
 
 router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-	const connection = await connectionController.updateConnection(req.params.id, req.userId, {
-    status: ConnectionStatus.CONNECTED,
-    connected_at: new Date(),
-  });
-  res.apiSuccess({
-    connection: connection.toJson({}),
-  });
+  let connection = await connectionController.findConnectionById(req.params.id);
+  const params = { status: ConnectionStatus.CONNECTED, connected_at: new Date() };
+
+  if (checkEmail(connection.to)) {
+    let user = await userController.findUserByEmail({email: connection.to});
+    const userData = user.toJson({ isSafeOutput: true });
+    params.to = userData.id.toString();
+  }
+
+  connection = await connectionController.updateConnection(req.params.id, req.userId, params);
+  res.apiSuccess({ connection: connection.toJson({}) });
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
