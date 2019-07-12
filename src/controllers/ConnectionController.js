@@ -51,7 +51,18 @@ class ConnectionController {
       let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,
       newConnection;
 
-      if (!to) to = toUserId || email;
+      if (!to) {
+        if(toUserId) to = toUserId;
+        if (email) {
+          const invitedUser = await userController.getUserByEmailIfExists(email.toLowerCase());
+          if (invitedUser) {
+            toUserId = invitedUser.id.toString();
+            to = invitedUser.id.toString();
+          }
+          if(!invitedUser) to = email.toLowerCase();
+        }
+      }
+
       if (!from) from = fromUserId;
       if (!connectionType) connectionType='f2f';
       if (isCoworker === undefined) isCoworker = (email && email.length > 0) ? true : false;
@@ -163,13 +174,10 @@ class ConnectionController {
 			db.collection('connections').findOne({
 				_id: new mongodb.ObjectID(id),
 			}).then((data) => {
-
 				if (data) {
-
 					connection = new EntityConnection(data);
 				}
-
-				resolve (connection);
+				resolve (connection.toJson({}));
 
 			}).catch(reject);
 
