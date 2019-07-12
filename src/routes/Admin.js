@@ -3,7 +3,6 @@
  */
 const router = require('express').Router();
 const json2csv = require('json2csv').parse;
-// var stringify = require('csv-stringify');
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
