@@ -1853,7 +1853,7 @@ class UserController {
       const data = { trusted: true };
       user = await self.updateUserCollection(userId, data);
       return user;
-    }catch (err) {
+    } catch (err) {
       throw err;
     }
   }

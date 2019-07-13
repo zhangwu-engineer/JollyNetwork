@@ -56,10 +56,7 @@ class Authentication {
     // create a token
     let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
       expiresIn = options.expiresIn || 86400, /** Expires in 86400 = 24 hours */
-      accessToken = jwt.sign ( params
-      , authSecret, {
-        expiresIn: expiresIn
-      });
+      accessToken = jwt.sign (params, authSecret, { expiresIn: expiresIn });
 
     return accessToken;
   }
