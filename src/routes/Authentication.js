@@ -235,6 +235,10 @@ router.post('/admin-login', (req, res, next) => {
       throw new ApiError('The email or password entered is incorrect', 404);
     }
 
+    if(userObject._role !== 'ADMIN'){
+      throw new ApiError('Unauthorized User', 404);
+    }
+
     userData = userObject.toJson({
       isSafeOutput: true
     });
@@ -245,9 +249,9 @@ router.post('/admin-login', (req, res, next) => {
       if (!authService.verifyPassword(password, userObject.getPassword())) {
         throw new ApiError('The email or password entered is incorrect', 404);
       }
-
       authToken = authService.generateToken({
-        userId: userData.id
+        userId: userData.id,
+        role: userData.role
       });
 
       res.apiSuccess({
