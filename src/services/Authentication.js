@@ -50,15 +50,14 @@ class Authentication {
 	 */
 	generateToken (options) {
 
+		let params = { id: options.userId || '' };
+		if (options.role) params.role = options.role;
+
 		// create a token
 		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
 			expiresIn = options.expiresIn || 86400, /** Expires in 86400 = 24 hours */
-			userId = options.userId || '',
-			role = options.role || '',
-			accessToken = jwt.sign ({
-				id: userId,
-				role: role
-			}, authSecret, {
+			accessToken = jwt.sign ( params
+			, authSecret, {
 				expiresIn: expiresIn
 			});
 
@@ -103,6 +102,14 @@ class Authentication {
     });
   }
 
+	/**
+	 * Verify Authentication Access Token and sets current active admin user.
+	 * @param {Object} req
+	 * @param {Object} res
+	 * @param {Function} next
+	 *
+	 * @public
+	 */
 	verifyAdminAuthentication(req, res, next) {
 		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
 			accessToken = req.headers['x-access-token'] || req.query.token;
@@ -118,7 +125,7 @@ class Authentication {
 				if(decoded.role === 'ADMIN'){
 					req.userId = decoded.id;
 					next();
-				}else{
+				} else {
 					next(new ApiError('unauthorized'));
 				}
 			}
