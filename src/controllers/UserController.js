@@ -774,6 +774,24 @@ class UserController {
       const pages = perPage ? Math.ceil(count/perPage) : 1;
       users = await Promise.map(users, async user => {
         const works = await db.collection('works').find({ user: user._id }).toArray();
+        const userProfile = await db.collection('profiles').findOne({ userId: user._id });
+        const city = userProfile.location.trim().split(',')[0];
+        const connections = await db.collection('connections')
+          .find({
+            '$and': [
+              {
+                '$or': [
+                  {
+                    'from': user._id.toString()
+                  },
+                  {
+                    'to': user._id.toString()
+                  }
+                ]
+              },
+              { 'connectionType' : 'f2f'}
+            ]
+          }).count();
         const posts = await db.collection('posts').find({ user: user._id }).toArray();
         const coworkers = await this.getUserCoworkers(user.slug);
         const roleCounts = works.map(w => w.role).reduce((p, c) => {
@@ -801,6 +819,8 @@ class UserController {
           coworkers: coworkers.length,
           topPosition,
           top2ndPosition,
+          city,
+          connections
         }
       });
       return {
@@ -981,7 +1001,7 @@ class UserController {
     const skip = page && perPage ? (page - 1) * perPage : 0;
 
     const connectionController = JOLLY.controller.ConnectionController;
-    
+
     let queryConnections1 = {
       to: { $in: [businessId] },
       status: ConnectionStatus.CONNECTED
@@ -1001,6 +1021,171 @@ class UserController {
     userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
     userIds = await Promise.map(userIds, userId =>
       checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
+    );
+
+    const aggregates = [
+      {
+        $match : {
+          userId: { $in: userIds },
+        }
+      },
+      { $sort  : { userId : -1 } },
+    ];
+    if (city) {
+      aggregates[0]['$match']['location'] = city
+    }
+    if (query) {
+      aggregates.push({
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      });
+      aggregates.push({
+        $unwind: "$user"
+      });
+      aggregates.push({
+        $match : {
+          'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
+        }
+      });
+    }
+    if (role) {
+      aggregates.push({
+        $lookup: {
+          from: "roles",
+          localField: "userId",
+          foreignField: "user_id",
+          as: "roles"
+        }
+      });
+      aggregates.push({
+        $unwind: "$roles"
+      });
+      aggregates.push({
+        $match : {
+          'roles.name': role,
+        }
+      });
+    }
+    if (activeStatus && activeStatus !== '') {
+      aggregates.push({
+        $lookup: {
+          from: "works",
+          localField: "userId",
+          foreignField: "user",
+          as: "userworks"
+        }
+      });
+      aggregates.push({
+        $unwind: "$userId"
+      });
+      if (activeStatus === 'Active')
+        aggregates.push({
+          $match : {
+            'userworks.date_created': { $gt: new Date(Date.now() - 24*60*60*1000*60) }
+          }
+        });
+      else if (activeStatus === 'Inactive')
+        aggregates.push({
+          $match : {
+            $or: [
+              { 'userworks.slug': { $exists: false} },
+              { 'userworks.date_created': { $lte: new Date(Date.now() - 24*60*60*1000*60) } }
+            ]
+          }
+        });
+    }
+    if (page && perPage) {
+      aggregates.push({
+        $facet : {
+          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
+          data: [ { $skip:  skip}, { $limit:  perPage } ]
+        }
+      })
+    } else {
+      aggregates.push({
+        $facet : {
+          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
+          data: [ { $skip:  skip} ]
+        }
+      })
+    }
+    try {
+      const data = await db.collection('profiles').aggregate(aggregates).toArray();
+
+      const profiles = data[0].data;
+      let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
+
+      return {
+        total: data[0].meta[0] ? data[0].meta[0].total : 0,
+        page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
+        users,
+      };
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
+  async getUserCoworkers(userSlug) {
+    const db = this.getDefaultDB();
+    let coworkers;
+
+    try {
+      const connectionController = JOLLY.controller.ConnectionController;
+      const user = await this.getUserBySlug(userSlug);
+      const userId = user.id.toString();
+      let queryConnections1 = { to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED, isCoworker: true};
+      let queryConnections2 = { from: { $in: [ userId, user.email]}, status: ConnectionStatus.CONNECTED, isCoworker: true};
+
+      const connections1 = await connectionController
+        .findConnections(queryConnections1);
+      const coworkersFromConnection1 = connections1.map(connection => connection.from);
+      const connections2 = await connectionController
+        .findConnections(queryConnections2);
+      const coworkersFromConnection2 = connections2.map(connection => connection.to);
+      const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
+
+      const coworkerIds = connectionCoworkerIds.filter((v, i, arr) => arr.indexOf(v) === i);
+
+      coworkers = await Promise.map(coworkerIds, coworkerId =>
+        checkEmail(coworkerId)
+          ? this.getUserByEmail(coworkerId.toLowerCase())
+          : this.getUserById(coworkerId)
+      );
+      return coworkers;
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
+  async searchCityUsersConnected(city, query, page, perPage, role, activeStatus, businessId) {
+    const db = this.getDefaultDB();
+    const skip = page && perPage ? (page - 1) * perPage : 0;
+
+    const connectionController = JOLLY.controller.ConnectionController;
+
+    let queryConnections1 = {
+      to: { $in: [businessId] },
+      status: ConnectionStatus.CONNECTED
+    };
+    let queryConnections2 = {
+      from: { $in: [businessId] },
+      status: ConnectionStatus.CONNECTED
+    };
+
+    const connections1 = await connectionController
+      .findConnections(queryConnections1);
+    const usersFromConnection1 = connections1.map(connection => connection.from);
+    const connections2 = await connectionController
+      .findConnections(queryConnections2);
+    const usersFromConnection2 = connections2.map(connection => connection.to);
+    let userIds = usersFromConnection1.concat(usersFromConnection2);
+    userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
+    userIds = await Promise.map(userIds, userId =>
+      new mongodb.ObjectID(userId)
     );
 
     const aggregates = [
@@ -1230,6 +1415,7 @@ class UserController {
           ? this.getUserByEmail(profile.userId.toLowerCase())
           : this.getUserById(profile.userId)
       );
+
       connections = await Promise.map(connections, profile => {
         const newProfile = Object.assign({}, profile);
         const foundConnection1 = connections1.filter(connection => {
@@ -1244,6 +1430,7 @@ class UserController {
         newProfile.isCoworker = foundConnection.length > 0 ? foundConnection[0].isCoworker : false;
         return newProfile;
       });
+
       return connections;
     } catch (err) {
       throw new ApiError(err.message);
@@ -1854,6 +2041,18 @@ class UserController {
 				.catch(reject);
 
 			});
+  }
+
+  async setUserTrusted(userId) {
+    let self = this,
+      user = null;
+    try {
+      const data = { trusted: true };
+      user = await self.updateUserCollection(userId, data);
+      return user;
+    } catch (err) {
+      throw err;
+    }
   }
 
 }
