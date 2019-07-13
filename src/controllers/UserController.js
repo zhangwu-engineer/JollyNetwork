@@ -765,7 +765,7 @@ class UserController {
       users = await Promise.map(users, async user => {
         const works = await db.collection('works').find({ user: user._id }).toArray();
         const userProfile = await db.collection('profiles').findOne({ userId: user._id });
-        const city = userProfile.location.trim().split(',')[0];
+        const city = userProfile.location ? userProfile.location.trim().split(',')[0] : '';
         const connections = await db.collection('connections')
           .find({
             '$and': [
