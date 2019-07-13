@@ -54,8 +54,10 @@ class Authentication {
 		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
 			expiresIn = options.expiresIn || 86400, /** Expires in 86400 = 24 hours */
 			userId = options.userId || '',
+			role = options.role || '',
 			accessToken = jwt.sign ({
-				id: userId
+				id: userId,
+				role: role
 			}, authSecret, {
 				expiresIn: expiresIn
 			});
@@ -85,7 +87,7 @@ class Authentication {
    */
   verifyUserAuthentication(req, res, next) {
     let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
-      accessToken = req.headers['x-access-token'] || req.query.token;;
+      accessToken = req.headers['x-access-token'];
 
     if (!accessToken) {
       next(new ApiError('No access token provided.', 403));
@@ -100,6 +102,28 @@ class Authentication {
       }
     });
   }
+
+	verifyAdminAuthentication(req, res, next) {
+		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,
+			accessToken = req.headers['x-access-token'] || req.query.token;
+
+		if (!accessToken) {
+			next(new ApiError('No access token provided.', 403));
+		}
+
+		jwt.verify(accessToken, authSecret, (err, decoded) => {
+			if (err) {
+				next(new ApiError(err.message || 'Failed to process authentication token.'));
+			} else {
+				if(decoded.role === 'ADMIN'){
+					req.userId = decoded.id;
+					next();
+				}else{
+					next(new ApiError('unauthorized'));
+				}
+			}
+		});
+	}
 
   verifyUserEmail (req, res, next) {
 		let authSecret = JOLLY.config.APP.AUTHENTICATION_SECRET,

@@ -20,21 +20,21 @@ let authService = JOLLY.service.Authentication,
 /**
  * Display user's information.
  */
-router.post('/user', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+router.post('/user', authService.verifyAdminAuthentication, asyncMiddleware(async (req, res, next) => {
 
   const result = await userController.searchUsers(req.body);
   res.apiSuccess(result);
 
 }));
 
-router.get('/user/trusted/:userId', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+router.get('/user/trusted/:userId', authService.verifyAdminAuthentication, asyncMiddleware(async (req, res, next) => {
   userController.setUserTrusted(req.params.userId)
     .then(userData => {
       res.apiSuccess(userData);
     }).catch(next);
 }));
 
-router.get('/users/csv', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+router.get('/users/csv', authService.verifyAdminAuthentication, asyncMiddleware(async (req, res, next) => {
   try {
     const users = await userController.searchUsers({});
     const fields = ['email', 'firstName', 'lastName', 'city', 'connections','trusted', 'jobs',
