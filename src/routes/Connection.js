@@ -58,6 +58,35 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
   });
 }));
 
+router.get('/business', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const connections = await connectionController.findConnections({ to: { $in: [req.query.businessId] } });
+  
+  const populatedConnections = await Promise.map(connections, (connection) => {
+    return new Promise((resolve, reject) => {
+      let connectionType = connection && connection.connectionType;
+
+      if (connectionType === 'f2b') {
+        userController
+          .getUserById(connection.from)
+          .then(user => {
+            const populatedData = connection;
+            populatedData.from = user;
+            resolve(populatedData);
+          })
+          .catch(error => {
+            resolve({})
+          });
+      } else {
+        resolve({})
+      }
+    });
+  });
+
+  res.apiSuccess({
+    connections: populatedConnections
+  });
+}));
+
 /**
  * create new connection into system.
  */
