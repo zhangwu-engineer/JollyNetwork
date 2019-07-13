@@ -768,18 +768,18 @@ class UserController {
         const city = userProfile.location.trim().split(',')[0];
         const connections = await db.collection('connections')
           .find({
-            "$and": [
+            '$and': [
               {
-                "$or": [
+                '$or': [
                   {
-                    "from": user._id.toString()
+                    'from': user._id.toString()
                   },
                   {
-                    "to": user._id.toString()
+                    'to': user._id.toString()
                   }
                 ]
               },
-              { "connectionType" : "f2f"}
+              { 'connectionType' : 'f2f'}
             ]
           }).count();
         const posts = await db.collection('posts').find({ user: user._id }).toArray();
@@ -1850,7 +1850,7 @@ class UserController {
     let self = this,
       user = null;
     try {
-      const data = { 'trusted' : true };
+      const data = { trusted: true };
       user = await self.updateUserCollection(userId, data);
       return user;
     }catch (err) {
