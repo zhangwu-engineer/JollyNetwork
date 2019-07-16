@@ -7,6 +7,7 @@ const fileType = require('file-type');
 const dateFns = require('date-fns');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
+const IdentityAnalytics = require('../analytics/identity');
 const EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   DbNames = require('../enum/DbNames');
@@ -45,6 +46,7 @@ class WorkController {
 	 * @returns {Promise<Object>}
 	 */
 	async addWork (options) {
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const tokenController = JOLLY.controller.TokenController;
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
@@ -103,6 +105,7 @@ class WorkController {
 
       const workData = await this.saveWork(newWork);
       const work = workData.toJson({});
+      identityAnalytics.send(work.user.toString());
 
       const newRole = await this.saveRole(role, user);
 
@@ -246,6 +249,17 @@ class WorkController {
 
           resolve (itemList);
         });
+    });
+  }
+
+  getUserWorksCount(userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      let workCount = db.collection('works')
+        .find({
+          user: new mongodb.ObjectID(userId),
+        }).count();
+      resolve(workCount);
     });
   }
 
