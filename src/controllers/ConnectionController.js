@@ -75,24 +75,19 @@ class ConnectionController {
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
 
+        let toUser = null;
+        if (toUserId) toUser = await userController.getUserById(toUserId);
+        else toUser = await userController.getUserByBusinessId(to);
+
         if(checkEmail(to)) {
           await mailService.sendConnectionInvite(to, fromUser);
-        } else if (toUserId) {
-          let toUser = await userController.getUserById(toUserId);
+        } else {
           await mailService.sendConnectionInvite(toUser.email, fromUser);
         }
-        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId });
-        analytics.track({
-          userId: from,
-          event: 'Connection Request Sent',
-          properties: {
-            to: to,
-            from: from,
-            connectionType: connectionType,
-            isCoworker: isCoworker
-          }
-        });
+
+        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId, isCoworker, toUserId: toUser.id });
         await userController.checkConnectedBadge(fromUserId);
+
         return connectionData.toJson({});
       } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
         await this.updateConnection(existing[0].id, '', {isCoworker: isCoworker})
@@ -270,7 +265,12 @@ class ConnectionController {
         .then((data) => {
           if (data) {
             connection = new EntityConnection(data);
-            connectionAnalytics.send(data, { userId: userId });
+            let toUserId = connection.to;
+            if (connection.connectionType === 'f2b') {
+              let toUser = userController.getUserByBusinessId(connection.to);
+              toUserId = toUser.id;
+            }
+            connectionAnalytics.send(data, { userId, toUserId });
             resolve (connection);
           }
 
@@ -299,7 +299,12 @@ class ConnectionController {
           return db.collection(collectionName).deleteOne({_id: new mongodb.ObjectID(id)});
         })
 				.then(() => {
-				  connectionAnalytics.send(connection, { userId: userId, ignored: true });
+          let toUserId = connection.to;
+          if (connection.connectionType === 'f2b') {
+            let toUser = userController.getUserByBusinessId(connection.to);
+            toUserId = toUser.id;
+          }
+				  connectionAnalytics.send(connection, { userId, toUserId, ignored: true });
           resolve();
         })
 				.catch(reject);

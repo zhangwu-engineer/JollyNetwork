@@ -14,8 +14,8 @@ class ConnectionAnalytics {
           userId: params.userId,
           event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
           properties: {
-            requesterUserId: connection.from,
-            invitedUserId: connection.to,
+            requesterUserId: params.userId,
+            invitedUserId: params.toUserId ? params.toUserId : connection.to,
             method: method,
             status: 'Pending',
             type: connection.connectionType,
@@ -26,8 +26,8 @@ class ConnectionAnalytics {
           userId: params.userId,
           event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
           properties: {
-            requesterUserId: connection.from,
-            invitedUserId: connection.to,
+            requesterUserId: params.userId,
+            invitedUserId: params.toUserId ? params.toUserId : connection.to,
             method: method,
             status: 'Accepted',
             type: connection.connectionType,
@@ -38,8 +38,8 @@ class ConnectionAnalytics {
           userId: params.userId,
           event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
           properties: {
-            requesterUserId: connection.from,
-            invitedUserId: connection.to,
+            requesterUserId: params.userId,
+            invitedUserId: params.toUserId ? params.toUserId : connection.to,
             method: method,
             status: 'Disconnected',
             type: connection.connectionType,
@@ -51,8 +51,8 @@ class ConnectionAnalytics {
         userId: params.userId,
         event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
         properties: {
-          requesterUserId: connection.from,
-          invitedUserId: connection.to,
+          requesterUserId: params.userId,
+          invitedUserId: params.toUserId ? params.toUserId : connection.to,
           method: method,
           status: 'Ignored',
           type: connection.connectionType,
