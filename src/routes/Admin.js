@@ -2,7 +2,6 @@
  * User Route Handler
  */
 const router = require('express').Router();
-const json2csv = require('json2csv').parse;
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
@@ -32,21 +31,6 @@ router.get('/user/trusted/:userId', authService.verifyAdminAuthentication, async
     .then(userData => {
       res.apiSuccess(userData);
     }).catch(next);
-}));
-
-router.get('/users/csv', authService.verifyAdminAuthentication, asyncMiddleware(async (req, res, next) => {
-  try {
-    const users = await userController.searchUsers({});
-    const fields = ['email', 'firstName', 'lastName', 'city', 'connections','trusted', 'jobs',
-      'topPosition','top2ndPosition','posts','coworkers','date_created'
-    ];
-    const csvData = json2csv(users.data, {fields});
-    res.set('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=\"' + 'users-' + Date.now() + '.csv\"');
-    res.send(csvData)
-  } catch (err) {
-    throw err
-  }
 }));
 
 module.exports = router;
