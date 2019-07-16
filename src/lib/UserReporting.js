@@ -77,3 +77,5 @@ class UserReporting {
 }
 
 module.exports = UserReporting;
+var userReport = new UserReporting();
+userReport.exportUsersCsv();
