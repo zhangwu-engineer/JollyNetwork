@@ -3,6 +3,7 @@
  */
 const mongodb = require('mongodb');
 const checkEmail = require('../lib/CheckEmail');
+const Analytics = require('analytics-node');
 const ConnectionAnalytics = require('../analytics/connection');
 const EntityConnection = require('../entities/EntityConnection'),
   DbNames = require('../enum/DbNames');
@@ -44,12 +45,24 @@ class ConnectionController {
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
+    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
     try {
       let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,
       newConnection;
 
-      if (!to) to = toUserId || email;
+      if (!to) {
+        if(toUserId) to = toUserId;
+        if (email) {
+          const invitedUser = await userController.getUserByEmailIfExists(email.toLowerCase());
+          if (invitedUser) {
+            toUserId = invitedUser.id.toString();
+            to = invitedUser.id.toString();
+          }
+          if(!invitedUser) to = email.toLowerCase();
+        }
+      }
+
       if (!from) from = fromUserId;
       if (!connectionType) connectionType='f2f';
       if (isCoworker === undefined) isCoworker = (email && email.length > 0) ? true : false;
@@ -80,7 +93,15 @@ class ConnectionController {
           await mailService.sendConnectionInvite(toUser.email, fromUser);
         }
         connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId});
-
+        analytics.track({
+          event: 'Connection Request Sent',
+          properties: {
+            to: to,
+            from: from,
+            connectionType: connectionType,
+            isCoworker: isCoworker
+          }
+        });
         await userController.checkConnectedBadge(fromUserId);
         return connectionData.toJson({});
       } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
@@ -153,13 +174,10 @@ class ConnectionController {
 			db.collection('connections').findOne({
 				_id: new mongodb.ObjectID(id),
 			}).then((data) => {
-
 				if (data) {
-
 					connection = new EntityConnection(data);
 				}
-
-				resolve (connection);
+				resolve (connection.toJson({}));
 
 			}).catch(reject);
 
