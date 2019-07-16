@@ -5,6 +5,7 @@ const mongodb = require('mongodb');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
+const  ApiError = require('../lib/ApiError');
 const Analytics = require('analytics-node');
 const checkEmail = require('../lib/CheckEmail');
 const ConnectionStatus = require('../enum/ConnectionStatus');
@@ -776,6 +777,8 @@ class UserController {
         const works = await db.collection('works').find({ user: user._id }).toArray();
         const userProfile = await db.collection('profiles').findOne({ userId: user._id });
         const city = userProfile.location ? userProfile.location.trim().split(',')[0] : '';
+        let allPosition = await db.collection('roles').distinct('name', {user_id: user._id});
+        allPosition = allPosition.join();
         const connections = await db.collection('connections')
           .find({
             '$and': [
@@ -789,7 +792,9 @@ class UserController {
                   }
                 ]
               },
-              { 'connectionType' : 'f2f'}
+              { 'connectionType' : 'f2f'},
+              { 'status' : 'CONNECTED'},
+              { 'isCoworker': false}
             ]
           }).count();
         const posts = await db.collection('posts').find({ user: user._id }).toArray();
@@ -820,7 +825,8 @@ class UserController {
           topPosition,
           top2ndPosition,
           city,
-          connections
+          connections,
+          allPosition
         }
       });
       return {
