@@ -64,7 +64,7 @@ class UserReporting {
       const environment = JOLLY.config.APP.APP_DOMAIN.replace('https://','');
       const filePath = 'daily-user-report/user-'+environment+'-'+date+'.csv';
       const params = {
-        Bucket: 'jolly-reports',
+        Bucket: JOLLY.config.S3.REPORTING_S3_BUCKET,
         Key: filePath,
         Body: csvData,
         ContentType: 'application/octet-stream'
