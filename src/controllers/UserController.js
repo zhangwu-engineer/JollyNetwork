@@ -1372,28 +1372,6 @@ class UserController {
 		});
   }
   
-  getUserByBusinessId (businessId) {
-    let db = this.getDefaultDB(),
-    business = null,
-    user = null;
-  return new Promise((resolve, reject) => {
-
-    db.collection('businesses').findOne({
-      _id: new mongodb.ObjectID(businessId),
-    }).then((data) => {
-
-      if (data) {
-        business = new EntityBusiness(data);
-        user = this.getUserById(business.user.toString());
-      }
-
-      resolve (user);
-
-    }).catch(reject);
-
-  });
-  }
-
 	listUsers(cb) {
 
 		let Database = JOLLY.service.Db;

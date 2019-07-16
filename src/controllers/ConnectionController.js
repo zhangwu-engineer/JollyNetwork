@@ -44,6 +44,7 @@ class ConnectionController {
 	async addConnection (options) {
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
     const mailService = JOLLY.service.Mail;
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
@@ -77,7 +78,12 @@ class ConnectionController {
 
         let toUser = null;
         if (toUserId) toUser = await userController.getUserById(toUserId);
-        else toUser = await userController.getUserByBusinessId(to);
+        else {
+          const toBusiness = await businessController.getBusinessById(to);
+          if (toBusiness) {
+            toUser = await userController.getUserById(toBusiness.user.toString());
+          }
+        }
 
         if(checkEmail(to)) {
           await mailService.sendConnectionInvite(to, fromUser);
@@ -252,6 +258,8 @@ class ConnectionController {
       collectionName = 'connections',
       connection = null;
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
 
 		return new Promise((resolve, reject) => {
 
@@ -262,13 +270,16 @@ class ConnectionController {
             _id: new mongodb.ObjectID(id),
           });
         })
-        .then((data) => {
+        .then(async (data) => {
           if (data) {
             connection = new EntityConnection(data);
             let toUserId = connection.to;
             if (connection.connectionType === 'f2b') {
-              let toUser = userController.getUserByBusinessId(connection.to);
-              toUserId = toUser.id;
+              const toBusiness = await businessController.getBusinessById(connection.to);
+              if (toBusiness) {
+                let toUser = await userController.getUserById(toBusiness.user.toString());
+                toUserId = toUser.id;
+              }
             }
             connectionAnalytics.send(data, { userId, toUserId });
             resolve (connection);
@@ -287,6 +298,8 @@ class ConnectionController {
       connection = null,
       collectionName = 'connections';
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
 
 		return new Promise((resolve, reject) => {
       db
@@ -298,11 +311,14 @@ class ConnectionController {
           connection = data;
           return db.collection(collectionName).deleteOne({_id: new mongodb.ObjectID(id)});
         })
-				.then(() => {
+				.then(async () => {
           let toUserId = connection.to;
           if (connection.connectionType === 'f2b') {
-            let toUser = userController.getUserByBusinessId(connection.to);
-            toUserId = toUser.id;
+            const toBusiness = await businessController.getBusinessById(connection.to);
+            if (toBusiness) {
+              let toUser = await userController.getUserById(toBusiness.user.toString());
+              toUserId = toUser.id;
+            }
           }
 				  connectionAnalytics.send(connection, { userId, toUserId, ignored: true });
           resolve();
