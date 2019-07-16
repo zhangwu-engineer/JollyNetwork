@@ -7,6 +7,7 @@ const mongodb = require('mongodb');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const checkEmail = require('../lib/CheckEmail');
+const IdentityAnalytics = require('../analytics/identity');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityConnection = require('../entities/EntityConnection');
 let authService = JOLLY.service.Authentication,
@@ -74,6 +75,7 @@ router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(as
 }));
 
 router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
   let connection = await connectionController.findConnectionById(req.params.id);
   const params = { status: ConnectionStatus.CONNECTED, connected_at: new Date() };
 
@@ -84,7 +86,10 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
   }
 
   connection = await connectionController.updateConnection(req.params.id, req.userId, params);
-  res.apiSuccess({ connection: connection.toJson({}) });
+  connection = connection.toJson({});
+  identityAnalytics.send(connection.to);
+  identityAnalytics.send(connection.from);
+  res.apiSuccess({ connection: connection });
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {

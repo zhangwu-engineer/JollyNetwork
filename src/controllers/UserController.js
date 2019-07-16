@@ -7,6 +7,7 @@ const fileType = require('file-type');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
 const checkEmail = require('../lib/CheckEmail');
+const IdentityAnalytics = require('../analytics/identity');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
@@ -330,6 +331,7 @@ class UserController {
   }
 
   async updateUser(userId, data) {
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     let self = this,
       currentUser = null,
       user = null,
@@ -365,6 +367,7 @@ class UserController {
         user = currentUser;
       }
       if (user) {
+        identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
@@ -958,7 +961,7 @@ class UserController {
     const skip = page && perPage ? (page - 1) * perPage : 0;
 
     const connectionController = JOLLY.controller.ConnectionController;
-    
+
     let queryConnections1 = {
       to: { $in: [businessId] },
       status: ConnectionStatus.CONNECTED
@@ -1222,7 +1225,7 @@ class UserController {
         newProfile.isCoworker = foundConnection.length > 0 ? foundConnection[0].isCoworker : false;
         return newProfile;
       });
-     
+
       return connections;
     } catch (err) {
       throw new ApiError(err.message);
