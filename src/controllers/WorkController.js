@@ -479,6 +479,8 @@ class WorkController {
   addCoworker(id, coworker, user) {
     const db = this.getDefaultDB();
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+
     const mailService = JOLLY.service.Mail;
     const emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     let work = null;
@@ -495,6 +497,7 @@ class WorkController {
             if (data) {
               work = new EntityWork(data);
               const workData = work.toJson({});
+              identityAnalytics.send(workData.user.toString());
               if (emailRegEx.test(coworker)) {
                 analytics.track({
                   userId: user.id.toString(),
