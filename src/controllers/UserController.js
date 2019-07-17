@@ -1590,8 +1590,8 @@ class UserController {
 			}).catch(reject);
 
 		});
-	}
-
+  }
+  
 	listUsers(cb) {
 
 		let Database = JOLLY.service.Db;

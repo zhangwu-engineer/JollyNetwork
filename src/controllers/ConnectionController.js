@@ -44,6 +44,7 @@ class ConnectionController {
 	async addConnection (options) {
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
     const mailService = JOLLY.service.Mail;
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
@@ -86,23 +87,24 @@ class ConnectionController {
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
 
+        let toUser = null;
+        if (toUserId) toUser = await userController.getUserById(toUserId);
+        else {
+          const toBusiness = await businessController.getBusinessById(to);
+          if (toBusiness) {
+            toUser = await userController.getUserById(toBusiness.user.toString());
+          }
+        }
+
         if(checkEmail(to)) {
           await mailService.sendConnectionInvite(to, fromUser);
         } else {
-          let toUser = await userController.getUserById(toUserId);
           await mailService.sendConnectionInvite(toUser.email, fromUser);
         }
-        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId});
-        analytics.track({
-          event: 'Connection Request Sent',
-          properties: {
-            to: to,
-            from: from,
-            connectionType: connectionType,
-            isCoworker: isCoworker
-          }
-        });
+
+        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId, isCoworker, toUserId: toUser.id });
         await userController.checkConnectedBadge(fromUserId);
+
         return connectionData.toJson({});
       } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
         await this.updateConnection(existing[0].id, '', {isCoworker: isCoworker})
@@ -264,6 +266,8 @@ class ConnectionController {
       collectionName = 'connections',
       connection = null;
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
 
 		return new Promise((resolve, reject) => {
 
@@ -274,10 +278,18 @@ class ConnectionController {
             _id: new mongodb.ObjectID(id),
           });
         })
-        .then((data) => {
+        .then(async (data) => {
           if (data) {
             connection = new EntityConnection(data);
-            connectionAnalytics.send(data, { userId: userId });
+            let toUserId = connection.to;
+            if (connection.connectionType === 'f2b') {
+              const toBusiness = await businessController.getBusinessById(connection.to);
+              if (toBusiness) {
+                let toUser = await userController.getUserById(toBusiness.user.toString());
+                toUserId = toUser.id;
+              }
+            }
+            connectionAnalytics.send(data, { userId, toUserId });
             resolve (connection);
           }
 
@@ -294,6 +306,8 @@ class ConnectionController {
       connection = null,
       collectionName = 'connections';
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
 
 		return new Promise((resolve, reject) => {
       db
@@ -305,8 +319,16 @@ class ConnectionController {
           connection = data;
           return db.collection(collectionName).deleteOne({_id: new mongodb.ObjectID(id)});
         })
-				.then(() => {
-				  connectionAnalytics.send(connection, { userId: userId, ignored: true });
+				.then(async () => {
+          let toUserId = connection.to;
+          if (connection.connectionType === 'f2b') {
+            const toBusiness = await businessController.getBusinessById(connection.to);
+            if (toBusiness) {
+              let toUser = await userController.getUserById(toBusiness.user.toString());
+              toUserId = toUser.id;
+            }
+          }
+				  connectionAnalytics.send(connection, { userId, toUserId, ignored: true });
           resolve();
         })
 				.catch(reject);
