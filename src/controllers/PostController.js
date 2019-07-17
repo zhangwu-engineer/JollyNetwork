@@ -172,6 +172,7 @@ class PostController {
   async votePost(postId, userId) {
     const db = this.getDefaultDB();
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     try {
       await db
         .collection('posts')
@@ -181,6 +182,7 @@ class PostController {
           $push: { votes: userId },
         });
       const post = await db.collection('posts').findOne({ _id: new mongodb.ObjectID(postId) });
+      identityAnalytics.send(userId);
       analytics.track({
         userId,
         event: 'Helpful Clicked',
@@ -250,11 +252,20 @@ class PostController {
   getUserPostCount(userId) {
     let db = this.getDefaultDB();
     return new Promise((resolve, reject) => {
-      let workCount = db.collection('posts')
+      let postCount = db.collection('posts')
         .find({
           user: new mongodb.ObjectID(userId),
         }).count();
-      resolve(workCount);
+      resolve(postCount);
+    });
+  }
+
+  getUserPostHelpfulCount(userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      let postHelpfulCount = db.collection('posts')
+        .find({ 'votes': {'$all': [ userId.toString() ]}}).count();
+      resolve(postHelpfulCount);
     });
   }
 }
