@@ -689,6 +689,25 @@ class WorkController {
 
 			});
   }
+
+  getUserTaggedCoworkerCount(user_id) {
+    let db = this.getDefaultDB(),
+      collectionName = 'works';
+    return new Promise(async (resolve, reject) => {
+      let result = await db.collection(collectionName).aggregate([
+        { "$match": { "user": new mongodb.ObjectID(user_id.toString()) }},
+        {
+          '$project': {
+            '_id': 1,
+            'numberOfCoworkers': { $cond: { if: { $isArray: "$coworkers" }, then: { $size: "$coworkers" }, else: 0} }
+          }
+        }
+      ]).toArray();
+      let sumOfCoworkers = 0;
+      result.map((m) => sumOfCoworkers += m.numberOfCoworkers);
+      resolve(sumOfCoworkers);
+    });
+  }
 }
 
 module.exports = WorkController;
