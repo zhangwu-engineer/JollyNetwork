@@ -9,6 +9,7 @@ const  ApiError = require('../lib/ApiError');
 const Analytics = require('analytics-node');
 const async = require("async");
 const checkEmail = require('../lib/CheckEmail');
+const IdentityAnalytics = require('../analytics/identity');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
@@ -332,6 +333,7 @@ class UserController {
   }
 
   async updateUser(userId, data) {
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     let self = this,
       currentUser = null,
       user = null,
@@ -367,6 +369,7 @@ class UserController {
         user = currentUser;
       }
       if (user) {
+        identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
           const updatedProfile = await self.updateUserProfile(userId, data.profile);

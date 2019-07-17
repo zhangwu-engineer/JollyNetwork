@@ -359,6 +359,39 @@ class ConnectionController {
       }
     });
   }
+
+  getUserConnectionsCount(userId, options = {}) {
+    let db = this.getDefaultDB();
+    let searchQuery = {
+      $and: [
+        { status: "CONNECTED" },
+        {
+          $or: [
+            { to: userId.toString() },
+            { from: userId.toString() }
+          ]
+        }
+      ]
+    };
+    if(Object.keys(options).length > 0) {
+      if (options.connectionType.length > 0) {
+        searchQuery.$and.push({
+          connectionType: { $in: options.connectionType }
+        })
+      }
+      if (options.hasOwnProperty('isCoworker')) {
+        searchQuery.$and.push({
+          isCoworker: options.isCoworker
+        })
+      }
+    }
+
+    return new Promise(async (resolve, reject) => {
+      let postCount = await db.collection('connections')
+        .find(searchQuery).count();
+      resolve(postCount);
+    });
+  }
 }
 
 module.exports = ConnectionController;
