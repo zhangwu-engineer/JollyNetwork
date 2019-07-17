@@ -43,7 +43,7 @@ class UserReporting {
     db.close();
   }
 
-  exportUsersCsv = async () => {
+  async exportUsersCsv() {
     await this.getDatabase();
     try {
       AWS.config.update({ accessKeyId: JOLLY.config.AWS.REPORTING_AWS_ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.REPORTING_AWS_SECRET_ACCESS_KEY });
