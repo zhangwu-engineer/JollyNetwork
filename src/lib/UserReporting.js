@@ -38,6 +38,11 @@ class UserReporting {
     });
   }
 
+  close() {
+    const db = JOLLY.service.Db;
+    db.close();
+  }
+
   exportUsersCsv = async () => {
     await this.getDatabase();
     try {
@@ -45,6 +50,7 @@ class UserReporting {
       const S3 = new AWS.S3();
       const users = await this.userController.searchUsers({});
       const fields = [
+        { label: 'ID', value: '_id'},
         { label: 'Email', value: 'email'},
         { label: 'First', value: 'firstName'},
         { label: 'Last', value: 'lastName'},
@@ -69,7 +75,9 @@ class UserReporting {
         Body: csvData,
         ContentType: 'application/octet-stream'
       };
-      await S3.putObject(params).promise();
+      await S3.putObject(params).promise().then(() => {
+        this.close();
+      });
     } catch (e) {
       console.log(e)
     }
@@ -77,3 +85,5 @@ class UserReporting {
 }
 
 module.exports = UserReporting;
+var userReport = new UserReporting();
+userReport.exportUsersCsv();
