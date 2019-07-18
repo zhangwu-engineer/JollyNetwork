@@ -1312,7 +1312,7 @@ class UserController {
 
       coworkers = await Promise.map(coworkerIds, coworkerId =>
         checkEmail(coworkerId)
-          ? this.getUserByEmail(coworkerId.toLowerCase())
+          ? this.getUserByEmailIfExists(coworkerId.toLowerCase())
           : this.getUserById(coworkerId)
       );
       return coworkers;
