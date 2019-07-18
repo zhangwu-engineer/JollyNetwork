@@ -21,7 +21,6 @@ class IdentityAnalytics {
     const countTaggedCoworker = workController.getUserTaggedCoworkerCount(user.id);
 
     Promise.all([positionsAdded, countJobsAdded, countPostAdded, countCoworkerConnections, countGenericConnections, countPostHelpful, countTaggedCoworker]).then((result) => {
-      console.log(result);
       let params = {
         all_positions: result[0],
         count_positions_added: result[0].length,
