@@ -5,7 +5,9 @@ const mongodb = require('mongodb');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
+const  ApiError = require('../lib/ApiError');
 const Analytics = require('analytics-node');
+const async = require("async");
 const checkEmail = require('../lib/CheckEmail');
 const IdentityAnalytics = require('../analytics/identity');
 const ConnectionStatus = require('../enum/ConnectionStatus');
@@ -772,13 +774,52 @@ class UserController {
           $limit: perPage,
         });
       }
-      let users = await db.collection('users').aggregate(aggregates).toArray();
+      let users = await db.collection('users').aggregate(aggregates);
       const count = await db.collection('users').countDocuments(match);
       const pages = perPage ? Math.ceil(count/perPage) : 1;
-      users = await Promise.map(users, async user => {
+      users = await async.mapLimit(users, 20, async (user) => {
         const works = await db.collection('works').find({ user: user._id }).toArray();
-        const posts = await db.collection('posts').find({ user: user._id }).toArray();
-        const coworkers = await this.getUserCoworkers(user.slug);
+        const userProfile = await db.collection('profiles').findOne({ userId: user._id });
+        let allPosition = await db.collection('roles').distinct('name', {user_id: user._id});
+        allPosition = allPosition.join();
+        const connections = await db.collection('connections')
+          .find({
+            '$and': [
+              {
+                '$or': [
+                  {
+                    'from': user._id.toString()
+                  },
+                  {
+                    'to': user._id.toString()
+                  }
+                ]
+              },
+              { 'connectionType' : 'f2f'},
+              { 'status' : 'CONNECTED'},
+              { 'isCoworker': false}
+            ]
+          }).count();
+        const postCount = await db.collection('posts').find({ user: user._id }).count();
+        const coworkers = await db.collection('connections')
+          .find({
+            '$and': [
+              {
+                '$or': [
+                  {
+                    'from': user._id.toString()
+                  },
+                  {
+                    'to': user._id.toString()
+                  }
+                ]
+              },
+              { 'connectionType' : 'f2f'},
+              { 'status' : 'CONNECTED'},
+              { 'isCoworker': true}
+            ]
+          }).count();
+
         const roleCounts = works.map(w => w.role).reduce((p, c) => {
           const newP = p;
           if (!newP[c]) {
@@ -800,10 +841,13 @@ class UserController {
         return {
           ...user,
           jobs: works.length,
-          posts: posts.length,
-          coworkers: coworkers.length,
+          posts: postCount,
+          coworkers,
           topPosition,
           top2ndPosition,
+          city: userProfile.location,
+          connections,
+          allPosition
         }
       });
       return {
@@ -1836,6 +1880,18 @@ class UserController {
 				.catch(reject);
 
 			});
+  }
+
+  async setUserTrusted(userId) {
+    let self = this,
+      user = null;
+    try {
+      const data = { trusted: true };
+      user = await self.updateUserCollection(userId, data);
+      return user;
+    } catch (err) {
+      throw err;
+    }
   }
 
 }
