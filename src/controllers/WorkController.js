@@ -7,6 +7,7 @@ const fileType = require('file-type');
 const dateFns = require('date-fns');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
+const IdentityAnalytics = require('../analytics/identity');
 const EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   DbNames = require('../enum/DbNames');
@@ -45,6 +46,7 @@ class WorkController {
 	 * @returns {Promise<Object>}
 	 */
 	async addWork (options) {
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const tokenController = JOLLY.controller.TokenController;
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
@@ -103,6 +105,7 @@ class WorkController {
 
       const workData = await this.saveWork(newWork);
       const work = workData.toJson({});
+      identityAnalytics.send(work.user.toString());
 
       const newRole = await this.saveRole(role, user);
 
@@ -246,6 +249,17 @@ class WorkController {
 
           resolve (itemList);
         });
+    });
+  }
+
+  getUserWorksCount(userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      let workCount = db.collection('works')
+        .find({
+          user: new mongodb.ObjectID(userId),
+        }).count();
+      resolve(workCount);
     });
   }
 
@@ -465,6 +479,8 @@ class WorkController {
   addCoworker(id, coworker, user) {
     const db = this.getDefaultDB();
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+
     const mailService = JOLLY.service.Mail;
     const emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     let work = null;
@@ -481,6 +497,7 @@ class WorkController {
             if (data) {
               work = new EntityWork(data);
               const workData = work.toJson({});
+              identityAnalytics.send(workData.user.toString());
               if (emailRegEx.test(coworker)) {
                 analytics.track({
                   userId: user.id.toString(),
@@ -674,6 +691,25 @@ class WorkController {
 				.catch(reject);
 
 			});
+  }
+
+  getUserTaggedCoworkerCount(user_id) {
+    let db = this.getDefaultDB(),
+      collectionName = 'works';
+    return new Promise(async (resolve, reject) => {
+      let result = await db.collection(collectionName).aggregate([
+        { "$match": { "user": new mongodb.ObjectID(user_id.toString()) }},
+        {
+          '$project': {
+            '_id': 1,
+            'numberOfCoworkers': { $cond: { if: { $isArray: "$coworkers" }, then: { $size: "$coworkers" }, else: 0} }
+          }
+        }
+      ]).toArray();
+      let sumOfCoworkers = 0;
+      result.map((m) => sumOfCoworkers += m.numberOfCoworkers);
+      resolve(sumOfCoworkers);
+    });
   }
 }
 
