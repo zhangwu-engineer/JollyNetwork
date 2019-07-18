@@ -60,6 +60,35 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
   });
 }));
 
+router.get('/business', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const connections = await connectionController.findConnections({ to: { $in: [req.query.businessId] } });
+  
+  const populatedConnections = await Promise.map(connections, (connection) => {
+    return new Promise((resolve, reject) => {
+      let connectionType = connection && connection.connectionType;
+
+      if (connectionType === 'f2b') {
+        userController
+          .getUserById(connection.from)
+          .then(user => {
+            const populatedData = connection;
+            populatedData.from = user;
+            resolve(populatedData);
+          })
+          .catch(error => {
+            resolve({})
+          });
+      } else {
+        resolve({})
+      }
+    });
+  });
+
+  res.apiSuccess({
+    connections: populatedConnections
+  });
+}));
+
 /**
  * create new connection into system.
  */
@@ -72,7 +101,12 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const to = await userController.getUserBySlug(req.params.id);
+  let to = null;
+  if (req.query.type === 'f2b') {
+    to = await businessController.getBusinessBySlug(req.params.id);
+  } else {
+    to = await userController.getUserBySlug(req.params.id);
+  }
   const connection = await connectionController.findConnectionsBetweenUserIds([to.id.toString(), req.query.from]);
   res.apiSuccess({
     connections: connection ? connection : null,
