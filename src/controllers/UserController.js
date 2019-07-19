@@ -899,6 +899,25 @@ class UserController {
     if (city) {
       aggregates[0]['$match']['location'] = city
     }
+    aggregates.push({
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    });
+    aggregates.push({
+      $unwind: "$user"
+    });
+    aggregates.push({
+      $match : {
+        $and: [
+          { 'user.email': { $regex: new RegExp('^((?!@jollyhq.com).)*$', "i") } },
+          { 'user.email': { $regex: new RegExp('^((?!@srvbl.com).)*$', "i") } },
+        ],
+      }
+    });
     if (query) {
       aggregates.push({
         $lookup: {
