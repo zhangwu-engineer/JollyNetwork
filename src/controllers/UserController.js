@@ -17,6 +17,7 @@ const EntityUser = require('../entities/EntityUser'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
+  blockList = require('../enum/blockList'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -884,6 +885,8 @@ class UserController {
     userIds = await Promise.map(userIds, userId =>
       checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
+
+    blockList.map(eachId => userIds.push(new mongodb.ObjectID(eachId)) );
 
     const aggregates = [
       {
