@@ -991,38 +991,6 @@ class UserController {
     }
   }
 
-  async getUserCoworkers(userSlug) {
-    const db = this.getDefaultDB();
-    let coworkers;
-
-    try {
-      const connectionController = JOLLY.controller.ConnectionController;
-      const user = await this.getUserBySlug(userSlug);
-      const userId = user.id.toString();
-      let queryConnections1 = { to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED, isCoworker: true};
-      let queryConnections2 = { from: { $in: [ userId, user.email]}, status: ConnectionStatus.CONNECTED, isCoworker: true};
-
-      const connections1 = await connectionController
-        .findConnections(queryConnections1);
-      const coworkersFromConnection1 = connections1.map(connection => connection.from);
-      const connections2 = await connectionController
-        .findConnections(queryConnections2);
-      const coworkersFromConnection2 = connections2.map(connection => connection.to);
-      const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
-
-      const coworkerIds = connectionCoworkerIds.filter((v, i, arr) => arr.indexOf(v) === i);
-
-      coworkers = await Promise.map(coworkerIds, coworkerId =>
-        checkEmail(coworkerId)
-          ? this.getUserByEmail(coworkerId.toLowerCase())
-          : this.getUserById(coworkerId)
-      );
-      return coworkers;
-    } catch (err) {
-      throw new ApiError(err.message);
-    }
-  }
-
   async searchCityUsersConnected(city, query, page, perPage, role, activeStatus, businessId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
@@ -1179,7 +1147,7 @@ class UserController {
 
       coworkers = await Promise.map(coworkerIds, coworkerId =>
         checkEmail(coworkerId)
-          ? this.getUserByEmail(coworkerId.toLowerCase())
+          ? this.getUserByEmailIfExists(coworkerId.toLowerCase())
           : this.getUserById(coworkerId)
       );
       return coworkers;
