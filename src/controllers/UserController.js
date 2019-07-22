@@ -584,7 +584,7 @@ class UserController {
       if(type == 'jpg' || type == 'jpeg') {
         fileBuffer = await this.deleteThumbnailFromExif(fileBuffer);
         await jo.rotate(fileBuffer, {})
-        .then(({buffer, orientation, dimensions, quality}) => {
+        .then(({buffer}) => {
           fileBuffer = buffer;
         }).catch((error) => {
           console.log(`Error occurred during fix the Orientation of image : ${error}`)
@@ -1040,7 +1040,7 @@ class UserController {
     const skip = page && perPage ? (page - 1) * perPage : 0;
 
     const connectionController = JOLLY.controller.ConnectionController;
-    
+
     let queryConnections1 = {
       to: { $in: [businessId] },
       status: ConnectionStatus.CONNECTED
@@ -1572,7 +1572,7 @@ class UserController {
 
 		});
   }
-  
+
 	listUsers(cb) {
 
 		let Database = JOLLY.service.Db;
