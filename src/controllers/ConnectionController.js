@@ -3,6 +3,7 @@
  */
 const mongodb = require('mongodb');
 const checkEmail = require('../lib/CheckEmail');
+const Analytics = require('analytics-node');
 const ConnectionAnalytics = require('../analytics/connection');
 const EntityConnection = require('../entities/EntityConnection'),
   DbNames = require('../enum/DbNames');
@@ -43,7 +44,9 @@ class ConnectionController {
 	async addConnection (options) {
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
     const mailService = JOLLY.service.Mail;
+    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
     try {
       let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,
@@ -84,15 +87,24 @@ class ConnectionController {
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
 
+        let toUser = null;
+        if (toUserId) toUser = await userController.getUserById(toUserId);
+        else {
+          const toBusiness = await businessController.getBusinessById(to);
+          if (toBusiness) {
+            toUser = await userController.getUserById(toBusiness.user.toString());
+          }
+        }
+
         if(checkEmail(to)) {
           await mailService.sendConnectionInvite(to, fromUser);
         } else {
-          let toUser = await userController.getUserById(toUserId);
           await mailService.sendConnectionInvite(toUser.email, fromUser);
         }
-        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId});
 
+        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId, isCoworker, toUserId: toUser.id });
         await userController.checkConnectedBadge(fromUserId);
+
         return connectionData.toJson({});
       } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
         await this.updateConnection(existing[0].id, '', {isCoworker: isCoworker})
@@ -254,6 +266,8 @@ class ConnectionController {
       collectionName = 'connections',
       connection = null;
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
 
 		return new Promise((resolve, reject) => {
 
@@ -264,10 +278,18 @@ class ConnectionController {
             _id: new mongodb.ObjectID(id),
           });
         })
-        .then((data) => {
+        .then(async (data) => {
           if (data) {
             connection = new EntityConnection(data);
-            connectionAnalytics.send(data, { userId: userId });
+            let toUserId = connection.to;
+            if (connection.connectionType === 'f2b') {
+              const toBusiness = await businessController.getBusinessById(connection.to);
+              if (toBusiness) {
+                let toUser = await userController.getUserById(toBusiness.user.toString());
+                toUserId = toUser.id;
+              }
+            }
+            connectionAnalytics.send(data, { userId, toUserId });
             resolve (connection);
           }
 
@@ -284,6 +306,8 @@ class ConnectionController {
       connection = null,
       collectionName = 'connections';
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
 
 		return new Promise((resolve, reject) => {
       db
@@ -295,8 +319,16 @@ class ConnectionController {
           connection = data;
           return db.collection(collectionName).deleteOne({_id: new mongodb.ObjectID(id)});
         })
-				.then(() => {
-				  connectionAnalytics.send(connection, { userId: userId, ignored: true });
+				.then(async () => {
+          let toUserId = connection.to;
+          if (connection.connectionType === 'f2b') {
+            const toBusiness = await businessController.getBusinessById(connection.to);
+            if (toBusiness) {
+              let toUser = await userController.getUserById(toBusiness.user.toString());
+              toUserId = toUser.id;
+            }
+          }
+				  connectionAnalytics.send(connection, { userId, toUserId, ignored: true });
           resolve();
         })
 				.catch(reject);
@@ -325,6 +357,39 @@ class ConnectionController {
       } else {
         resolve({});
       }
+    });
+  }
+
+  getUserConnectionsCount(userId, options = {}) {
+    let db = this.getDefaultDB();
+    let searchQuery = {
+      $and: [
+        { status: "CONNECTED" },
+        {
+          $or: [
+            { to: userId.toString() },
+            { from: userId.toString() }
+          ]
+        }
+      ]
+    };
+    if(Object.keys(options).length > 0) {
+      if (options.connectionType.length > 0) {
+        searchQuery.$and.push({
+          connectionType: { $in: options.connectionType }
+        })
+      }
+      if (options.hasOwnProperty('isCoworker')) {
+        searchQuery.$and.push({
+          isCoworker: options.isCoworker
+        })
+      }
+    }
+
+    return new Promise(async (resolve, reject) => {
+      let postCount = await db.collection('connections')
+        .find(searchQuery).count();
+      resolve(postCount);
     });
   }
 }
