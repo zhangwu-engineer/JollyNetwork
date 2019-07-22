@@ -7,6 +7,7 @@ const mongodb = require('mongodb');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const checkEmail = require('../lib/CheckEmail');
+const IdentityAnalytics = require('../analytics/identity');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityConnection = require('../entities/EntityConnection');
 let authService = JOLLY.service.Authentication,
@@ -22,10 +23,11 @@ let authService = JOLLY.service.Authentication,
 router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const user = await userController.getUserById(req.userId);
   const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
-
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      if (connection.connectionType === 'b2f') {
+      let connectionType = connection && connection.connectionType;
+
+      if (connectionType === 'b2f') {
         businessController
         .getBusinessById(connection.from)
         .then(business => {
@@ -33,8 +35,10 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
           populatedData.from = business;
           resolve(populatedData);
         })
-        .catch(reject);
-      } else if (connection.connectionType !== 'b2f' && connection.connectionType !== 'f2b') {
+        .catch(error => {
+          resolve({})
+        });
+      } else if (connectionType === 'f2f') {
         userController
           .getUserById(connection.from)
           .then(user => {
@@ -42,7 +46,38 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
             populatedData.from = user;
             resolve(populatedData);
           })
-          .catch(reject);
+          .catch(error => {
+            resolve({})
+          });
+      } else {
+        resolve({})
+      }
+    });
+  });
+
+  res.apiSuccess({
+    connections: populatedConnections
+  });
+}));
+
+router.get('/business', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const connections = await connectionController.findConnections({ to: { $in: [req.query.businessId] } });
+  
+  const populatedConnections = await Promise.map(connections, (connection) => {
+    return new Promise((resolve, reject) => {
+      let connectionType = connection && connection.connectionType;
+
+      if (connectionType === 'f2b') {
+        userController
+          .getUserById(connection.from)
+          .then(user => {
+            const populatedData = connection;
+            populatedData.from = user;
+            resolve(populatedData);
+          })
+          .catch(error => {
+            resolve({})
+          });
       } else {
         resolve({})
       }
@@ -66,7 +101,12 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
 }));
 
 router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const to = await userController.getUserBySlug(req.params.id);
+  let to = null;
+  if (req.query.type === 'f2b') {
+    to = await businessController.getBusinessBySlug(req.params.id);
+  } else {
+    to = await userController.getUserBySlug(req.params.id);
+  }
   const connection = await connectionController.findConnectionsBetweenUserIds([to.id.toString(), req.query.from]);
   res.apiSuccess({
     connections: connection ? connection : null,
@@ -74,6 +114,7 @@ router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(as
 }));
 
 router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
   let connection = await connectionController.findConnectionById(req.params.id);
   const params = { status: ConnectionStatus.CONNECTED, connected_at: new Date() };
 
@@ -84,7 +125,10 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
   }
 
   connection = await connectionController.updateConnection(req.params.id, req.userId, params);
-  res.apiSuccess({ connection: connection.toJson({}) });
+  connection = connection.toJson({});
+  identityAnalytics.send(connection.to);
+  identityAnalytics.send(connection.from);
+  res.apiSuccess({ connection: connection });
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {

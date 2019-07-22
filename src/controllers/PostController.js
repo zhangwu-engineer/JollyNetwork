@@ -4,6 +4,7 @@
 const mongodb = require('mongodb');
 const Analytics = require('analytics-node');
 const Promise = require('bluebird');
+const IdentityAnalytics = require('../analytics/identity');
 const EntityPost = require('../entities/EntityPost'),
 	DbNames = require('../enum/DbNames');
 
@@ -45,6 +46,7 @@ class PostController {
     try {
       const {category, content, location, user} = options;
       const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
       const newPost = new EntityPost({
         category,
@@ -56,6 +58,7 @@ class PostController {
       const post = await this.savePost(newPost);
       const postData = post.toJson({});
 
+      identityAnalytics.send(user);
       analytics.track({
         userId: user,
         event: 'Post Created',
@@ -169,6 +172,7 @@ class PostController {
   async votePost(postId, userId) {
     const db = this.getDefaultDB();
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     try {
       await db
         .collection('posts')
@@ -178,6 +182,7 @@ class PostController {
           $push: { votes: userId },
         });
       const post = await db.collection('posts').findOne({ _id: new mongodb.ObjectID(postId) });
+      identityAnalytics.send(userId);
       analytics.track({
         userId,
         event: 'Helpful Clicked',
@@ -242,6 +247,26 @@ class PostController {
     } catch (err) {
       throw new ApiError(err.message);
     }
+  }
+
+  getUserPostCount(userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      let postCount = db.collection('posts')
+        .find({
+          user: new mongodb.ObjectID(userId),
+        }).count();
+      resolve(postCount);
+    });
+  }
+
+  getUserPostHelpfulCount(userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      let postHelpfulCount = db.collection('posts')
+        .find({ 'votes': {'$all': [ userId.toString() ]}}).count();
+      resolve(postHelpfulCount);
+    });
   }
 }
 
