@@ -282,6 +282,35 @@ class BusinessController {
       throw new ApiError(err.message);
     }
   }
+
+  updateBusiness(businessId, data) {
+    let db = this.getDefaultDB(),
+      collectionName = 'businesses',
+      business = null;
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.updateOne({ _id: new mongodb.ObjectID(businessId) }, { $set: data })
+				.then(() => {
+					return db.collection(collectionName).findOne({
+            _id: new mongodb.ObjectID(businessId),
+          });
+        })
+        .then((data) => {
+
+          if (data) {
+
+            business = new EntityBusiness(data);
+          }
+
+          resolve (business);
+
+        })
+				.catch(reject);
+
+			});
+  }
 	
 }
 
