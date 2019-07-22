@@ -1,9 +1,8 @@
-const googleMapsClient = require('@google/maps').createClient({
-  key: 'AIzaSyCeIMFnng49GSYI1bvoWkCGf9b_SMSp5So',
-  Promise: Promise
-});
-
 const geocode = (address) => {
+  const googleMapsClient = require('@google/maps').createClient({
+    key: JOLLY.config.GEOCODING_KEY,
+    Promise: Promise
+  });
   return new Promise(async (resolve, reject) => {
     googleMapsClient.geocode({ address: address}).asPromise()
       .then((response) => {
