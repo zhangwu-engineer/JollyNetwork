@@ -2,6 +2,8 @@
  * User controller class, in charge of transactions related to users and their profiles.
  */
 const mongodb = require('mongodb');
+const piexif = require('piexifjs');
+const jo = require('jpeg-autorotate');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
@@ -17,6 +19,7 @@ const EntityUser = require('../entities/EntityUser'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
+  blockList = require('../enum/blockList'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -575,17 +578,27 @@ class UserController {
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     const S3 = new AWS.S3();
     try {
-      const fileBuffer = Buffer.from(image, 'base64');
+      let fileBuffer = Buffer.from(image, 'base64');
       const fileTypeInfo = fileType(fileBuffer);
-      const fileName = Math.floor(new Date() / 1000);
+      const type = fileTypeInfo.ext.toLowerCase(); // 'jpg','jpeg','JPG','JPEG'
+      if(type == 'jpg' || type == 'jpeg') {
+        fileBuffer = await this.deleteThumbnailFromExif(fileBuffer);
+        await jo.rotate(fileBuffer, {})
+        .then(({buffer}) => {
+          fileBuffer = buffer;
+        }).catch((error) => {
+          console.log(`Error occurred during fix the Orientation of image : ${error}`)
+        });
+      }
 
+      const fileName = Math.floor(new Date() / 1000);
       const filePath = `${fileName}.${fileTypeInfo.ext}`;
       const params = {
         Bucket: JOLLY.config.S3.BUCKET,
         Key: filePath,
         Body: fileBuffer,
         ACL: 'public-read',
-        ContentEncoding: 'base64',
+        ContentEncoding: 'binary',
         ContentType: fileTypeInfo.mime,
       };
       await S3.putObject(params).promise();
@@ -594,6 +607,16 @@ class UserController {
     } catch (err) {
       throw new ApiError(err.message);
     }
+  }
+
+  deleteThumbnailFromExif(imageBuffer) {
+    const imageString = imageBuffer.toString('binary');
+    const exifObj = piexif.load(imageString);
+    delete exifObj.thumbnail;
+    delete exifObj['1st'];
+    const exifBytes = piexif.dump(exifObj);
+    const newImageString = piexif.insert(exifBytes, imageString);
+    return Buffer.from(newImageString, 'binary');
   }
 
   async deleteImage(userId, image, avatar, backgroundImage) {
@@ -885,6 +908,8 @@ class UserController {
       checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
 
+    blockList.map(eachId => userIds.push(new mongodb.ObjectID(eachId)) );
+
     const aggregates = [
       {
         $match : {
@@ -896,6 +921,25 @@ class UserController {
     if (city) {
       aggregates[0]['$match']['location'] = city
     }
+    aggregates.push({
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    });
+    aggregates.push({
+      $unwind: "$user"
+    });
+    aggregates.push({
+      $match : {
+        $and: [
+          { 'user.email': { $regex: new RegExp('^((?!@jollyhq.com).)*$', "i") } },
+          { 'user.email': { $regex: new RegExp('^((?!@srvbl.com).)*$', "i") } },
+        ],
+      }
+    });
     if (query) {
       aggregates.push({
         $lookup: {
@@ -986,38 +1030,6 @@ class UserController {
         page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
         users,
       };
-    } catch (err) {
-      throw new ApiError(err.message);
-    }
-  }
-
-  async getUserCoworkers(userSlug) {
-    const db = this.getDefaultDB();
-    let coworkers;
-
-    try {
-      const connectionController = JOLLY.controller.ConnectionController;
-      const user = await this.getUserBySlug(userSlug);
-      const userId = user.id.toString();
-      let queryConnections1 = { to: { $in: [userId, user.email] }, status: ConnectionStatus.CONNECTED, isCoworker: true};
-      let queryConnections2 = { from: { $in: [ userId, user.email]}, status: ConnectionStatus.CONNECTED, isCoworker: true};
-
-      const connections1 = await connectionController
-        .findConnections(queryConnections1);
-      const coworkersFromConnection1 = connections1.map(connection => connection.from);
-      const connections2 = await connectionController
-        .findConnections(queryConnections2);
-      const coworkersFromConnection2 = connections2.map(connection => connection.to);
-      const connectionCoworkerIds = coworkersFromConnection1.concat(coworkersFromConnection2);
-
-      const coworkerIds = connectionCoworkerIds.filter((v, i, arr) => arr.indexOf(v) === i);
-
-      coworkers = await Promise.map(coworkerIds, coworkerId =>
-        checkEmail(coworkerId)
-          ? this.getUserByEmail(coworkerId.toLowerCase())
-          : this.getUserById(coworkerId)
-      );
-      return coworkers;
     } catch (err) {
       throw new ApiError(err.message);
     }
@@ -1562,7 +1574,7 @@ class UserController {
 
 		});
   }
-  
+
 	listUsers(cb) {
 
 		let Database = JOLLY.service.Db;
