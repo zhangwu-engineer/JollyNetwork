@@ -583,12 +583,6 @@ class UserController {
         }).catch((error) => {
           console.log(`Error occurred during fix the Orientation of image : ${error}`)
         });
-        let data = Buffer.from(fileBuffer, 'base64').toString('binary');
-        let exifObj = piexif.load(data);
-        delete exifObj['0th'][piexif.ImageIFD.Orientation];
-        const exifbytes = piexif.dump(exifObj);
-        const newData = piexif.insert(exifbytes, data);
-        fileBuffer = Buffer.from(newData, 'binary');
       }
 
       const fileName = Math.floor(new Date() / 1000);
