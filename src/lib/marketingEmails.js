@@ -38,6 +38,7 @@ class MarketingEmails {
     const mail = new Mail();
     var date = new Date();
     date.setDate(date.getDate() - 14);
+    console.log(date);
     const connections = await db.collection('connections').aggregate([{
       $match : {
         date_created: {$gte: date},
