@@ -36,7 +36,7 @@ class MarketingEmails {
   async coworkersConnectingMailer() {
     const db = await this.getDatabase();
     const mail = new Mail();
-    var date = new Date();
+    let date = new Date();
     date.setDate(date.getDate() - 14);
     console.log(date);
     const connections = await db.collection('connections').aggregate([{
@@ -82,11 +82,13 @@ class MarketingEmails {
         $unwind: '$profile'
       }
     ]);
-    await async.eachOfLimit(users, 1, async (user) => {
-      if(user.profile.receiveMonthlyUpdates === undefined || user.profile.receiveMonthlyUpdates === true ) {
-        await mail.sendCoworkersConnecting(user.email, user, coworkersIds.length);
-      }
-    });
+    if(coworkersIds.length > 0) {
+      await async.eachOfLimit(users, 1, async (user) => {
+        if(user.profile.receiveMonthlyUpdates === undefined || user.profile.receiveMonthlyUpdates === true ) {
+          await mail.sendCoworkersConnecting(user.email, user, coworkersIds.length);
+        }
+      });
+    }
     console.log('coworkers:',coworkersIds.length)
   }
 }
