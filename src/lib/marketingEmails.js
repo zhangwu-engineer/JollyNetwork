@@ -11,10 +11,10 @@ class MarketingEmails {
   constructor() {
   }
 
-  getDatabase () {
+  getDatabase() {
     return new Promise((resolve, reject) => {
       let db = null;
-      config( () => {
+      config(() => {
         const MongoConfig = JOLLY.config.MONGO_DB;
         new Database({
           host: MongoConfig.HOST,
@@ -34,23 +34,22 @@ class MarketingEmails {
   }
 
   async monthlyDigestMailer() {
-    let isSendMail = true;
     var date = new Date();
     date.setDate(date.getDate() - date.getDate());
     const db = await this.getDatabase();
     const mail = new Mail();
-    const allFreelancersSignUpIn30days = await db.collection('profiles').find({dateCreated: {$gte: date}}).count();
-    const allPostCountIn30days = await db.collection('posts').find({date_created: { $gte: date }}).count();
+    const allFreelancersSignUpIn30days = await db.collection('profiles').find({ dateCreated: { $gte: date } }).count();
+    const allPostCountIn30days = await db.collection('posts').find({ date_created: { $gte: date } }).count();
     const distinctLocations = await db.collection('profiles').distinct("location");
-    await distinctLocations.forEach( async location => {
+    await distinctLocations.forEach(async location => {
       let allFreelancersSignUpInLocationIn30days = await db.collection('profiles').distinct('userId',
-        { dateCreated: {$gte: date}, location: location,}
+        { dateCreated: { $gte: date }, location: location, }
       );
       const freelancerCount = allFreelancersSignUpInLocationIn30days.length;
 
       const allFreelancersInLocation = await db.collection('profiles').aggregate([
         {
-          $match : {location: location }
+          $match: { location: location }
         },
         {
           $lookup:
@@ -69,13 +68,13 @@ class MarketingEmails {
               "$filter": {
                 "input": "$user",
                 "as": "u",
-                "cond": {"$eq": ["$$u.role", "USER"]}
+                "cond": { "$eq": ["$$u.role", "USER"] }
               }
             }
           }
         },
         {
-          $match: { "user": { $not: { $size: 0}}}
+          $match: { "user": { $not: { $size: 0 } } }
         }
       ]).toArray();
 
@@ -88,18 +87,15 @@ class MarketingEmails {
       });
 
       const postCountInLocationIn30days = await db.collection('posts').find({
-        date_created: { $gte: date }, user: { $in: allFreelancersIdsInLocation}
+        date_created: { $gte: date }, user: { $in: allFreelancersIdsInLocation }
       }).count();
 
       const city = location.split(',')[0];
 
-     await async.eachOfLimit(allFreelancersInLocation, 1, async (profile) => {
-        if (isSendMail && ( freelancerCount === 0 && postCountInLocationIn30days === 0)) {
-          isSendMail = false;
-          const testEmail1 = 'ronak@acuments.com';
-          await mail.sendMonthlyDigest(testEmail1, profile.avatar, freelancerCount, postCountInLocationIn30days, city,
-            allFreelancersSignUpIn30days, allPostCountIn30days);
-        }
+      await async.eachOfLimit(allFreelancersInLocation, 1, async (profile) => {
+        await mail.sendMonthlyDigest(profile.user[0].email, profile.avatar,
+          freelancerCount, postCountInLocationIn30days, city,
+          allFreelancersSignUpIn30days, allPostCountIn30days);
       });
       console.log(`"${location}", ${allFreelancersIdsInLocation.length}, ${freelancerCount}, ${postCountInLocationIn30days}`);
     });
