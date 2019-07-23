@@ -46,7 +46,7 @@ class MarketingEmails {
       }
     }]);
     let coworkersIds = [];
-    await connections.forEach((connection) => {
+    await async.eachOfLimit(connections, 10, (connection) => {
       if (connection.from != null) {
         if (!coworkersIds.includes(connection.from)){
           coworkersIds.push(connection.from);
