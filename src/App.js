@@ -362,8 +362,10 @@ class App {
 	 * Start the Cron Jobs.
 	 */
 	_cronJobs () {
-		cronJob.coworkersConnectingMailCron();
-	}
+    if(JOLLY.config.APP.NODE_ENV === 'production' || JOLLY.config.APP.NODE_ENV === 'staging') {
+      cronJob.coworkersConnectingMailCron();
+    }
+  }
 
 }
 
