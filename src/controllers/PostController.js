@@ -5,6 +5,7 @@ const mongodb = require('mongodb');
 const Analytics = require('analytics-node');
 const Promise = require('bluebird');
 const IdentityAnalytics = require('../analytics/identity');
+const geocode = require('../lib/geocode');
 const EntityPost = require('../entities/EntityPost'),
 	DbNames = require('../enum/DbNames');
 
@@ -48,11 +49,13 @@ class PostController {
       const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
       const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
+      const geo_location = await geocode(location);
       const newPost = new EntityPost({
         category,
         content,
         location,
         user,
+        geo_location: this.point(geo_location),
       });
 
       const post = await this.savePost(newPost);
@@ -128,22 +131,34 @@ class PostController {
     const userController = JOLLY.controller.UserController;
     const commentController = JOLLY.controller.CommentController;
     let searchQuery = {};
+    let aggregate = [];
 
     if(query.id) {
-      searchQuery._id = new mongodb.ObjectID(query.id);
+      aggregate.push({ $match : { _id : new mongodb.ObjectID(query.id) } });
     } else {
-      searchQuery = {
-        category: { $in: query.categories },
-      };
       if (query.location !== '' && query.location === 'my-posts') {
-        searchQuery.user = new mongodb.ObjectID(userId)
+        aggregate.push({ $match : { user : new mongodb.ObjectID(userId) } });
       } else {
-        searchQuery.location = query.location;
+        const geo_location = await geocode(query.location);
+        aggregate.push(
+          {
+            $geoNear: {
+              near: {
+                type: "Point",
+                coordinates: [ geo_location.lng, geo_location.lat]
+              },
+              distanceField: "distance",
+              maxDistance: 80467.2,
+              spherical: true
+            }
+          }
+        );
       }
+      aggregate.push({ $match : { category : { $in: query.categories } } });
     }
 
     try {
-      const rawPosts = await db.collection('posts').find(searchQuery).sort({ date_created: -1 }).toArray();
+      const rawPosts = await db.collection('posts').aggregate(aggregate).sort({ date_created: -1 }).toArray();
       const posts = rawPosts.map(post => (new EntityPost(post)).toJson({}));
       const populatedPosts = await Promise.map(posts, async post => {
         return await new Promise(function(resolve, reject) {
@@ -267,6 +282,17 @@ class PostController {
         .find({ 'votes': {'$all': [ userId.toString() ]}}).count();
       resolve(postHelpfulCount);
     });
+  }
+
+  point(location) {
+    console.log(location);
+    return {
+      coordinates : [
+        location.lng,
+        location.lat
+      ],
+      type : "Point"
+    }
   }
 }
 
