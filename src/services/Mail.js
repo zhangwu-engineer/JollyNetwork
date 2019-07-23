@@ -311,8 +311,21 @@ class Mail {
     var template_name = "monthly-digest-email";
     var template_content = [];
     var allCount = 0;
+    var content = '';
     if (parseInt(freelancerCount, 10) < 11 && parseInt(postCount, 10) < 11) {
       allCount = 1;
+    }
+    if(parseInt(allCount, 10) == 1){
+      content = `<p><strong>${allFreelancersSignUpIn30days}</strong> new event freelancers joined Jolly</p>
+      <p>Freelancers posted in their city feed <strong>${postCountIn30days}</strong> times</p>`
+
+    }else {
+      if(parseInt(freelancerCount, 10) > 0){
+        content += `<p><strong>${freelancerCount}</strong> new event freelancers in ${location} joined Jolly</p>`
+      }
+      if(parseInt(postCount, 10) > 0){
+        content += ` <p>${location} freelancers posted in the feed <strong>${postCount}</strong> times</p>`
+      }
     }
     var message = {
       "subject": "Monthly Digest",
@@ -324,28 +337,8 @@ class Mail {
         "rcpt": email,
         "vars": [
           {
-            "name": "location",
-            "content": location
-          },
-          {
-            "name": 'allcount',
-            "content": allCount
-          },
-          {
-            "name": "postcount",
-            "content": postCount
-          },
-          {
-            "name": "freelancercount",
-            "content": freelancerCount
-          },
-          {
-            "name": "allpostcount",
-            "content": postCountIn30days
-          },
-          {
-            "name": "allfreelancercount",
-            "content": allFreelancersSignUpIn30days
+            "name": "content",
+            "content": content
           },
           {
             "name": "avatar",
