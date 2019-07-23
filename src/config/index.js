@@ -17,9 +17,7 @@ module.exports = (callbackOnComplete) => {
    * @private
    */
   let _callBack = (env) => {
-    console.log(env);
     JOLLY.config = {
-
       APP: {
 
         VERSION: '1.0.0',
