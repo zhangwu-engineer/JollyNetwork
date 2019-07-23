@@ -101,6 +101,7 @@ class MarketingEmails {
       });
       console.log(`"${location}", ${allFreelancersIdsInLocation.length}, ${freelancerCount}, ${postCountInLocationIn30days}`);
     });
+    db.close();
   }
 }
 
