@@ -81,15 +81,12 @@ class MarketingEmails {
         $unwind: '$profile'
       }
     ]);
-    let onOfUserWillGetEmail = 0;
-    const testEmail = 'lalitkumarjiet@gmail.com';
-    await users.forEach(async (user)=> {
-      onOfUserWillGetEmail += 1;
-      if(onOfUserWillGetEmail === 1){
-        await mail.sendCoworkersConnecting(testEmail, user, coworkersIds.length);
+    await async.eachOfLimit(users, 1, async (user) => {
+      if(user.profile.receiveMonthlyUpdates === undefined || user.profile.receiveMonthlyUpdates === true ) {
+        await mail.sendCoworkersConnecting(user.email, user, coworkersIds.length);
       }
     });
-    console.log(onOfUserWillGetEmail);
+    console.log('coworkers:',coworkersIds.length)
   }
 }
 
