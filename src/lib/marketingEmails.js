@@ -38,7 +38,6 @@ class MarketingEmails {
     const mail = new Mail();
     let date = new Date();
     date.setDate(date.getDate() - 14);
-    console.log(date);
     const connections = await db.collection('connections').aggregate([{
       $match : {
         date_created: {$gte: date},
@@ -47,19 +46,18 @@ class MarketingEmails {
       }
     }]);
     let coworkersIds = [];
-    await async.eachOfLimit(connections, 10, (connection) => {
+    await connections.forEach((connection) => {
       if (connection.from != null) {
-        if (!coworkersIds.includes(connection.from)){
+        if (!coworkersIds.includes(connection.from)) {
           coworkersIds.push(connection.from);
         }
       }
       if (connection.to != null) {
-        if (!coworkersIds.includes(connection.to)){
+        if (!coworkersIds.includes(connection.to)) {
           coworkersIds.push(connection.to);
         }
       }
     });
-
     coworkersIds = coworkersIds.map((o) => new mongodb.ObjectID(o));
     const users = await db.collection('users').aggregate([
       {
@@ -83,13 +81,12 @@ class MarketingEmails {
       }
     ]);
     if(coworkersIds.length > 0) {
-      await async.eachOfLimit(users, 1, async (user) => {
+      await async.eachOfLimit(users, 10, async (user) => {
         if(user.profile.receiveMonthlyUpdates === undefined || user.profile.receiveMonthlyUpdates === true ) {
           await mail.sendCoworkersConnecting(user.email, user, coworkersIds.length);
         }
       });
     }
-    console.log('coworkers:',coworkersIds.length)
   }
 }
 
