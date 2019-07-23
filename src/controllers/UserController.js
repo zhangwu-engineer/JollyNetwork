@@ -2,6 +2,8 @@
  * User controller class, in charge of transactions related to users and their profiles.
  */
 const mongodb = require('mongodb');
+const piexif = require('piexifjs');
+const jo = require('jpeg-autorotate');
 const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
@@ -576,17 +578,27 @@ class UserController {
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     const S3 = new AWS.S3();
     try {
-      const fileBuffer = Buffer.from(image, 'base64');
+      let fileBuffer = Buffer.from(image, 'base64');
       const fileTypeInfo = fileType(fileBuffer);
-      const fileName = Math.floor(new Date() / 1000);
+      const type = fileTypeInfo.ext.toLowerCase(); // 'jpg','jpeg','JPG','JPEG'
+      if(type == 'jpg' || type == 'jpeg') {
+        fileBuffer = await this.deleteThumbnailFromExif(fileBuffer);
+        await jo.rotate(fileBuffer, {})
+        .then(({buffer}) => {
+          fileBuffer = buffer;
+        }).catch((error) => {
+          console.log(`Error occurred during fix the Orientation of image : ${error}`)
+        });
+      }
 
+      const fileName = Math.floor(new Date() / 1000);
       const filePath = `${fileName}.${fileTypeInfo.ext}`;
       const params = {
         Bucket: JOLLY.config.S3.BUCKET,
         Key: filePath,
         Body: fileBuffer,
         ACL: 'public-read',
-        ContentEncoding: 'base64',
+        ContentEncoding: 'binary',
         ContentType: fileTypeInfo.mime,
       };
       await S3.putObject(params).promise();
@@ -595,6 +607,16 @@ class UserController {
     } catch (err) {
       throw new ApiError(err.message);
     }
+  }
+
+  deleteThumbnailFromExif(imageBuffer) {
+    const imageString = imageBuffer.toString('binary');
+    const exifObj = piexif.load(imageString);
+    delete exifObj.thumbnail;
+    delete exifObj['1st'];
+    const exifBytes = piexif.dump(exifObj);
+    const newImageString = piexif.insert(exifBytes, imageString);
+    return Buffer.from(newImageString, 'binary');
   }
 
   async deleteImage(userId, image, avatar, backgroundImage) {
@@ -1018,7 +1040,7 @@ class UserController {
     const skip = page && perPage ? (page - 1) * perPage : 0;
 
     const connectionController = JOLLY.controller.ConnectionController;
-    
+
     let queryConnections1 = {
       to: { $in: [businessId] },
       status: ConnectionStatus.CONNECTED
@@ -1550,7 +1572,7 @@ class UserController {
 
 		});
   }
-  
+
 	listUsers(cb) {
 
 		let Database = JOLLY.service.Db;
