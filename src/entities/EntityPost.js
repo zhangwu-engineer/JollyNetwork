@@ -15,41 +15,45 @@ const BaseEntityWithID = require('./base/BaseEntityWithID');
 
 class EntityPost extends BaseEntityWithID {
 
-    /**
-     * Post constructor method.
-     * @param {Post} options
-     */
-    constructor (options) {
+  /**
+   * Post constructor method.
+   * @param {Post} options
+   */
+  constructor(options) {
 
-        super (options);
+    super(options);
 
-        this._category = options.category;
-        this._content = options.content;
-        this._location = options.location;
-        this._user = new ObjectId(options.user);
-        this._votes = options.votes || [options.user];
-        this._comments = options.comments || [];
-        this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
+    this._category = options.category;
+    this._content = options.content;
+    this._location = options.location;
+    this._user = new ObjectId(options.user);
+    this._votes = options.votes || [options.user];
+    this._comments = options.comments || [];
+    this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
+    if(options.location) {
+      this._geo_location = options.geo_location;
     }
+  }
 
-    /**
-     * @param {Object} [options]
-     * @return {Object}
-     */
-    toJson (options) {
+  /**
+   * @param {Object} [options]
+   * @return {Object}
+   */
+  toJson(options) {
 
-      let data = super.toJson();
+    let data = super.toJson();
 
-      data.category = this._category;
-      data.content = this._content;
-      data.location = this._location;
-      data.user = this._user;
-      data.votes = this._votes;
-      data.comments = this._comments;
-      data.date_created = this._dateCreated;
+    data.category = this._category;
+    data.content = this._content;
+    data.location = this._location;
+    data.user = this._user;
+    data.votes = this._votes;
+    data.comments = this._comments;
+    data.date_created = this._dateCreated;
+    data.geo_location = this._geo_location;
 
-      return data;
-    }
-
+    return data;
+  }
 }
+
 module.exports = EntityPost;
