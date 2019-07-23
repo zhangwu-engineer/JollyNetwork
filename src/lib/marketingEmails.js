@@ -64,6 +64,7 @@ class MarketingEmails {
           $project: {
             'avatar': '$avatar',
             'userId': '$userId',
+            'receiveMonthlyUpdates': '$receiveMonthlyUpdates',
             "user": {
               "$filter": {
                 "input": "$user",
