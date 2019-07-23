@@ -86,6 +86,7 @@ module.exports = (callbackOnComplete) => {
       SEGMENT: {
         WRITE_KEY: env.get('SEGMENT_WRITE_KEY', ''),
       },
+      GEOCODING_KEY: env.get('GEOCODING_KEY', '')
     };
 
     env.done();
