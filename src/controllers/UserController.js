@@ -19,7 +19,6 @@ const EntityUser = require('../entities/EntityUser'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
-  blockList = require('../enum/blockList'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -910,8 +909,6 @@ class UserController {
       checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
 
-    blockList.map(eachId => userIds.push(new mongodb.ObjectID(eachId)) );
-
     const aggregates = [
       {
         $match : {
@@ -923,25 +920,6 @@ class UserController {
     if (city) {
       aggregates[0]['$match']['location'] = city
     }
-    aggregates.push({
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user"
-      }
-    });
-    aggregates.push({
-      $unwind: "$user"
-    });
-    aggregates.push({
-      $match : {
-        $and: [
-          { 'user.email': { $regex: new RegExp('^((?!@jollyhq.com).)*$', "i") } },
-          { 'user.email': { $regex: new RegExp('^((?!@srvbl.com).)*$', "i") } },
-        ],
-      }
-    });
     if (query) {
       aggregates.push({
         $lookup: {
