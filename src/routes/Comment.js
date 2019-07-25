@@ -12,11 +12,9 @@ let authService = JOLLY.service.Authentication,
  * create new comment into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-
-	const commentData = await commentController.addComment(Object.assign({}, req.body, { user: req.userId }));
-  res.apiSuccess({
-    comment: commentData
-  });
+  const params = Object.assign({}, req.body, { user: req.userId, headers: req.headers });
+	const commentData = await commentController.addComment(params);
+  res.apiSuccess({ comment: commentData });
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {

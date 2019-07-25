@@ -12,34 +12,26 @@ let authService = JOLLY.service.Authentication,
  * Display user's posts.
  */
 router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-
   const posts = await postController.findPosts({});
-  res.apiSuccess({
-    posts,
-  });
-
+  res.apiSuccess({ posts });
 }));
 
 /**
  * create new post into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-
-	const postData = await postController.addPost(Object.assign({}, req.body, { user: req.userId }));
-  res.apiSuccess({
-    post: postData
-  });
+  let params = Object.assign({}, req.body, { user: req.userId, headers: req.headers });
+	const postData = await postController.addPost(params);
+  res.apiSuccess({ post: postData });
 }));
 
 router.post('/search', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const posts = await postController.findPosts(req.body.query, req.userId);
-  res.apiSuccess({
-    posts,
-  });
+  res.apiSuccess({ posts });
 }));
 
 router.post('/:id/vote', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-	await postController.votePost(req.params.id, req.userId);
+	await postController.votePost({ postId: req.params.id, userId: req.userId, headers: req.headers });
 	res.apiSuccess({});
 }));
 

@@ -3,7 +3,6 @@
  */
 const mongodb = require('mongodb');
 const checkEmail = require('../lib/CheckEmail');
-const Analytics = require('analytics-node');
 const ConnectionAnalytics = require('../analytics/connection');
 const EntityConnection = require('../entities/EntityConnection'),
   DbNames = require('../enum/DbNames');
@@ -46,7 +45,6 @@ class ConnectionController {
     const userController = JOLLY.controller.UserController;
     const businessController = JOLLY.controller.BusinessController;
     const mailService = JOLLY.service.Mail;
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
     try {
       let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,

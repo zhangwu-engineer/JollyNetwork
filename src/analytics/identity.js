@@ -1,8 +1,8 @@
-const Analytics = require('analytics-node');
+const BaseAnalytics = require('./base.js');
 
-class IdentityAnalytics {
-  constructor(key) {
-    this.analytics = new Analytics(key);
+class IdentityAnalytics extends BaseAnalytics  {
+  constructor(key, headers) {
+    super(key, headers);
   }
 
   async send(userId) {
@@ -35,6 +35,7 @@ class IdentityAnalytics {
       this.analytics.identify({
         userId: userId.toString(),
         traits: params,
+        context: this.context()
       });
     })
   }

@@ -1,9 +1,9 @@
 const checkEmail = require('../lib/CheckEmail');
-const Analytics = require('analytics-node');
+const BaseAnalytics = require('./base.js');
 
-class ConnectionAnalytics {
+class ConnectionAnalytics extends BaseAnalytics  {
   constructor(key) {
-    this.analytics = new Analytics(key);
+    super(key);
   }
 
   send(connection, params) {
