@@ -2,7 +2,6 @@
  * Unit controller class, in charge of transactions related to user's units.
  */
 const mongodb = require('mongodb');
-const Analytics = require('analytics-node');
 const Promise = require('bluebird');
 const IdentityAnalytics = require('../analytics/identity');
 const PostAnalytics = require('../analytics/post');
