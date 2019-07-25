@@ -144,23 +144,4 @@ router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
-// router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
-// 	unitController
-// 		.updateUnit(req.params.id, req.body)
-// 		.then((unitData) => {
-// 			res.apiSuccess({
-// 				unit: unitData.toJson({}),
-// 			});
-// 		});
-// });
-
-// router.delete('/:id', authService.verifyUserAuthentication, (req, res) => {
-
-// 	unitController
-// 		.deleteUnit(req.params.id)
-// 		.then(() => {
-// 			res.apiSuccess({});
-// 		});
-// });
-
 module.exports = router;
