@@ -35,10 +35,18 @@ class MarketingEmails {
 
   async monthlyDigestMailer() {
     var date = new Date();
-    date.setDate(date.getDate() - date.getDate());
+    var endDate = new Date(date.setDate(1));
+    endDate.setDate(date.getDate() - date.getDate());
+    var startDate = new Date(endDate);
+    startDate.setDate(1);
     const db = await this.getDatabase();
     const mail = new Mail();
-    const allFreelancersSignUpIn30days = await db.collection('profiles').find({ dateCreated: { $gte: date } }).count();
+    const allFreelancersSignUpIn30days = await db.collection('profiles').find({
+      'dateCreated': {
+        '$gte': new Date(startDate),
+        '$lt': new Date(endDate)
+      }
+    }).count();
     const allPostCountIn30days = await db.collection('posts').find({ date_created: { $gte: date } }).count();
     const distinctLocations = await db.collection('profiles').distinct("location");
     await distinctLocations.forEach(async location => {
