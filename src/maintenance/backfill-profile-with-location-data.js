@@ -23,7 +23,7 @@ DefaultConfig(async () => {
       console.log(profile._id);
       if(profile.location) {
         let location = await geocode(profile.location);
-        if(location.hasOwnProperty(lng)) {
+        if(location.hasOwnProperty('lng')) {
           await db.collection('profiles').updateOne(
             { "_id": profile._id},
             {
