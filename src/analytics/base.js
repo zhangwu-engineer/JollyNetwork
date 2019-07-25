@@ -8,9 +8,10 @@ class BaseAnalytics {
 
   context() {
     return JSON.parse(JSON.stringify({
-      user_agent: this.headers['user-agent'],
+      user_agent: this.headers.user_agent,
+      ip: this.headers.ip,
       'Google Analytics': {
-        clientId: this.headers.clientID,
+        clientId: this.headers.clientId,
       },
     }));
   }
