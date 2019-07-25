@@ -2,7 +2,6 @@
  * Comment Route Handler
  */
 const router = require('express').Router();
-const jwt = require('jsonwebtoken');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const buildContext = require('../analytics/helper/buildContext');
 let authService = JOLLY.service.Authentication,

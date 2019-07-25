@@ -41,14 +41,14 @@ class ConnectionController {
 	 * @returns {Promise<Object>}
 	 */
 	async addConnection (options) {
-    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    let { to, toUserId, isCoworker, from, email, fromUserId, connectionType, headers } = options,
+      newConnection;
+    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const userController = JOLLY.controller.UserController;
     const businessController = JOLLY.controller.BusinessController;
     const mailService = JOLLY.service.Mail;
 
     try {
-      let {to, toUserId, isCoworker, from, email, fromUserId, connectionType } = options,
-      newConnection;
 
       if (!to) {
         if(toUserId) to = toUserId;
@@ -105,7 +105,8 @@ class ConnectionController {
 
         return connectionData.toJson({});
       } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
-        await this.updateConnection(existing[0].id, '', {isCoworker: isCoworker})
+        const params = { id: existing[0].id, data: { isCoworker: isCoworker }, headers: headers };
+        await this.updateConnection(params)
       } else {
         throw new ApiError('Connection request already sent');
       }
@@ -259,11 +260,12 @@ class ConnectionController {
 			});
   }
 
-  updateConnection(id, userId, data) {
+  updateConnection(options) {
+	  const { id, userId, data, headers } = options;
     let db = this.getDefaultDB(),
       collectionName = 'connections',
       connection = null;
-    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const userController = JOLLY.controller.UserController;
     const businessController = JOLLY.controller.BusinessController;
 
@@ -299,13 +301,14 @@ class ConnectionController {
 			});
   }
 
-  deleteConnection(id, userId) {
+  deleteConnection(options) {
+	  const { id, userId, headers } = options;
+    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const userController = JOLLY.controller.UserController;
+    const businessController = JOLLY.controller.BusinessController;
     let db = this.getDefaultDB(),
       connection = null,
       collectionName = 'connections';
-    const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-    const userController = JOLLY.controller.UserController;
-    const businessController = JOLLY.controller.BusinessController;
 
 		return new Promise((resolve, reject) => {
       db
