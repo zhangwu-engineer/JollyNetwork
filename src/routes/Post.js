@@ -4,6 +4,7 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
+const buildContext = require('../analytics/helper/buildContext');
 let authService = JOLLY.service.Authentication,
 	postController = JOLLY.controller.PostController;
 
@@ -20,7 +21,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
  * create new post into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  let params = Object.assign({}, req.body, { user: req.userId, headers: req.headers });
+  let params = Object.assign({}, req.body, { user: req.userId, headers: buildContext(req) });
 	const postData = await postController.addPost(params);
   res.apiSuccess({ post: postData });
 }));
@@ -31,7 +32,7 @@ router.post('/search', authService.verifyUserAuthentication, asyncMiddleware(asy
 }));
 
 router.post('/:id/vote', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-	await postController.votePost({ postId: req.params.id, userId: req.userId, headers: req.headers });
+	await postController.votePost({ postId: req.params.id, userId: req.userId, headers: buildContext(req) });
 	res.apiSuccess({});
 }));
 
