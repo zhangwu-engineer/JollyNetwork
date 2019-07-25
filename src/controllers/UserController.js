@@ -923,7 +923,8 @@ class UserController {
           },
           distanceField: "distance",
           maxDistance: 80467.2,
-          spherical: true
+          spherical: true,
+          limit: 50000
         }
       });
     }
@@ -1249,17 +1250,33 @@ class UserController {
           ? this.getUserByEmail(userId).id
           : new mongodb.ObjectID(userId)
       );
-      const aggregates = [
+
+      const aggregates = [];
+
+      if (city) {
+        const geo_location = await geocode(city);
+        aggregates.push({
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [ geo_location.lng, geo_location.lat]
+            },
+            distanceField: "distance",
+            maxDistance: 80467.2,
+            spherical: true,
+            limit: 50000
+          }
+        });
+      }
+
+      aggregates.push(
         {
           $match : {
             userId: { $in: connectionIds },
           }
-        },
-        { $sort  : { userId : -1 } },
-      ];
-      if (city) {
-        aggregates[0]['$match']['location'] = city
-      }
+        }
+      );
+
       if (query) {
         aggregates.push({
           $lookup: {
