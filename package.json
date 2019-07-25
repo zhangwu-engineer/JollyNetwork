@@ -26,7 +26,9 @@
   },
   "homepage": "https://bitbucket.org/jollydevelopment/jolly",
   "dependencies": {
+    "@google/maps": "^0.5.5",
     "analytics-node": "^3.3.0",
+    "async": "^3.0.1",
     "aws-sdk": "^2.354.0",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.5.3",
@@ -35,6 +37,7 @@
     "express": "^4.16.3",
     "file-type": "^10.4.0",
     "json2csv": "^4.5.2",
+    "jpeg-autorotate": "^5.0.1",
     "jsonwebtoken": "^8.3.0",
     "lodash": "^4.17.11",
     "mandrill-api": "^1.0.45",
@@ -42,11 +45,11 @@
     "passport": "^0.4.0",
     "passport-facebook-token": "^3.3.0",
     "passport-oauth2": "^1.4.0",
+    "piexifjs": "^1.0.6",
     "twilio": "^3.23.2"
   },
   "devDependencies": {
     "@types/express": "^4.16.0",
-    "async": "^3.0.1",
     "chai": "^4.2.0",
     "chai-http": "^4.2.0",
     "mocha": "^5.2.0",

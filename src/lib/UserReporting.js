@@ -38,13 +38,19 @@ class UserReporting {
     });
   }
 
-  exportUsersCsv = async () => {
+  close() {
+    const db = JOLLY.service.Db;
+    db.close();
+  }
+
+  async exportUsersCsv() {
     await this.getDatabase();
     try {
       AWS.config.update({ accessKeyId: JOLLY.config.AWS.REPORTING_AWS_ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.REPORTING_AWS_SECRET_ACCESS_KEY });
       const S3 = new AWS.S3();
       const users = await this.userController.searchUsers({});
       const fields = [
+        { label: 'ID', value: '_id'},
         { label: 'Email', value: 'email'},
         { label: 'First', value: 'firstName'},
         { label: 'Last', value: 'lastName'},
@@ -69,7 +75,9 @@ class UserReporting {
         Body: csvData,
         ContentType: 'application/octet-stream'
       };
-      await S3.putObject(params).promise();
+      await S3.putObject(params).promise().then(() => {
+        this.close();
+      });
     } catch (e) {
       console.log(e)
     }
