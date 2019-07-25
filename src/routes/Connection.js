@@ -2,12 +2,11 @@
  * Unit Route Handler
  */
 const router = require('express').Router();
-const jwt = require('jsonwebtoken');
-const mongodb = require('mongodb');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const checkEmail = require('../lib/CheckEmail');
 const IdentityAnalytics = require('../analytics/identity');
+const buildContext = require('../analytics/helper/buildContext');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityConnection = require('../entities/EntityConnection');
 let authService = JOLLY.service.Authentication,
@@ -62,7 +61,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
 
 router.get('/business', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const connections = await connectionController.findConnections({ to: { $in: [req.query.businessId] } });
-  
+
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
       let connectionType = connection && connection.connectionType;
@@ -93,7 +92,8 @@ router.get('/business', authService.verifyUserAuthentication, asyncMiddleware(as
  * create new connection into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const connectionData = await connectionController.addConnection(Object.assign({}, req.body, { fromUserId: req.userId }));
+  const params = Object.assign({}, req.body, { fromUserId: req.userId, headers: buildContext(req) });
+  const connectionData = await connectionController.addConnection(params);
   res.apiSuccess({
     connection: connectionData
   });
@@ -114,7 +114,8 @@ router.get('/:id/info', authService.verifyUserAuthentication, asyncMiddleware(as
 }));
 
 router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  const headers = buildContext(req);
+  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
   let connection = await connectionController.findConnectionById(req.params.id);
   const params = { status: ConnectionStatus.CONNECTED, connected_at: new Date() };
 
@@ -124,7 +125,8 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
     params.to = userData.id.toString();
   }
 
-  connection = await connectionController.updateConnection(req.params.id, req.userId, params);
+  const options = { id: req.params.id, userId: req.userId, data: params, headers: headers };
+  connection = await connectionController.updateConnection(options);
   connection = connection.toJson({});
   identityAnalytics.send(connection.to);
   identityAnalytics.send(connection.from);
@@ -132,16 +134,23 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
 }));
 
 router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const result = await connectionController.deleteConnection(req.params.id, req.userId);
+  const params = { id: req.params.id, userId: req.userId, headers: buildContext(req) };
+  const result = await connectionController.deleteConnection(params);
 	res.apiSuccess({});
 }));
 
 router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const headers = buildContext(req);
+  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
   const connections = await connectionController.findConnectionsBetweenUserIds([req.params.id, req.userId]);
   connections.forEach(async (connection) => {
-    await connectionController.updateConnection(connection.id, req.userId, {
-      status: ConnectionStatus.DISCONNECTED, disconnected_At: new Date()
-    });
+    const params = {
+      id: connection.id, userId: req.userId, headers: headers,
+      data: { status: ConnectionStatus.DISCONNECTED, disconnected_At: new Date() }
+    };
+    await connectionController.updateConnection(params);
+    identityAnalytics.send(connection.to);
+    identityAnalytics.send(connection.from);
   });
 	res.apiSuccess({});
 }));

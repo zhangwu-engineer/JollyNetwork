@@ -2,8 +2,8 @@ const checkEmail = require('../lib/CheckEmail');
 const BaseAnalytics = require('./base.js');
 
 class ConnectionAnalytics extends BaseAnalytics  {
-  constructor(key) {
-    super(key);
+  constructor(key, headers) {
+    super(key, headers);
   }
 
   send(connection, params) {
@@ -19,7 +19,8 @@ class ConnectionAnalytics extends BaseAnalytics  {
             method: method,
             status: 'Pending',
             type: connection.connectionType,
-          }
+          },
+          context: this.context()
         });
       } else if (connection.status === ConnectionStatus.CONNECTED) {
         this.analytics.track({
@@ -31,7 +32,8 @@ class ConnectionAnalytics extends BaseAnalytics  {
             method: method,
             status: 'Accepted',
             type: connection.connectionType,
-          }
+          },
+          context: this.context()
         });
       } else if (connection.status == ConnectionStatus.DISCONNECTED) {
         this.analytics.track({
@@ -43,7 +45,8 @@ class ConnectionAnalytics extends BaseAnalytics  {
             method: method,
             status: 'Disconnected',
             type: connection.connectionType,
-          }
+          },
+          context: this.context()
         });
       }
     } else {
@@ -56,7 +59,8 @@ class ConnectionAnalytics extends BaseAnalytics  {
           method: method,
           status: 'Ignored',
           type: connection.connectionType,
-        }
+        },
+        context: this.context()
       });
     }
   }
