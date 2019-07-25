@@ -9,6 +9,7 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {Boolean} receiveEmail
  * @property {Boolean} receiveSMS
  * @property {Boolean} receiveCall
+ * @property {Boolean} receiveMonthlyUpdates
  * @property {String} location
  * @property {String} distance
  * @property {String} facebook
@@ -59,6 +60,7 @@ class EntityProfile extends BaseEntityWithID {
         this._receiveEmail = options.receiveEmail === undefined ? false : options.receiveEmail;
         this._receiveSMS = options.receiveSMS === undefined ? false : options.receiveSMS;
         this._receiveCall = options.receiveCall === undefined ? false : options.receiveCall;
+        this._receiveMonthlyUpdates = options.receiveMonthlyUpdates === undefined ? true : options.receiveMonthlyUpdates;
         this._location = options.location || null;
         this._distance = options.distance || null;
         this._facebook = options.facebook || null;
