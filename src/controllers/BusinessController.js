@@ -55,11 +55,14 @@ class BusinessController {
   }
 
   async getBusinessById(businessId) {
+		const userController = JOLLY.controller.UserController;
     let business = null;
     try {
-			business = await this.findBusinessById(businessId);
+      business = await this.findBusinessById(businessId);
       if (business) {
         const businessData = business.toJson({});
+        const userData = await userController.getUserById(businessData.user);
+        businessData.userData = userData;
         return businessData;
       }
       throw new ApiError('Business not found');
