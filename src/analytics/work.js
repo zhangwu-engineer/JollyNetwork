@@ -6,7 +6,7 @@ class WorkAnalytics extends BaseAnalytics {
   }
 
   send(user, work, options) {
-    let { firstName, lastName, email } = options;
+    let { firstName, lastName, email, jobAddedMethod, isEventCreator } = options;
     this.analytics.track({
       userId: user,
       event: 'Job Added',
@@ -22,8 +22,8 @@ class WorkAnalytics extends BaseAnalytics {
         jobCreatedTimestamp: work.date_created,
         caption: work.caption,
         numberOfImages: work.photos.length,
-        jobAddedMethod: 'created',
-        isEventCreator: true,
+        jobAddedMethod: jobAddedMethod || 'created',
+        isEventCreator: isEventCreator,
       },
       context: this.context()
     });
