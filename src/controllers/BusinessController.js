@@ -203,9 +203,8 @@ class BusinessController {
     try {
       const data = await db.collection('businesses').aggregate(aggregates).toArray();
 
-			const businessProfiles = data[0].data;
-      businesses = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id));
-
+      const businessProfiles = data[0].data;
+      businesses = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id.toString()));
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
         page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
@@ -281,7 +280,7 @@ class BusinessController {
         });
       }
       const businessProfiles = await db.collection('businesses').aggregate(aggregates).toArray();
-      connections = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id));
+      connections = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id.toString()));
       return connections;
     } catch (err) {
       throw new ApiError(err.message);
