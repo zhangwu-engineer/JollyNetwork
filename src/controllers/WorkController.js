@@ -7,6 +7,8 @@ const fileType = require('file-type');
 const dateFns = require('date-fns');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
+const WorkAnalytics = require('../analytics/work');
+const RoleAnalytics = require('../analytics/role');
 const IdentityAnalytics = require('../analytics/identity');
 const EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
@@ -47,6 +49,8 @@ class WorkController {
 	 */
 	async addWork (options) {
     const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const tokenController = JOLLY.controller.TokenController;
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
@@ -109,81 +113,14 @@ class WorkController {
 
       const newRole = await this.saveRole(role, user);
 
-      analytics.track({
-        userId: user,
-        event: 'Job Added',
-        properties: {
-          userID: user,
-          userFullname: `${firstName} ${lastName}`,
-          userEmail: email,
-          jobID: work.id,
-          eventID: work.slug,
-          role: work.role,
-          beginDate: work.from,
-          endDate: work.to,
-          jobCreatedTimestamp: work.date_created,
-          caption: work.caption,
-          numberOfImages: work.photos.length,
-          jobAddedMethod: 'created',
-          isEventCreator: true,
-        }
-      });
+      workAnalytics.send(user, work, { firstName, lastName, email });
 
       if (newRole) {
-        analytics.track({
-          userId: user,
-          event: 'Role Added',
-          properties: {
-            userID: user,
-            userFullname: `${firstName} ${lastName}`,
-            userEmail: email,
-            roleName: newRole.name,
-            roleRateLow: newRole.minRate,
-            roleRateHigh: newRole.maxRate,
-            years: newRole.years,
-            throughJob: true,
-            jobID: work.id,
-            eventID: work.slug,
-          }
-        });
+        roleAnalytics.send(user, newRole, { work, firstName, lastName, email});
       }
 
       originalCoworkers.map(c => {
-        if (c.id) {
-          analytics.track({
-            userId: user,
-            event: 'Coworker Tagged on Job',
-            properties: {
-              userID: user,
-              jobID: work.id,
-              eventID: work.slug,
-              jobAddedMethod: 'created',
-              taggedCoworker: {
-                userID: c.id,
-                email: c.email,
-                name: `${c.firstName} ${c.lastName}`
-              },
-              tagStatus: 'awaiting_response',
-            }
-          });
-        } else {
-          analytics.track({
-            userId: user,
-            event: 'Coworker Tagged on Job',
-            properties: {
-              userID: user,
-              jobID: work.id,
-              eventID: work.slug,
-              jobAddedMethod: 'created',
-              taggedCoworker: {
-                userID: null,
-                email: c.email,
-                name: null
-              },
-              tagStatus: 'awaiting_response',
-            }
-          });
-        }
+        workAnalytics.coworkerTagged(user, work, { coworker: c });
       });
 
       const tokens = mailService.sendInvite(emails, work, { userId: user, firstName: firstName, lastName: lastName, slug: userSlug });

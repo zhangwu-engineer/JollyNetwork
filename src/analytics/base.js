@@ -7,13 +7,17 @@ class BaseAnalytics {
   }
 
   context() {
-    return JSON.parse(JSON.stringify({
-      user_agent: this.headers.user_agent,
-      ip: this.headers.ip,
-      'Google Analytics': {
-        clientId: this.headers.clientId,
-      },
-    }));
+    if(this.headers) {
+      return JSON.parse(JSON.stringify({
+        user_agent: this.headers.user_agent,
+        ip: this.headers.ip,
+        'Google Analytics': {
+          clientId: this.headers.clientId,
+        },
+      }));
+    } else {
+      return {}
+    }
   }
 
 }
