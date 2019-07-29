@@ -42,7 +42,7 @@ class MarketingEmails {
     const allFreelancersSignUpIn30days = await db.collection('profiles').find({
       dateCreated: {
         $gte: startDate,
-        $lt: new Date(endDate)
+        $lt: endDate
       }
     }).count();
     const allPostCountIn30days = await db.collection('posts').find({ date_created: { $gte: startDate, $lt: endDate } }).count();
