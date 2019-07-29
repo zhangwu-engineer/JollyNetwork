@@ -98,13 +98,14 @@ router.get('/user/:slug', (req, res, next) => {
 });
 
 /**
- * create new unit into system.
+ * create new work into system.
  */
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
   userController.getUserById(req.userId)
     .then(user => {
       return Promise.map(req.body.jobs, job => {
-        return workController.addWork(Object.assign({}, job, { user: req.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }))
+        let params = Object.assign({}, job, { user: req.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug });
+        return workController.addWork(params);
       });
     })
     .then(() => {
