@@ -362,7 +362,7 @@ class App {
    * start the Cron jobs.
    */
   _cronJobs () {
-    if(JOLLY.config.APP.NODE_ENV === 'production' || JOLLY.config.APP.NODE_ENV === 'staging') {
+    if(JOLLY.config.APP.NODE_ENV === 'production') {
       cronJob.monthlyDigestMailCron();
     }
   }

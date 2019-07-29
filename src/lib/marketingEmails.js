@@ -34,24 +34,23 @@ class MarketingEmails {
   }
 
   async monthlyDigestMailer() {
-    var date = new Date();
-    var endDate = new Date(date.setDate(1));
-    endDate.setDate(date.getDate() - date.getDate());
-    var startDate = new Date(endDate);
-    startDate.setDate(1);
+    let { startDate, endDate } = this.getStartAndEndDate();
+    console.log(startDate, endDate);
     const db = await this.getDatabase();
     const mail = new Mail();
+
     const allFreelancersSignUpIn30days = await db.collection('profiles').find({
-      'dateCreated': {
-        '$gte': new Date(startDate),
-        '$lt': new Date(endDate)
+      dateCreated: {
+        $gte: startDate,
+        $lt: new Date(endDate)
       }
     }).count();
-    const allPostCountIn30days = await db.collection('posts').find({ date_created: { $gte: date } }).count();
+    const allPostCountIn30days = await db.collection('posts').find({ date_created: { $gte: startDate, $lt: endDate } }).count();
+
     const distinctLocations = await db.collection('profiles').distinct("location");
     await distinctLocations.forEach(async location => {
       let allFreelancersSignUpInLocationIn30days = await db.collection('profiles').distinct('userId',
-        { dateCreated: { $gte: date }, location: location, }
+        { dateCreated: { $gte: startDate, $lt: endDate }, location: location, }
       );
       const freelancerCount = allFreelancersSignUpInLocationIn30days.length;
 
@@ -96,12 +95,11 @@ class MarketingEmails {
       });
 
       const postCountInLocationIn30days = await db.collection('posts').find({
-        date_created: { $gte: date }, user: { $in: allFreelancersIdsInLocation }
+        date_created: { $gte: startDate, $lt: endDate }, user: { $in: allFreelancersIdsInLocation }
       }).count();
 
       const city = location.split(',')[0];
-
-      await async.eachOfLimit(allFreelancersInLocation, 1, async (profile) => {
+      await async.eachOfLimit(allFreelancersInLocation, 10, async (profile) => {
         if(profile.receiveMonthlyUpdates === undefined || profile.receiveMonthlyUpdates === true ) {
           await mail.sendMonthlyDigest(profile.user[0].email, profile.avatar,
             freelancerCount, postCountInLocationIn30days, city,
@@ -110,6 +108,22 @@ class MarketingEmails {
       });
       console.log(`"${location}", ${allFreelancersIdsInLocation.length}, ${freelancerCount}, ${postCountInLocationIn30days}`);
     });
+  }
+
+  getStartAndEndDate() {
+    let endDate = this.getEndDate();
+    let startDate = this.getStartDate();
+    return { startDate, endDate };
+  }
+
+  getStartDate() {
+    let date = new Date();
+    return new Date(date.getFullYear(), date.getMonth() -1, 1);
+  }
+
+  getEndDate() {
+    let date = new Date();
+    return new Date(date.getFullYear(), date.getMonth(), 0);
   }
 }
 
