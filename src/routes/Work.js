@@ -197,7 +197,8 @@ router.get('/:id/user', (req, res, next) => {
 
 router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   const user = await userController.getUserById(req.userId);
-  const tokens = await workController.addCoworker(req.params.id, req.body.coworker, user);
+  const params = { id: req.params.id, coworker: req.body.coworker, user: user, headers: buildContext(req) };
+  const tokens = await workController.addCoworker(params);
   await Promise.map(tokens, (token) => {
     return new Promise((resolve, reject) => {
       tokenController

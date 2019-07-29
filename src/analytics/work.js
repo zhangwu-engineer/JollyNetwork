@@ -38,7 +38,7 @@ class WorkAnalytics extends BaseAnalytics {
         userID: user,
         jobID: work.id,
         eventID: work.slug,
-        jobAddedMethod: 'created',
+        jobAddedMethod: work.addMethod || 'created',
         taggedCoworker: {
           userID: coworker.id,
           email: coworker.email,
