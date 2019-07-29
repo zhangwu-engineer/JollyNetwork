@@ -31,6 +31,11 @@ class WorkAnalytics extends BaseAnalytics {
 
   coworkerTagged(user, work, options) {
     let { coworker } = options;
+
+    let params = { email: coworker.email };
+    if(coworker.id) params.userID = coworker.id;
+    if(coworker.firstName) params.name = `${coworker.firstName} ${coworker.lastName}`;
+
     this.analytics.track({
       userId: user,
       event: 'Coworker Tagged on Job',
@@ -39,14 +44,26 @@ class WorkAnalytics extends BaseAnalytics {
         jobID: work.id,
         eventID: work.slug,
         jobAddedMethod: work.addMethod || 'created',
-        taggedCoworker: {
-          userID: coworker.id,
-          email: coworker.email,
-          name: `${coworker.firstName} ${coworker.lastName}`
-        },
+        taggedCoworker: params,
         tagStatus: 'awaiting_response',
       },
       context: this.context()
+    });
+  }
+
+  coworkerTaggedVerified(user, work, options) {
+    let { coworker } = options;
+    this.analytics.track({
+      userId: user,
+      event: 'Coworker Job Verified',
+      properties: {
+        userID: user,
+        jobID: work.id,
+        eventID: work.slug,
+        jobAddedMethod: work.addMethod,
+        verificationMethod: 'clicked',
+        verifiedCoworkerUserID: coworker,
+      }
     });
   }
 }
