@@ -6,7 +6,6 @@ const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const dateFns = require('date-fns');
 const Promise = require('bluebird');
-const Analytics = require('analytics-node');
 const WorkAnalytics = require('../analytics/work');
 const RoleAnalytics = require('../analytics/role');
 const IdentityAnalytics = require('../analytics/identity');
@@ -56,7 +55,6 @@ class WorkController {
     const tokenController = JOLLY.controller.TokenController;
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     try {
       const S3 = new AWS.S3();
@@ -415,16 +413,16 @@ class WorkController {
 
   }
 
-  addCoworker(id, coworker, user) {
+  addCoworker(options) {
+	  const { id, coworker, user, headers } = options;
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const db = this.getDefaultDB();
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
-    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-
     const mailService = JOLLY.service.Mail;
     const emailRegEx = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
     let work = null;
     return new Promise((resolve, reject) => {
-
       db.collection('works')
         .updateOne({
           _id: new mongodb.ObjectID(id),
@@ -438,44 +436,14 @@ class WorkController {
               const workData = work.toJson({});
               identityAnalytics.send(workData.user.toString());
               if (emailRegEx.test(coworker)) {
-                analytics.track({
-                  userId: user.id.toString(),
-                  event: 'Coworker Tagged on Job',
-                  properties: {
-                    userID: user.id.toString(),
-                    jobID: workData.id,
-                    eventID: workData.slug,
-                    jobAddedMethod: workData.addMethod || 'created',
-                    taggedCoworker: {
-                      userID: null,
-                      email: coworker,
-                      name: null
-                    },
-                    tagStatus: 'awaiting_response',
-                  }
-                });
+                workAnalytics.coworkerTagged(user.id.toString(), workData, { coworker });
                 const tokens = mailService.sendInvite([{ email: coworker, existing: false }], workData, { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
                 resolve(tokens);
               } else {
                 db.collection('users').findOne({
                   _id: new mongodb.ObjectID(coworker),
                 }).then((userData) => {
-                  analytics.track({
-                    userId: user.id.toString(),
-                    event: 'Coworker Tagged on Job',
-                    properties: {
-                      userID: user.id.toString(),
-                      jobID: workData.id,
-                      eventID: workData.slug,
-                      jobAddedMethod: workData.addMethod || 'created',
-                      taggedCoworker: {
-                        userID: userData._id.toString(),
-                        email: userData.email,
-                        name: `${userData.firstName} ${userData.lastName}`
-                      },
-                      tagStatus: 'awaiting_response',
-                    }
-                  });
+                  workAnalytics.coworkerTagged(user.id.toString(), workData, { coworker: userData });
                   const tokens = mailService.sendInvite([{ email: userData.email, existing: true}], work.toJson({}), { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
                   resolve(tokens);
                 });
