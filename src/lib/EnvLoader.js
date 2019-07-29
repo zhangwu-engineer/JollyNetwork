@@ -97,7 +97,7 @@ class EnvLoader {
 
 		let envVars = this.envVariables;
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
       return process.env[envKey] ? process.env[envKey] : defaultValue;
     } else {
       return envVars[envKey] ? envVars[envKey] : defaultValue;

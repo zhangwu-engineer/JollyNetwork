@@ -285,7 +285,6 @@ class PostController {
   }
 
   point(location) {
-    console.log(location);
     return {
       coordinates : [
         location.lng,
