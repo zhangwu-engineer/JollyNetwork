@@ -113,10 +113,10 @@ class WorkController {
 
       const newRole = await this.saveRole(role, user);
 
-      workAnalytics.send(user, work, { firstName, lastName, email });
+      workAnalytics.send(user, work, { firstName, lastName, email, isEventCreator: true });
 
       if (newRole) {
-        roleAnalytics.send(user, newRole, { work, firstName, lastName, email});
+        roleAnalytics.send(user, newRole, { work, firstName, lastName, email });
       }
 
       originalCoworkers.map(c => {

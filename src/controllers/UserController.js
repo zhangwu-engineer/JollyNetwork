@@ -12,6 +12,8 @@ const Analytics = require('analytics-node');
 const async = require("async");
 const checkEmail = require('../lib/CheckEmail');
 const IdentityAnalytics = require('../analytics/identity');
+const WorkAnalytics = require('../analytics/work');
+const RoleAnalytics = require('../analytics/role');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
@@ -1866,6 +1868,8 @@ class UserController {
 
   async acceptInvite(invite, user) {
     const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
     const workController = JOLLY.controller.WorkController;
     const connectionController = JOLLY.controller.ConnectionController;
     const self = this;
@@ -1923,42 +1927,17 @@ class UserController {
         }
       });
 
-      analytics.track({
-        userId: user.id.toString(),
-        event: 'Job Added',
-        properties: {
-          userID: user.id.toString(),
-          userFullname: `${user.firstName} ${user.lastName}`,
-          userEmail: user.email,
-          jobID: newWorkData.id,
-          eventID: newWorkData.slug,
-          role: newWorkData.role,
-          beginDate: newWorkData.from,
-          endDate: newWorkData.to,
-          jobCreatedTimestamp: newWorkData.date_created,
-          caption: newWorkData.caption,
-          numberOfImages: newWorkData.photos.length,
-          jobAddedMethod: 'tagged',
-          isEventCreator: false,
-        }
+      workAnalytics.send(user.id.toString(), newWorkData, {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        jobAddedMethod: 'tagged',
+        isEventCreator: false
       });
 
       if (newRole) {
-        analytics.track({
-          userId: user.id.toString(),
-          event: 'Role Added',
-          properties: {
-            userID: user.id.toString(),
-            userFullname: `${user.firstName} ${user.lastName}`,
-            userEmail: user.email,
-            roleName: newRole.name,
-            roleRateLow: newRole.minRate,
-            roleRateHigh: newRole.maxRate,
-            years: newRole.years,
-            throughJob: true,
-            jobID: newWorkData.id,
-            eventID: newWorkData.slug,
-          }
+        roleAnalytics.send(user.id.toString(), newRole, {
+          work: newWorkData, firstName: user.firstName, lastName: user.lastName, email: user.email
         });
       }
 
