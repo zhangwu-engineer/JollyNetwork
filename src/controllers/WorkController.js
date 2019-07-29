@@ -48,9 +48,11 @@ class WorkController {
 	 * @returns {Promise<Object>}
 	 */
 	async addWork (options) {
-    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const { title, role, from, to, caption, pinToProfile, photos,
+      user, email, firstName, lastName, userSlug, headers } = options;
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const tokenController = JOLLY.controller.TokenController;
     const userController = JOLLY.controller.UserController;
     const mailService = JOLLY.service.Mail;
@@ -58,7 +60,7 @@ class WorkController {
     AWS.config.update({ accessKeyId: JOLLY.config.AWS.ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.SECRET_ACCESS_KEY });
     try {
       const S3 = new AWS.S3();
-      const {title, role, from, to, caption, pinToProfile, photos, user, email, firstName, lastName, userSlug} = options;
+
       const fromString = dateFns.format(new Date(from), 'YYYYMMDD');
       const toString = dateFns.format(new Date(to), 'YYYYMMDD');
       let slug = `${title.toLowerCase().split(' ').join('-')}-${fromString}-${toString}`;
