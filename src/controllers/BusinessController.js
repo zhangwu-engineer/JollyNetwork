@@ -61,8 +61,10 @@ class BusinessController {
       business = await this.findBusinessById(businessId);
       if (business) {
         const businessData = business.toJson({});
-        const userData = await userController.getUserById(businessData.user);
-        businessData.userData = userData;
+        if (businessData.user) {
+          const userData = await userController.getUserById(businessData.user);
+          businessData.userData = userData;
+        }
         return businessData;
       }
       throw new ApiError('Business not found');
