@@ -315,15 +315,15 @@ class Mail {
     if (parseInt(freelancerCount, 10) < 11 && parseInt(postCount, 10) < 11) {
       allCount = 1;
     }
-    if(parseInt(allCount, 10) == 1){
+    if (parseInt(allCount, 10) === 1) {
       content = `<p><strong>${allFreelancersSignUpIn30days}</strong> new event freelancers joined Jolly</p>
       <p>Freelancers posted in their city feed <strong>${postCountIn30days}</strong> times</p>`
 
-    }else {
-      if(parseInt(freelancerCount, 10) > 0){
+    } else {
+      if (parseInt(freelancerCount, 10) > 0) {
         content += `<p><strong>${freelancerCount}</strong> new event freelancers in ${location} joined Jolly</p>`
       }
-      if(parseInt(postCount, 10) > 0){
+      if (parseInt(postCount, 10) > 0) {
         content += ` <p>${location} freelancers posted in the feed <strong>${postCount}</strong> times</p>`
       }
     }
@@ -359,9 +359,9 @@ class Mail {
         "async": async,
         "ip_pool": ip_pool,
         "send_at": send_at,
-      }, function(result) {
+      }, function (result) {
         resolve(result);
-      }, function(e) {
+      }, function (e) {
         console.log(e);
         reject(e);
       });
