@@ -19,7 +19,6 @@ const EntityUser = require('../entities/EntityUser'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
-  blockList = require('../enum/blockList'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -59,7 +58,8 @@ class UserController {
 
 		let self = this,
       authService = JOLLY.service.Authentication,
-      mailService = JOLLY.service.Mail;
+      mailService = JOLLY.service.Mail,
+      identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
 
     let {email, firstName, lastName, password, avatar, isBusiness, invite} = options,
 				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
@@ -100,6 +100,7 @@ class UserController {
         }
         newUserProfile = new EntityProfile(newProfileData);
         const userProfileData = await self.saveUserProfile(newUserProfile);
+        identityAnalytics.send(userData._id);
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
 
@@ -892,8 +893,6 @@ class UserController {
       checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
 
-    blockList.map(eachId => userIds.push(new mongodb.ObjectID(eachId)) );
-
     const aggregates = [
       {
         $match : {
@@ -905,25 +904,6 @@ class UserController {
     if (city) {
       aggregates[0]['$match']['location'] = city
     }
-    aggregates.push({
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user"
-      }
-    });
-    aggregates.push({
-      $unwind: "$user"
-    });
-    aggregates.push({
-      $match : {
-        $and: [
-          { 'user.email': { $regex: new RegExp('^((?!@jollyhq.com).)*$', "i") } },
-          { 'user.email': { $regex: new RegExp('^((?!@srvbl.com).)*$', "i") } },
-        ],
-      }
-    });
     if (query) {
       aggregates.push({
         $lookup: {

@@ -17,9 +17,7 @@ module.exports = (callbackOnComplete) => {
    * @private
    */
   let _callBack = (env) => {
-
     JOLLY.config = {
-
       APP: {
 
         VERSION: '1.0.0',
@@ -34,6 +32,8 @@ module.exports = (callbackOnComplete) => {
         AUTHENTICATION_SECRET: env.get('AUTHENTICATION_SECRET', 'jolly-api'),
 
         APP_DOMAIN: env.get('APP_DOMAIN', ''),
+
+        NODE_ENV: env.get('NODE_ENV', '')
       },
 
       MONGO_DB: {
