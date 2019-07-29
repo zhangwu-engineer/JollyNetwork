@@ -141,7 +141,7 @@ class BusinessController {
     let businessIds = businessesFromConnection1.concat(businessesFromConnection2);
     businessIds = businessIds.filter((v, i, arr) => arr.indexOf(v) === i);
 
-    businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId));
+    businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId.toString()));
     
     const aggregates = [
       {
@@ -241,7 +241,7 @@ class BusinessController {
       let businessIds = businessesFromConnection1.concat(businessesFromConnection2);
       businessIds = businessIds.filter((v, i, arr) => arr.indexOf(v) === i);
 
-      businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId));
+      businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId.toString()));
 
       const aggregates = [
         {
