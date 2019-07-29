@@ -21,7 +21,8 @@ class RoleAnalytics extends BaseAnalytics {
         throughJob: true,
         jobID: work.id,
         eventID: work.slug,
-      }
+      },
+      context: this.context()
     });
   }
 }

@@ -5,6 +5,7 @@ const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
 const Analytics = require('analytics-node');
+const buildContext = require('../analytics/helper/buildContext');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 let authService = JOLLY.service.Authentication,
   workController = JOLLY.controller.WorkController,
@@ -104,7 +105,8 @@ router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
   userController.getUserById(req.userId)
     .then(user => {
       return Promise.map(req.body.jobs, job => {
-        let params = Object.assign({}, job, { user: req.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug });
+        let params = Object.assign({}, job, { user: req.userId, email: user.email, firstName: user.firstName,
+          lastName: user.lastName, userSlug: user.slug, headers: buildContext(req)});
         return workController.addWork(params);
       });
     })

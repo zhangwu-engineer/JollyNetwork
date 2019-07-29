@@ -24,7 +24,8 @@ class WorkAnalytics extends BaseAnalytics {
         numberOfImages: work.photos.length,
         jobAddedMethod: 'created',
         isEventCreator: true,
-      }
+      },
+      context: this.context()
     });
   }
 
@@ -44,7 +45,8 @@ class WorkAnalytics extends BaseAnalytics {
           name: `${coworker.firstName} ${coworker.lastName}`
         },
         tagStatus: 'awaiting_response',
-      }
+      },
+      context: this.context()
     });
   }
 }
