@@ -35,7 +35,6 @@ class MarketingEmails {
 
   async monthlyDigestMailer() {
     let { startDate, endDate } = this.getStartAndEndDate();
-    console.log(startDate, endDate);
     const db = await this.getDatabase();
     const mail = new Mail();
 
