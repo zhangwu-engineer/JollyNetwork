@@ -436,7 +436,7 @@ class WorkController {
               const workData = work.toJson({});
               identityAnalytics.send(workData.user.toString());
               if (emailRegEx.test(coworker)) {
-                workAnalytics.coworkerTagged(user.id.toString(), workData, { coworker });
+                workAnalytics.coworkerTagged(user.id.toString(), workData, { coworker: { email: coworker } });
                 const tokens = mailService.sendInvite([{ email: coworker, existing: false }], workData, { userId: user.id, firstName: user.firstName, lastName: user.lastName, slug: user.slug });
                 resolve(tokens);
               } else {

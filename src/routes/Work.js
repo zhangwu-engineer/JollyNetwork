@@ -4,7 +4,7 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
-const Analytics = require('analytics-node');
+const WorkAnalytics = require('../analytics/work');
 const buildContext = require('../analytics/helper/buildContext');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 let authService = JOLLY.service.Authentication,
@@ -214,22 +214,11 @@ router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddl
 }));
 
 router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
   const work = await workController.findWorkById(req.params.id);
   const workData = work.toJson({});
   await workController.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }));
-  analytics.track({
-    userId: req.userId,
-    event: 'Coworker Job Verified',
-    properties: {
-      userID: req.userId,
-      jobID: workData.id,
-      eventID: workData.slug,
-      jobAddedMethod: workData.addMethod,
-      verificationMethod: 'clicked',
-      verifiedCoworkerUserID: req.body.coworker,
-    }
-  });
+  workAnalytics.coworkerTaggedVerified(req.userId, workData, { coworker: req.body.coworker});
   await userController.checkConnectedBadge(req.userId);
   res.apiSuccess({});
 }));
