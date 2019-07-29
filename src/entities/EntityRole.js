@@ -9,6 +9,7 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {String} unit
  * @property {Boolean} isRecruiting
  * @property {ObjectId} user_id
+ * @property {ObjectId} business_id
  * @property {Date|String} date_created
  * @property {Date|String} date_updated
  *
@@ -32,7 +33,8 @@ class EntityRole extends BaseEntityWithID {
         this._maxRate = options.maxRate || null;
         this._unit = options.unit;
         this._isRecruiting = options.isRecruiting === undefined ? false : options.isRecruiting;
-        this._userId = new ObjectId(options.user_id);
+        this._userId = options.user_id ? new ObjectId(options.user_id) : null;
+        this._businessId = options.business_id ? new ObjectId(options.business_id) : null;
         this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
         this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
     }
@@ -57,6 +59,7 @@ class EntityRole extends BaseEntityWithID {
       data.unit = this._unit;
       data.isRecruiting = this._isRecruiting;
       data.user_id = this._userId;
+      data.business_id = this._businessId;
       data.date_created = this._dateCreated;
       data.date_updated = this._dateUpdated;
 

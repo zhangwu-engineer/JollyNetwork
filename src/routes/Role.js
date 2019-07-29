@@ -7,6 +7,7 @@ const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 let authService = JOLLY.service.Authentication,
   userController = JOLLY.controller.UserController,
+  businessController = JOLLY.controller.BusinessController,
   workController = JOLLY.controller.WorkController,
   endorsementController = JOLLY.controller.EndorsementController,
 	roleController = JOLLY.controller.RoleController;
@@ -47,6 +48,18 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
         });
       })
     )
+    .then((roles) => {
+      res.apiSuccess({
+        roles,
+      });
+		})
+		.catch(next);
+});
+
+router.get('/business', authService.verifyUserAuthentication, (req, res, next) => {
+
+  roleController
+    .getBusinessRoles(req.params.business_id)
     .then((roles) => {
       res.apiSuccess({
         roles,
@@ -98,11 +111,26 @@ router.get('/user/:slug', (req, res, next) => {
     .catch(next);
 });
 
+router.get('/business/:slug', (req, res, next) => {
+  let business;
+  businessController.getBusinessBySlug(req.params.slug)
+    .then(businessData => {
+      business = businessData;
+      return roleController.getBusinessRoles(businessData.id);
+    })
+    .then((roles) => {
+      res.apiSuccess({
+        roles,
+      });
+    })
+    .catch(next);
+});
+
 /**
  * create new role into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const rolesData = await Promise.map(req.body.roles, role => roleController.addRole(Object.assign({}, role, { user_id: req.userId })))
+  const rolesData = await Promise.map(req.body.roles, role => roleController.addRole(Object.assign({}, role, { user_id: req.userId, business_id: req.body.business_id })))
   res.apiSuccess({
     roles: rolesData
   });
