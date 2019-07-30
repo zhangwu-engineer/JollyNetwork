@@ -6,7 +6,11 @@ const geocode = (address) => {
   return new Promise(async (resolve, reject) => {
     googleMapsClient.geocode({ address: address}).asPromise()
       .then((response) => {
-        resolve(response.json.results[0].geometry.location);
+        if(response.json.results[0]) {
+          resolve(response.json.results[0].geometry.location);
+        } else {
+          resolve({});
+        }
       })
       .catch((err) => {
         reject(err);
