@@ -6,6 +6,7 @@ const Promise = require('bluebird');
 const IdentityAnalytics = require('../analytics/identity');
 const PostAnalytics = require('../analytics/post');
 const geocode = require('../lib/geocode');
+const point = require('../lib/point');
 const EntityPost = require('../entities/EntityPost'),
 	DbNames = require('../enum/DbNames');
 
@@ -266,16 +267,6 @@ class PostController {
         .find({ 'votes': {'$all': [ userId.toString() ]}}).count();
       resolve(postHelpfulCount);
     });
-  }
-
-  point(location) {
-    return {
-      coordinates : [
-        location.lng,
-        location.lat
-      ],
-      type : "Point"
-    }
   }
 }
 

@@ -10,6 +10,8 @@ const Promise = require('bluebird');
 const  ApiError = require('../lib/ApiError');
 const async = require("async");
 const checkEmail = require('../lib/CheckEmail');
+const geocode = require('../lib/geocode');
+const point = require('../lib/point');
 const IdentityAnalytics = require('../analytics/identity');
 const BadgeAnalytics = require('../analytics/badge');
 const WorkAnalytics = require('../analytics/work');
@@ -872,17 +874,32 @@ class UserController {
       checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
 
-    const aggregates = [
+    const aggregates = [];
+
+    if (city) {
+      const geo_location = await geocode(city);
+      aggregates.push({
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [ geo_location.lng, geo_location.lat]
+          },
+          distanceField: "distance",
+          maxDistance: 80467.2,
+          spherical: true,
+          limit: 50000
+        }
+      });
+    }
+
+    aggregates.push(
       {
         $match : {
           userId: { $nin: userIds },
         }
-      },
-      { $sort  : { userId : -1 } },
-    ];
-    if (city) {
-      aggregates[0]['$match']['location'] = city
-    }
+      }
+    );
+
     if (query) {
       aggregates.push({
         $lookup: {
@@ -1111,139 +1128,6 @@ class UserController {
     }
   }
 
-  async searchCityUsersConnected(city, query, page, perPage, role, activeStatus, businessId) {
-    const db = this.getDefaultDB();
-    const skip = page && perPage ? (page - 1) * perPage : 0;
-
-    const connectionController = JOLLY.controller.ConnectionController;
-
-    let queryConnections1 = {
-      to: { $in: [businessId] },
-      status: ConnectionStatus.CONNECTED
-    };
-    let queryConnections2 = {
-      from: { $in: [businessId] },
-      status: ConnectionStatus.CONNECTED
-    };
-
-    const connections1 = await connectionController
-      .findConnections(queryConnections1);
-    const usersFromConnection1 = connections1.map(connection => connection.from);
-    const connections2 = await connectionController
-      .findConnections(queryConnections2);
-    const usersFromConnection2 = connections2.map(connection => connection.to);
-    let userIds = usersFromConnection1.concat(usersFromConnection2);
-    userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
-    userIds = await Promise.map(userIds, userId =>
-      new mongodb.ObjectID(userId)
-    );
-
-    const aggregates = [
-      {
-        $match : {
-          userId: { $in: userIds },
-        }
-      },
-      { $sort  : { userId : -1 } },
-    ];
-    if (city) {
-      aggregates[0]['$match']['location'] = city
-    }
-    if (query) {
-      aggregates.push({
-        $lookup: {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "user"
-        }
-      });
-      aggregates.push({
-        $unwind: "$user"
-      });
-      aggregates.push({
-        $match : {
-          'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
-        }
-      });
-    }
-    if (role) {
-      aggregates.push({
-        $lookup: {
-          from: "roles",
-          localField: "userId",
-          foreignField: "user_id",
-          as: "roles"
-        }
-      });
-      aggregates.push({
-        $unwind: "$roles"
-      });
-      aggregates.push({
-        $match : {
-          'roles.name': role,
-        }
-      });
-    }
-    if (activeStatus && activeStatus !== '') {
-      aggregates.push({
-        $lookup: {
-          from: "works",
-          localField: "userId",
-          foreignField: "user",
-          as: "userworks"
-        }
-      });
-      aggregates.push({
-        $unwind: "$userId"
-      });
-      if (activeStatus === 'Active')
-        aggregates.push({
-          $match : {
-            'userworks.date_created': { $gt: new Date(Date.now() - 24*60*60*1000*60) }
-          }
-        });
-      else if (activeStatus === 'Inactive')
-        aggregates.push({
-          $match : {
-            $or: [
-              { 'userworks.slug': { $exists: false} },
-              { 'userworks.date_created': { $lte: new Date(Date.now() - 24*60*60*1000*60) } }
-            ]
-          }
-        });
-    }
-    if (page && perPage) {
-      aggregates.push({
-        $facet : {
-          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
-          data: [ { $skip:  skip}, { $limit:  perPage } ]
-        }
-      })
-    } else {
-      aggregates.push({
-        $facet : {
-          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
-          data: [ { $skip:  skip} ]
-        }
-      })
-    }
-    try {
-      const data = await db.collection('profiles').aggregate(aggregates).toArray();
-
-      const profiles = data[0].data;
-      let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
-
-      return {
-        total: data[0].meta[0] ? data[0].meta[0].total : 0,
-        page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
-        users,
-      };
-    } catch (err) {
-      throw new ApiError(err.message);
-    }
-  }
-
   async getUserCoworkers(userSlug) {
     const db = this.getDefaultDB();
     let coworkers;
@@ -1312,17 +1196,33 @@ class UserController {
           ? this.getUserByEmail(userId).id
           : new mongodb.ObjectID(userId)
       );
-      const aggregates = [
+
+      const aggregates = [];
+
+      if (city) {
+        const geo_location = await geocode(city);
+        aggregates.push({
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [ geo_location.lng, geo_location.lat]
+            },
+            distanceField: "distance",
+            maxDistance: 80467.2,
+            spherical: true,
+            limit: 50000
+          }
+        });
+      }
+
+      aggregates.push(
         {
           $match : {
             userId: { $in: connectionIds },
           }
-        },
-        { $sort  : { userId : -1 } },
-      ];
-      if (city) {
-        aggregates[0]['$match']['location'] = city
-      }
+        }
+      );
+
       if (query) {
         aggregates.push({
           $lookup: {
@@ -1674,8 +1574,11 @@ class UserController {
       collectionName = 'profiles',
       profile = null;
 
-		return new Promise((resolve, reject) => {
-
+		return new Promise(async (resolve, reject) => {
+      if(data.location) {
+        let location = await geocode(data.location);
+        data.geo_location = point(location);
+      }
 			db.collection(collectionName)
 				.updateOne({ userId: new mongodb.ObjectID(userId) }, { $set: data })
 				.then(() => {
