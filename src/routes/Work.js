@@ -214,7 +214,7 @@ router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddl
 }));
 
 router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, buildContext(req));
   const work = await workController.findWorkById(req.params.id);
   const workData = work.toJson({});
   await workController.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }));
@@ -246,7 +246,7 @@ router.post('/invite/accept', authService.verifyUserAuthentication, (req, res, n
   userController
     .getUserById(req.userId)
     .then(user => {
-      return userController.acceptInvite(req.body, user);
+      return userController.acceptInvite({ invite: req.body, user, headers: buildContext(req) });
     })
     .then(() => {
       res.apiSuccess({});
