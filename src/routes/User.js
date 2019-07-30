@@ -77,7 +77,8 @@ router.get('/slug/:slug/files', (req, res, next) => {
 
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
-  userController.updateUser(req.params.id, req.body)
+  const params = { userId: req.params.id, data: req.body, headers: buildContext(req) };
+  userController.updateUser(params)
     .then(userData => {
       res.apiSuccess(userData);
     })
@@ -136,7 +137,7 @@ router.post('/verify-phone', authService.verifyUserAuthentication, (req, res, ne
 router.post('/verify-phone-token', authService.verifyUserAuthentication, (req, res, next) => {
   tokenController.verify(req.body.token)
     .then(() => {
-      return userController.updateUser(req.userId, { profile: { verifiedPhone: true } });
+      return userController.updateUser({ userId: req.userId, data: { profile: { verifiedPhone: true }} });
     })
     .then(() => {
       res.apiSuccess();

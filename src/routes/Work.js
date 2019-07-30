@@ -196,8 +196,9 @@ router.get('/:id/user', (req, res, next) => {
 });
 
 router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const headers = buildContext(req);
   const user = await userController.getUserById(req.userId);
-  const params = { id: req.params.id, coworker: req.body.coworker, user: user, headers: buildContext(req) };
+  const params = { id: req.params.id, coworker: req.body.coworker, user: user, headers: headers };
   const tokens = await workController.addCoworker(params);
   await Promise.map(tokens, (token) => {
     return new Promise((resolve, reject) => {
@@ -209,17 +210,18 @@ router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddl
         .catch(reject);
     });
   });
-  await userController.checkConnectedBadge(req.userId);
+  await userController.checkConnectedBadge(req.userId, headers);
   res.apiSuccess({});
 }));
 
 router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, buildContext(req));
+  const headers = buildContext(req);
+  const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
   const work = await workController.findWorkById(req.params.id);
   const workData = work.toJson({});
   await workController.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }));
   workAnalytics.coworkerTaggedVerified(req.userId, workData, { coworker: req.body.coworker});
-  await userController.checkConnectedBadge(req.userId);
+  await userController.checkConnectedBadge(req.userId, headers);
   res.apiSuccess({});
 }));
 

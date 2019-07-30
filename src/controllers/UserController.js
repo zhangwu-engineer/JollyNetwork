@@ -8,10 +8,10 @@ const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
 const  ApiError = require('../lib/ApiError');
-const Analytics = require('analytics-node');
 const async = require("async");
 const checkEmail = require('../lib/CheckEmail');
 const IdentityAnalytics = require('../analytics/identity');
+const BadgeAnalytics = require('../analytics/badge');
 const WorkAnalytics = require('../analytics/work');
 const RoleAnalytics = require('../analytics/role');
 const ConnectionStatus = require('../enum/ConnectionStatus');
@@ -320,8 +320,9 @@ class UserController {
     }
   }
 
-  async updateUser(userId, data) {
-    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  async updateUser(options) {
+	  const { userId, data, headers } = options;
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     let self = this,
       currentUser = null,
       user = null,
@@ -360,12 +361,13 @@ class UserController {
         identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
+          console.log(data.profile);
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
           const updatedProfileData = updatedProfile.toJson();
           userData.profile = updatedProfileData;
 
-          await this.checkCityFreelancerBadge(userId);
-          await this.checkReadyAndWillingBadge(userId);
+          await this.checkCityFreelancerBadge(userId, headers);
+          await this.checkReadyAndWillingBadge(userId, headers);
 
         }
         if (data.business) {
@@ -382,22 +384,16 @@ class UserController {
     }
   }
 
-  async checkCityFreelancerBadge(userId) {
+  async checkCityFreelancerBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const userRoles = await db.collection('roles').find({ user_id: new mongodb.ObjectID(userId) }).toArray();
       const user = await this.getUserById(userId);
       if (userRoles.length > 0 && user.profile.location) {
         if (!user.profile.cityFreelancer) {
           await this.updateUserProfile(userId, { cityFreelancer: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'city freelancer',
-            }
-          });
+          badgeAnalytics.send(userId, 'city freelancer');
         }
       }
     } catch (err) {
@@ -405,9 +401,10 @@ class UserController {
     }
   }
 
-  async checkActiveFreelancerBadge(userId) {
+  async checkActiveFreelancerBadge(userId, headers) {
+	  console.log("checkActiveFreelancerBadge", userId, headers);
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const userJobCountWithin60Days = await db.collection('works').countDocuments({
         user: new mongodb.ObjectID(userId),
@@ -417,13 +414,7 @@ class UserController {
       if (userJobCountWithin60Days > 0) {
         if (!user.profile.activeFreelancer) {
           await this.updateUserProfile(userId, { activeFreelancer: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'active job streak',
-            }
-          });
+          badgeAnalytics.send(userId, 'active job streak');
         }
       }
     } catch (err) {
@@ -431,9 +422,9 @@ class UserController {
     }
   }
 
-  async checkReadyAndWillingBadge(userId) {
+  async checkReadyAndWillingBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const user = await this.getUserById(userId);
       const userProfile = user.profile;
@@ -448,13 +439,7 @@ class UserController {
       ) {
         if (!user.profile.readyAndWilling) {
           await this.updateUserProfile(userId, { readyAndWilling: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'ready and willing',
-            }
-          });
+          badgeAnalytics.send(userId, 'ready and willing');
         }
       }
     } catch (err) {
@@ -462,9 +447,9 @@ class UserController {
     }
   }
 
-  async checkConnectedBadge(userId) {
+  async checkConnectedBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const user = await this.getUserById(userId);
       const userProfile = user.profile;
@@ -499,13 +484,7 @@ class UserController {
 
         if (howConnected !== '' && userProfile.connected !== howConnected) {
           await this.updateUserProfile(userId, { connected: howConnected });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: howConnected,
-            }
-          });
+          badgeAnalytics.send(userId, howConnected);
         }
       }
     } catch (err) {
@@ -534,7 +513,7 @@ class UserController {
     let self = this;
 
     try {
-      const userData = await self.updateUser(userId, { profile: { phone: data.phone, verifiedPhone: false }});
+      const userData = await self.updateUser({ userId: userId, data: { profile: { phone: data.phone, verifiedPhone: false }} });
       return userData;
     } catch (err) {
       throw err;
