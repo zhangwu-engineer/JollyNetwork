@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const checkEmail = require('../lib/CheckEmail');
+const buildContext = require('../analytics/helper/buildContext');
 ConnectionStatus = require('../enum/ConnectionStatus');
 let authService = JOLLY.service.Authentication,
   smsService = JOLLY.service.SMS,
@@ -98,9 +99,9 @@ router.get('/me', authService.verifyUserAuthentication, (req, res, next) => {
  * Register new user into system.
  */
 router.post('/register', (req, res, next) => {
-
+  const params = Object.assign({}, req.body, { headers: buildContext(req) });
 	userController
-		.registerUser(req.body)
+		.registerUser(params)
 		.then((userData) => {
 			authToken = authService.generateToken({
 				userId: userData.id

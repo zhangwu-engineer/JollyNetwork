@@ -6,7 +6,7 @@ class WorkAnalytics extends BaseAnalytics {
   }
 
   send(user, work, options) {
-    let { firstName, lastName, email, jobAddedMethod, isEventCreator } = options;
+    const { firstName, lastName, email, jobAddedMethod, isEventCreator } = options;
     this.analytics.track({
       userId: user,
       event: 'Job Added',
@@ -30,29 +30,29 @@ class WorkAnalytics extends BaseAnalytics {
   }
 
   coworkerTagged(user, work, options) {
-    let { coworker } = options;
-
-    let params = { email: coworker.email };
-    if(coworker.id) params.userID = coworker.id;
+    const { coworker, tagStatus, tagger } = options;
+    const params = { email: coworker.email };
+    if(coworker._id) params.userID = coworker._id.toString();
+    if(coworker.id) params.userID = coworker.id.toString();
     if(coworker.firstName) params.name = `${coworker.firstName} ${coworker.lastName}`;
 
     this.analytics.track({
       userId: user,
       event: 'Coworker Tagged on Job',
       properties: {
-        userID: user,
+        userID: tagger || user,
         jobID: work.id,
         eventID: work.slug,
         jobAddedMethod: work.addMethod || 'created',
         taggedCoworker: params,
-        tagStatus: 'awaiting_response',
+        tagStatus: tagStatus || 'awaiting_response',
       },
       context: this.context()
     });
   }
 
   coworkerTaggedVerified(user, work, options) {
-    let { coworker } = options;
+    const { coworker, verificationMethod } = options;
     this.analytics.track({
       userId: user,
       event: 'Coworker Job Verified',
@@ -61,9 +61,25 @@ class WorkAnalytics extends BaseAnalytics {
         jobID: work.id,
         eventID: work.slug,
         jobAddedMethod: work.addMethod,
-        verificationMethod: 'clicked',
+        verificationMethod: verificationMethod || 'clicked',
         verifiedCoworkerUserID: coworker,
-      }
+      },
+      context: this.context()
+    });
+  }
+
+  coworkerTagAccepted(user, work, options) {
+    const { taggingUserID } = options;
+    this.analytics.track({
+      userId: user,
+      event: 'Coworker Tag on Job Accepted',
+      properties: {
+        userID: user,
+        jobID: work._id,
+        eventID: work.slug,
+        taggingUserID: taggingUserID,
+      },
+      context: this.context()
     });
   }
 }

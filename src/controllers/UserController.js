@@ -57,16 +57,14 @@ class UserController {
 	 * @returns {Promise<Object>}
 	 */
 	async registerUser (options) {
-
+    let { email, firstName, lastName, password, avatar, isBusiness, invite, headers } = options;
 		let self = this,
       authService = JOLLY.service.Authentication,
       mailService = JOLLY.service.Mail,
-      identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-
-    let {email, firstName, lastName, password, avatar, isBusiness, invite} = options,
-				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
-        newUser,
-        newUserProfile;
+      identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers),
+      encryptedPassword = password ? authService.generateHashedPassword(password) : '',
+      newUser,
+      newUserProfile;
 
       email = email.toLowerCase();
 			firstName = firstName.toLowerCase();
@@ -112,7 +110,7 @@ class UserController {
         res.businesses = [userBusinessData.toJson()];
 
         if (invite) {
-          await self.acceptInvite(invite, res);
+          await self.acceptInvite({ invite, user: res, headers });
         }
         mailService.sendEmailVerification(res);
         return res;
@@ -1866,16 +1864,15 @@ class UserController {
 			});
   }
 
-  async acceptInvite(invite, user) {
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
-    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  async acceptInvite(options) {
+	  let { invite, user, headers } = options;
+    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const workController = JOLLY.controller.WorkController;
     const connectionController = JOLLY.controller.ConnectionController;
     const self = this;
     try {
       const workData = invite.work;
-      const originalAddMethod = workData.addMethod;
       workData.user = user.id;
       workData.addMethod = 'tagged';
       workData.coworkers = workData.verifiers;
@@ -1887,46 +1884,13 @@ class UserController {
         await connectionController.createCoworkerConnection(workData.verifiers[0], user.id.toString());
       }
       if (workData.verifiers) {
-        analytics.track({
-          userId: user.id.toString(),
-          event: 'Coworker Tagged on Job',
-          properties: {
-            userID: invite.tagger && invite.tagger.userId,
-            jobID: workData.id,
-            eventID: workData.slug,
-            jobAddedMethod: workData.addMethod || 'created',
-            taggedCoworker: {
-              userID: user.id.toString(),
-              email: user.email,
-              name: `${user.firstName} ${user.lastName}`
-            },
-            tagStatus: 'accepted',
-          }
-        });
-        analytics.track({
-          userId: invite.tagger && invite.tagger.userId,
-          event: 'Coworker Job Verified',
-          properties: {
-            userID: invite.tagger && invite.tagger.userId,
-            jobID: workData.id,
-            eventID: workData.slug,
-            jobAddedMethod: originalAddMethod,
-            verificationMethod: 'tagged',
-            verifiedCoworkerUserID: user.id.toString(),
-          }
-        });
-      }
-      analytics.track({
-        userId: user.id.toString(),
-        event: 'Coworker Tag on Job Accepted',
-        properties: {
-          userID: user.id.toString(),
-          jobID: workData.id,
-          eventID: workData.slug,
-          taggingUserID: invite.tagger && invite.tagger.userId,
-        }
-      });
+        workAnalytics.coworkerTagged(user.id.toString(), workData, {
+          coworker: user, tagStatus: 'accepted', tagger: invite.tagger && invite.tagger.userId });
 
+        workAnalytics.coworkerTaggedVerified(invite.tagger && invite.tagger.userId, workData, {
+          coworker: user.id.toString(), verificationMethod: 'tagged' });
+      }
+      workAnalytics.coworkerTagAccepted(user.id.toString(), workData, {taggingUserID: invite.tagger && invite.tagger.userId});
       workAnalytics.send(user.id.toString(), newWorkData, {
         firstName: user.firstName,
         lastName: user.lastName,
