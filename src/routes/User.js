@@ -7,6 +7,7 @@ const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const checkEmail = require('../lib/CheckEmail');
 const buildContext = require('../analytics/helper/buildContext');
+const UserAnalytics = require('../analytics/user');
 ConnectionStatus = require('../enum/ConnectionStatus');
 let authService = JOLLY.service.Authentication,
   smsService = JOLLY.service.SMS,
@@ -202,12 +203,14 @@ router.post('/city/connected', authService.verifyUserAuthentication, (req, res, 
 });
 
 router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, next) => {
+  const userAnalytics = new UserAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, buildContext(req));
   userController
     .getUserById(req.userId)
     .then(user => {
       return  mailService.sendSignupInvite(req.body.email, user);
     })
     .then(() => {
+      userAnalytics.sendInvite(req.userId, req.body.email);
       res.apiSuccess({});
     })
     .catch(next);
