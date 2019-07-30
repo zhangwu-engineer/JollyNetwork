@@ -24,9 +24,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
   const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      let connectionType = connection && connection.connectionType;
-
-      if (connectionType === 'b2f') {
+      if (connection.connectionType === 'b2f') {
         businessController
         .getBusinessById(connection.from)
         .then(business => {
@@ -34,10 +32,8 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
           populatedData.from = business;
           resolve(populatedData);
         })
-        .catch(error => {
-          resolve({})
-        });
-      } else if (connectionType === 'f2f') {
+        .catch(reject);
+      } else if (connection.connectionType !== 'b2f' && connection.connectionType !== 'f2b') {
         userController
           .getUserById(connection.from)
           .then(user => {
@@ -45,9 +41,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
             populatedData.from = user;
             resolve(populatedData);
           })
-          .catch(error => {
-            resolve({})
-          });
+          .catch(reject);
       } else {
         resolve({})
       }

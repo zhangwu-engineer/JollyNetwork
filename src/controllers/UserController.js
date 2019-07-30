@@ -1265,6 +1265,7 @@ class UserController {
           ? this.getUserByEmail(profile.userId.toLowerCase())
           : this.getUserById(profile.userId)
       );
+
       connections = await Promise.map(connections, profile => {
         const newProfile = Object.assign({}, profile);
         const foundConnection1 = connections1.filter(connection => {
@@ -1279,6 +1280,7 @@ class UserController {
         newProfile.isCoworker = foundConnection.length > 0 ? foundConnection[0].isCoworker : false;
         return newProfile;
       });
+
       return connections;
     } catch (err) {
       throw new ApiError(err.message);
