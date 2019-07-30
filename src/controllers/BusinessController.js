@@ -141,7 +141,9 @@ class BusinessController {
     let businessIds = businessesFromConnection1.concat(businessesFromConnection2);
     businessIds = businessIds.filter((v, i, arr) => arr.indexOf(v) === i);
 
-    businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId.toString()));
+    businessIds = await Promise.map(businessIds, businessId => mongodb.ObjectID.isValid(businessId) ? new mongodb.ObjectID(businessId) : null);
+    businessIds = businessIds.filter(businessId => businessId !== null);
+
     
     const aggregates = [
       {
