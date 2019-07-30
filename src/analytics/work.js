@@ -82,6 +82,23 @@ class WorkAnalytics extends BaseAnalytics {
       context: this.context()
     });
   }
+
+  coworkerEndorsed(user, work, options) {
+    const { quality, coworkerId } = options;
+    this.analytics.track({
+      userId: user,
+      event: 'Coworker Job Endorsed',
+      properties: {
+        userID: user,
+        jobID: work.id,
+        eventID: work.slug,
+        jobAddedMethod: work.addMethod,
+        qualitySelected: quality,
+        endorsedCoworkerUserID: coworkerId,
+      },
+      context: this.context()
+    });
+  }
 }
 
 module.exports = WorkAnalytics;
