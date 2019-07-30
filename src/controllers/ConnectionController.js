@@ -101,7 +101,7 @@ class ConnectionController {
         }
 
         connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId, isCoworker, toUserId: toUser.id });
-        await userController.checkConnectedBadge(fromUserId);
+        await userController.checkConnectedBadge(fromUserId, headers);
 
         return connectionData.toJson({});
       } else if (existing[0].isCoworker !== isCoworker && isCoworker) {
