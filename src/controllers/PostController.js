@@ -56,7 +56,7 @@ class PostController {
         content,
         location,
         user,
-        geo_location: this.point(geo_location),
+        geo_location: point(geo_location),
       });
 
       const post = await this.savePost(newPost);
