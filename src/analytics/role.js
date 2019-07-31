@@ -6,8 +6,8 @@ class RoleAnalytics extends BaseAnalytics {
   }
 
   send(user, role, options) {
-    let { work, firstName, lastName, email } = options;
-    this.analytics.track({
+    const { work, firstName, lastName, email } = options;
+    let params = {
       userId: user,
       event: 'Role Added',
       properties: {
@@ -21,9 +21,9 @@ class RoleAnalytics extends BaseAnalytics {
         throughJob: true,
         jobID: work.id,
         eventID: work.slug,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 }
 

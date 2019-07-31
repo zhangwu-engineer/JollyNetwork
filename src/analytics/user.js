@@ -6,15 +6,15 @@ class UserAnalytics extends BaseAnalytics {
   }
 
   sendInvite(user, email) {
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'User Invited',
       properties: {
         requesterUserId: user,
         invitedUserId: email,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 }
 

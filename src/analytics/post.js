@@ -6,7 +6,7 @@ class PostAnalytics extends BaseAnalytics  {
   }
 
   send(user, post) {
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Post Created',
       properties: {
@@ -14,21 +14,21 @@ class PostAnalytics extends BaseAnalytics  {
         posterID: user,
         postType: post.category,
         city: post.location,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 
   sendVote(user, postId) {
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Helpful Clicked',
       properties: {
         postID: postId,
         userID: user,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 }
 
