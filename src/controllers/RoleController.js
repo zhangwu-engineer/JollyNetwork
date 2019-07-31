@@ -57,9 +57,6 @@ class RoleController {
       });
 
       const roleData = await this.saveRole(newRole);
-      if (!business_id) {
-        await userController.checkCityFreelancerBadge(user_id, headers);
-      }
       return roleData.toJson({});
     } catch(err) {
       throw new ApiError(err.message);
