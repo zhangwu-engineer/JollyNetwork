@@ -7,7 +7,7 @@ class WorkAnalytics extends BaseAnalytics {
 
   send(user, work, options) {
     const { firstName, lastName, email, jobAddedMethod, isEventCreator } = options;
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Job Added',
       properties: {
@@ -24,19 +24,18 @@ class WorkAnalytics extends BaseAnalytics {
         numberOfImages: work.photos.length,
         jobAddedMethod: jobAddedMethod || 'created',
         isEventCreator: isEventCreator,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 
   coworkerTagged(user, work, options) {
     const { coworker, tagStatus, tagger } = options;
-    const params = { email: coworker.email };
-    if(coworker._id) params.userID = coworker._id.toString();
-    if(coworker.id) params.userID = coworker.id.toString();
-    if(coworker.firstName) params.name = `${coworker.firstName} ${coworker.lastName}`;
-
-    this.analytics.track({
+    const taggedCoworker = { email: coworker.email };
+    if(coworker._id) taggedCoworker.userID = coworker._id.toString();
+    if(coworker.id) taggedCoworker.userID = coworker.id.toString();
+    if(coworker.firstName) taggedCoworker.name = `${coworker.firstName} ${coworker.lastName}`;
+    let params = {
       userId: user,
       event: 'Coworker Tagged on Job',
       properties: {
@@ -44,16 +43,16 @@ class WorkAnalytics extends BaseAnalytics {
         jobID: work.id,
         eventID: work.slug,
         jobAddedMethod: work.addMethod || 'created',
-        taggedCoworker: params,
+        taggedCoworker,
         tagStatus: tagStatus || 'awaiting_response',
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 
   coworkerTaggedVerified(user, work, options) {
     const { coworker, verificationMethod } = options;
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Coworker Job Verified',
       properties: {
@@ -63,14 +62,14 @@ class WorkAnalytics extends BaseAnalytics {
         jobAddedMethod: work.addMethod,
         verificationMethod: verificationMethod || 'clicked',
         verifiedCoworkerUserID: coworker,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 
   coworkerTagAccepted(user, work, options) {
     const { taggingUserID } = options;
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Coworker Tag on Job Accepted',
       properties: {
@@ -78,14 +77,14 @@ class WorkAnalytics extends BaseAnalytics {
         jobID: work._id,
         eventID: work.slug,
         taggingUserID: taggingUserID,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 
   coworkerEndorsed(user, work, options) {
     const { quality, coworkerId } = options;
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Coworker Job Endorsed',
       properties: {
@@ -95,9 +94,9 @@ class WorkAnalytics extends BaseAnalytics {
         jobAddedMethod: work.addMethod,
         qualitySelected: quality,
         endorsedCoworkerUserID: coworkerId,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 }
 

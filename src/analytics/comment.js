@@ -6,14 +6,14 @@ class CommentAnalytics extends BaseAnalytics {
   }
 
   send(user, comment) {
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Comment Submitted',
       properties: {
         postID: comment.post,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 }
 
