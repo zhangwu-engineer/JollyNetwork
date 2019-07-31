@@ -6,11 +6,12 @@ const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const buildContext = require('../analytics/helper/buildContext');
+const IdentityAnalytics = require('../analytics/identity');
 let authService = JOLLY.service.Authentication,
   userController = JOLLY.controller.UserController,
   workController = JOLLY.controller.WorkController,
   endorsementController = JOLLY.controller.EndorsementController,
-	roleController = JOLLY.controller.RoleController;
+  roleController = JOLLY.controller.RoleController;
 
 
 /**
@@ -52,8 +53,8 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
       res.apiSuccess({
         roles,
       });
-		})
-		.catch(next);
+    })
+    .catch(next);
 });
 
 router.get('/user/:slug', (req, res, next) => {
@@ -103,42 +104,50 @@ router.get('/user/:slug', (req, res, next) => {
  * create new role into system.
  */
 router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const headers = buildContext(req);
+  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
   const rolesData = await Promise.map(req.body.roles, role => roleController.addRole(Object.assign({}, role, {
     user_id: req.userId, headers: buildContext(req)
   })));
+  identityAnalytics.send(req.userId);
   res.apiSuccess({
     roles: rolesData
   });
 }));
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
-	roleController
-		.updateRole(req.params.id, req.body)
-		.then((roleData) => {
-			res.apiSuccess({
-				role: roleData.toJson({}),
-			});
-		})
-		.catch(next);
+  const headers = buildContext(req);
+  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+  roleController
+    .updateRole(req.params.id, req.body)
+    .then((roleData) => {
+      identityAnalytics.send(req.userId);
+      res.apiSuccess({
+        role: roleData.toJson({}),
+      });
+    })
+    .catch(next);
 });
 
 router.delete('/:id', authService.verifyUserAuthentication, (req, res, next) => {
-
-	roleController
-		.deleteRole(req.params.id)
-		.then(() => {
-			res.apiSuccess({});
-		})
-		.catch(next);
+  const headers = buildContext(req);
+  const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+  roleController
+    .deleteRole(req.params.id)
+    .then(() => {
+      identityAnalytics.send(req.userId);
+      res.apiSuccess({});
+    })
+    .catch(next);
 });
 
 router.get('/clean-date-started', (req, res, next) => {
-	roleController
-		.cleanDateStarted()
-		.then(() => {
-			res.apiSuccess({});
-		})
-		.catch(next);
+  roleController
+    .cleanDateStarted()
+    .then(() => {
+      res.apiSuccess({});
+    })
+    .catch(next);
 });
 
 module.exports = router;
