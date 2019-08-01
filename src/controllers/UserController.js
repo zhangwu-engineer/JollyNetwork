@@ -404,7 +404,6 @@ class UserController {
   }
 
   async checkActiveFreelancerBadge(userId, headers) {
-	  console.log("checkActiveFreelancerBadge", userId, headers);
     try {
       const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();

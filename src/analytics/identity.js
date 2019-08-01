@@ -37,7 +37,7 @@ class IdentityAnalytics extends BaseAnalytics  {
       this.analytics.identify({
         userId: userId.toString(),
         traits: params,
-        context: this.context()
+        context: this.getContext()
       });
     })
   }

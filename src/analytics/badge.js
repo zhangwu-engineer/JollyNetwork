@@ -6,14 +6,14 @@ class BadgeAnalytics extends BaseAnalytics {
   }
 
   send(user, badge) {
-    this.analytics.track({
+    let params = {
       userId: user,
       event: 'Badge Earned',
       properties: {
         type: badge,
-      },
-      context: this.context()
-    });
+      }
+    };
+    this.track(params);
   }
 }
 
