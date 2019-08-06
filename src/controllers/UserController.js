@@ -994,6 +994,42 @@ class UserController {
     }
   }
 
+  async searchTopUsers(city, userId) {
+    const db = this.getDefaultDB();
+    const aggregates = [
+      {
+        $match : {
+          userId: { $ne: userId },
+          location: { $eq: city },
+        }
+      },
+      { $sort  : { "cred": -1 } },
+    ];
+    
+    try {
+      const data = await db.collection('profiles').aggregate(aggregates).limit(10).toArray();
+      const profiles = data.map(profileData => (new EntityProfile(profileData)).toJson({}));
+      const populatedProfiles = await Promise.map(profiles, async profile => {
+        return await new Promise(function(resolve, reject) {
+          try {
+            const userController = JOLLY.controller.UserController;
+            const user = userController.getUserById(profile.userId);
+            Promise.all([user]).then((result) => {
+              const populatedProfile = profile;
+              populatedProfile.user = result[0];
+              resolve(populatedProfile);
+            });
+          } catch(err) {
+            reject(err);
+          }
+        });
+      });
+      return populatedProfiles;
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
   async searchCityUsersConnected(city, query, page, perPage, role, activeStatus, businessId) {
     const db = this.getDefaultDB();
     const skip = page && perPage ? (page - 1) * perPage : 0;
