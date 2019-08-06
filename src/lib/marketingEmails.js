@@ -33,6 +33,63 @@ class MarketingEmails {
     });
   }
 
+  async coworkersConnectingMailer() {
+    const db = await this.getDatabase();
+    const mail = new Mail();
+    let date = new Date();
+    date.setDate(date.getDate() - 14);
+    const connections = await db.collection('connections').aggregate([{
+      $match : {
+        date_created: {$gte: date},
+        status: 'CONNECTED',
+        isCoworker: true
+      }
+    }]);
+    let coworkersIds = [];
+    await connections.forEach((connection) => {
+      if (connection.from != null) {
+        if (!coworkersIds.includes(connection.from)) {
+          coworkersIds.push(connection.from);
+        }
+      }
+      if (connection.to != null) {
+        if (!coworkersIds.includes(connection.to)) {
+          coworkersIds.push(connection.to);
+        }
+      }
+    });
+    coworkersIds = coworkersIds.map((o) => new mongodb.ObjectID(o));
+    const users = await db.collection('users').aggregate([
+      {
+        $match : {
+          _id : { $nin : coworkersIds},
+          date_created: {$gte: date},
+          role: "USER"
+        }
+      },
+      {
+        $lookup:
+          {
+            from: 'profiles',
+            localField: '_id',
+            foreignField: 'userId',
+            as: 'profile'
+          }
+      },
+      {
+        $unwind: '$profile'
+      }
+    ]);
+    if(coworkersIds.length > 0) {
+      await async.eachOfLimit(users, 10, async (user) => {
+        if(user.profile.receiveMonthlyUpdates === undefined || user.profile.receiveMonthlyUpdates === true ) {
+          // await mail.sendCoworkersConnecting(user.email, user, coworkersIds.length);
+          console.log(user.email, user, coworkersIds.length);
+        }
+      });
+    }
+  }
+
   async monthlyDigestMailer() {
     let { startDate, endDate } = this.getStartAndEndDate();
     const db = await this.getDatabase();

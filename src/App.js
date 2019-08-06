@@ -358,11 +358,12 @@ class App {
     return this;
   }
 
-  /**
-   * start the Cron jobs.
-   */
-  _cronJobs () {
+	/**
+	 * Start the Cron Jobs.
+	 */
+	_cronJobs () {
     if(JOLLY.config.APP.NODE_ENV === 'production') {
+      cronJob.coworkersConnectingMailCron();
       cronJob.monthlyDigestMailCron();
     }
   }

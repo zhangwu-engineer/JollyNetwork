@@ -33,7 +33,7 @@ class ConnectionAnalytics extends BaseAnalytics  {
           type: connection.connectionType,
         }
       };
-    } else if (connection.status == ConnectionStatus.DISCONNECTED) {
+    } else if (connection.status === ConnectionStatus.DISCONNECTED) {
       params = {
         userId: data.userId,
         event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
@@ -45,7 +45,7 @@ class ConnectionAnalytics extends BaseAnalytics  {
           type: connection.connectionType,
         }
       };
-    } else if (connection.status == ConnectionStatus.IGNORED) {
+    } else if (connection.status === ConnectionStatus.IGNORED) {
       params = {
         userId: data.userId,
         event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',

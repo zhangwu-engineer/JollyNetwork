@@ -133,14 +133,14 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
 
 router.post('/:id/ignore', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
   let connection = await connectionController.findConnectionById(req.params.id);
-  const params = { status: ConnectionStatus.IGNORED, ignored_at: new Date() };
+  const params = { status: ConnectionStatus.IGNORED, ignored_at: new Date()};
 
   if (checkEmail(connection.to)) {
     let user = await userController.findUserByEmail({email: connection.to});
     const userData = user.toJson({ isSafeOutput: true });
     params.to = userData.id.toString();
   }
-  const options = { id: req.params.id, userId: req.userId, data: params, headers: headers };
+  const options = { id: req.params.id, userId: req.userId, data: params, headers: buildContext(req) };
   connection = await connectionController.updateConnection(options);
   connection = connection.toJson({});
   res.apiSuccess({ connection: connection });
