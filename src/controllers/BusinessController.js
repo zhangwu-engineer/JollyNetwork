@@ -55,11 +55,16 @@ class BusinessController {
   }
 
   async getBusinessById(businessId) {
+		const userController = JOLLY.controller.UserController;
     let business = null;
     try {
-			business = await this.findBusinessById(businessId);
+      business = await this.findBusinessById(businessId);
       if (business) {
         const businessData = business.toJson({});
+        if (businessData.user) {
+          const userData = await userController.getUserById(businessData.user);
+          businessData.userData = userData;
+        }
         return businessData;
       }
       throw new ApiError('Business not found');
@@ -136,7 +141,9 @@ class BusinessController {
     let businessIds = businessesFromConnection1.concat(businessesFromConnection2);
     businessIds = businessIds.filter((v, i, arr) => arr.indexOf(v) === i);
 
-    businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId));
+    businessIds = await Promise.map(businessIds, businessId => mongodb.ObjectID.isValid(businessId) ? new mongodb.ObjectID(businessId) : null);
+    businessIds = businessIds.filter(businessId => businessId !== null);
+
     
     const aggregates = [
       {
@@ -198,9 +205,8 @@ class BusinessController {
     try {
       const data = await db.collection('businesses').aggregate(aggregates).toArray();
 
-			const businessProfiles = data[0].data;
-      businesses = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id));
-
+      const businessProfiles = data[0].data;
+      businesses = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id.toString()));
       return {
         total: data[0].meta[0] ? data[0].meta[0].total : 0,
         page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
@@ -236,7 +242,7 @@ class BusinessController {
       let businessIds = businessesFromConnection1.concat(businessesFromConnection2);
       businessIds = businessIds.filter((v, i, arr) => arr.indexOf(v) === i);
 
-      businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId));
+      businessIds = await Promise.map(businessIds, businessId => new mongodb.ObjectID(businessId.toString()));
 
       const aggregates = [
         {
@@ -276,11 +282,40 @@ class BusinessController {
         });
       }
       const businessProfiles = await db.collection('businesses').aggregate(aggregates).toArray();
-      connections = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id));
+      connections = await Promise.map(businessProfiles, profile => this.getBusinessById(profile._id.toString()));
       return connections;
     } catch (err) {
       throw new ApiError(err.message);
     }
+  }
+
+  updateBusiness(businessId, data) {
+    let db = this.getDefaultDB(),
+      collectionName = 'businesses',
+      business = null;
+
+		return new Promise((resolve, reject) => {
+
+			db.collection(collectionName)
+				.updateOne({ _id: new mongodb.ObjectID(businessId) }, { $set: data })
+				.then(() => {
+					return db.collection(collectionName).findOne({
+            _id: new mongodb.ObjectID(businessId),
+          });
+        })
+        .then((data) => {
+
+          if (data) {
+
+            business = new EntityBusiness(data);
+          }
+
+          resolve (business);
+
+        })
+				.catch(reject);
+
+			});
   }
 	
 }

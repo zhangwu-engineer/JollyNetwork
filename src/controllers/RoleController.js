@@ -43,7 +43,7 @@ class RoleController {
 	async addRole (options) {
     try {
       const userController = JOLLY.controller.UserController;
-			let {name, years, minRate, maxRate, unit, user_id, headers} = options,
+			let {name, years, minRate, maxRate, unit, user_id, business_id} = options,
         newRole;
 
       newRole = new EntityRole({
@@ -53,8 +53,13 @@ class RoleController {
         maxRate,
         unit,
         user_id,
-			});
+        business_id,
+      });
+      
       const roleData = await this.saveRole(newRole);
+      if (!business_id) {
+        await userController.checkCityFreelancerBadge(user_id);
+      }
       return roleData.toJson({});
     } catch(err) {
       throw new ApiError(err.message);
@@ -113,6 +118,35 @@ class RoleController {
     });
   }
 
+  getBusinessRoles(businessId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+
+      db
+        .collection('roles')
+        .find({
+          business_id: new mongodb.ObjectID(businessId),
+        })
+        .toArray((err, result) => {
+          if (err) reject(err);
+          let itemList = [];
+
+          if (result) {
+
+            result.forEach((roleData) => {
+
+              let roleObject = new EntityRole(roleData);
+
+              itemList.push(roleObject.toJson({}));
+            })
+
+          }
+
+          resolve (itemList);
+        });
+    });
+  }
+
   findRoleById (id) {
 
 		let db = this.getDefaultDB(),
@@ -149,11 +183,17 @@ class RoleController {
 
 		if (roleData.id == null) {
 			delete (roleData.id);
-		}
+    }
+    
+    let query = { name: roleData.name, user_id: new mongodb.ObjectID(roleData.user_id) };
+    if (roleData.business_id) {
+      query = { name: roleData.name, business_id: new mongodb.ObjectID(roleData.business_id) };
+      roleData.user_id = null;
+    }
 
 		return new Promise((resolve, reject) => {
       db.collection(collectionName)
-        .findOne({ name: roleData.name, user_id: new mongodb.ObjectID(roleData.user_id) })
+        .findOne(query)
         .then((data) => {
           if (data) {
             resolve(new EntityRole(data));

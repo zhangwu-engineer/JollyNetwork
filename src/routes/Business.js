@@ -23,4 +23,13 @@ router.post('/city', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
+router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
+  businessController.updateBusiness(req.params.id, req.body)
+    .then(businessData => {
+      res.apiSuccess(businessData);
+    })
+    .catch(next);
+
+});
+
 module.exports = router;
