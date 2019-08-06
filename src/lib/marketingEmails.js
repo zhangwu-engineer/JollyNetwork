@@ -83,7 +83,8 @@ class MarketingEmails {
     if(coworkersIds.length > 0) {
       await async.eachOfLimit(users, 10, async (user) => {
         if(user.profile.receiveMonthlyUpdates === undefined || user.profile.receiveMonthlyUpdates === true ) {
-          await mail.sendCoworkersConnecting(user.email, user, coworkersIds.length);
+          // await mail.sendCoworkersConnecting(user.email, user, coworkersIds.length);
+          console.log(user.email, user, coworkersIds.length);
         }
       });
     }
