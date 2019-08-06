@@ -95,7 +95,7 @@ class App {
     /** Enable CORS */
     appExpress.use(function(req, res, next){
       res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, x-access-token');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, x-access-token, client-id');
       res.header('Access-Control-Allow-Origin', '*');
       next();
     });

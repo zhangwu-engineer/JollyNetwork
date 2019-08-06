@@ -4,6 +4,7 @@
 const router = require('express').Router();
 const passport = require('passport');
 const SystemUserRoles = require('../enum/SystemUserRoles');
+const buildContext = require('../analytics/helper/buildContext');
 
 /** Define/Import system defined dependencies */
 let userController = JOLLY.controller.UserController,
@@ -42,9 +43,9 @@ router.post('/login', (req, res, next) => {
       }
 
       if (req.body.invite) {
-        userController.acceptInvite(req.body.invite, userData);
+        userController.acceptInvite({ invite: req.body.invite, user: userData, headers: buildContext(req) });
       }
-      userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
+      userController.updateUser({ userId: userData.id, data: { loginCount: userData.loginCount + 1 || 1 } });
 
       authToken = authService.generateToken({
         userId: userData.id
@@ -88,7 +89,7 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
       userController
         .registerUser(data)
         .then((userData) => {
-          userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
+          userController.updateUser({ userId: userData.id, data: { loginCount: userData.loginCount + 1 || 1 } });
           authToken = authService.generateToken({
             userId: userData.id
           });
@@ -101,13 +102,13 @@ router.post('/facebook', passport.authenticate('facebook-token'), (req, res, nex
           });
         });
     } else {
-      userController.updateUser(userObject.id, { loginCount: userObject.loginCount + 1 || 1 });
+      userController.updateUser({ userId: userObject.id, data: { loginCount: userObject.loginCount + 1 || 1 } });
       userData = userObject.toJson({
         isSafeOutput: true
       });
 
       if (req.body.invite) {
-        userController.acceptInvite(req.body.invite, userData);
+        userController.acceptInvite({ invite: req.body.invite, user: userData, headers: buildContext(req) });
       }
 
       authToken = authService.generateToken({
@@ -141,7 +142,7 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
       userController
         .registerUser(data)
         .then((userData) => {
-          userController.updateUser(userData.id, { loginCount: userData.loginCount + 1 || 1 });
+          userController.updateUser({ userId: userData.id, data: { loginCount: userData.loginCount + 1 || 1 } });
           authToken = authService.generateToken({
             userId: userData.id
           });
@@ -153,12 +154,12 @@ router.post('/linkedin', passport.authenticate('linkedin-oauth-token'), (req, re
           });
         });
     } else {
-      userController.updateUser(userObject.id, { loginCount: userObject.loginCount + 1 || 1 });
+      userController.updateUser({ userId: userObject.id, data: { loginCount: userObject.loginCount + 1 || 1 } });
       userData = userObject.toJson({
         isSafeOutput: true
       });
       if (req.body.invite) {
-        userController.acceptInvite(req.body.invite, userData);
+        userController.acceptInvite({ invite: req.body.invite, user: userData, headers: buildContext(req) });
       }
 
       authToken = authService.generateToken({

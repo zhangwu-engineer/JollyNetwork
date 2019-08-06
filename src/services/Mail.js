@@ -4,7 +4,6 @@
 
 const mandrill = require('mandrill-api/mandrill'),
   _ = require('lodash'),
-  Analytics = require('analytics-node'),
   jwt = require('jsonwebtoken');
 
 class Mail {
@@ -159,7 +158,6 @@ class Mail {
 
   sendSignupInvite(email, user) {
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
     var template_name = "signup-invite";
     var template_content = [];
     const firstName = `${_.capitalize(user.firstName)}`;
@@ -183,7 +181,7 @@ class Mail {
           "content": `<a href="${JOLLY.config.APP.APP_DOMAIN}/freelancer-signup">Click here to sign up.</a>`
         }]
       }],
-    }
+    };
     var async = false;
     var ip_pool = "Main Pool";
     var send_at = new Date();
@@ -197,14 +195,6 @@ class Mail {
         "ip_pool": ip_pool,
         "send_at": send_at,
       }, function(result) {
-        analytics.track({
-          userId: user.id.toString(),
-          event: 'User Invited',
-          properties: {
-            requesterUserId: user.id.toString(),
-            invitedUserId: email,
-          }
-        });
         resolve(result);
       }, function(e) {
         reject(e);
