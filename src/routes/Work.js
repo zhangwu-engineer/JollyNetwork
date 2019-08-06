@@ -4,7 +4,8 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
-const Analytics = require('analytics-node');
+const WorkAnalytics = require('../analytics/work');
+const buildContext = require('../analytics/helper/buildContext');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 let authService = JOLLY.service.Authentication,
   workController = JOLLY.controller.WorkController,
@@ -98,13 +99,15 @@ router.get('/user/:slug', (req, res, next) => {
 });
 
 /**
- * create new unit into system.
+ * create new work into system.
  */
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
   userController.getUserById(req.userId)
     .then(user => {
       return Promise.map(req.body.jobs, job => {
-        return workController.addWork(Object.assign({}, job, { user: req.userId, email: user.email, firstName: user.firstName, lastName: user.lastName, userSlug: user.slug }))
+        let params = Object.assign({}, job, { user: req.userId, email: user.email, firstName: user.firstName,
+          lastName: user.lastName, userSlug: user.slug, headers: buildContext(req)});
+        return workController.addWork(params);
       });
     })
     .then(() => {
@@ -193,8 +196,10 @@ router.get('/:id/user', (req, res, next) => {
 });
 
 router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  const headers = buildContext(req);
   const user = await userController.getUserById(req.userId);
-  const tokens = await workController.addCoworker(req.params.id, req.body.coworker, user);
+  const params = { id: req.params.id, coworker: req.body.coworker, user: user, headers: headers };
+  const tokens = await workController.addCoworker(params);
   await Promise.map(tokens, (token) => {
     return new Promise((resolve, reject) => {
       tokenController
@@ -205,28 +210,18 @@ router.post('/:id/addCoworker', authService.verifyUserAuthentication, asyncMiddl
         .catch(reject);
     });
   });
-  await userController.checkConnectedBadge(req.userId);
+  await userController.checkConnectedBadge(req.userId, headers);
   res.apiSuccess({});
 }));
 
 router.post('/:id/verifyCoworker', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  const headers = buildContext(req);
+  const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
   const work = await workController.findWorkById(req.params.id);
   const workData = work.toJson({});
   await workController.verifyCoworker(req.params.id, Object.assign({}, req.body, { verifier: req.userId }));
-  analytics.track({
-    userId: req.userId,
-    event: 'Coworker Job Verified',
-    properties: {
-      userID: req.userId,
-      jobID: workData.id,
-      eventID: workData.slug,
-      jobAddedMethod: workData.addMethod,
-      verificationMethod: 'clicked',
-      verifiedCoworkerUserID: req.body.coworker,
-    }
-  });
-  await userController.checkConnectedBadge(req.userId);
+  workAnalytics.coworkerTaggedVerified(req.userId, workData, { coworker: req.body.coworker});
+  await userController.checkConnectedBadge(req.userId, headers);
   res.apiSuccess({});
 }));
 
@@ -253,29 +248,11 @@ router.post('/invite/accept', authService.verifyUserAuthentication, (req, res, n
   userController
     .getUserById(req.userId)
     .then(user => {
-      return userController.acceptInvite(req.body, user);
+      return userController.acceptInvite({ invite: req.body, user, headers: buildContext(req) });
     })
     .then(() => {
       res.apiSuccess({});
     }).catch(next);
 });
-// router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
-// 	unitController
-// 		.updateUnit(req.params.id, req.body)
-// 		.then((unitData) => {
-// 			res.apiSuccess({
-// 				unit: unitData.toJson({}),
-// 			});
-// 		});
-// });
-
-// router.delete('/:id', authService.verifyUserAuthentication, (req, res) => {
-
-// 	unitController
-// 		.deleteUnit(req.params.id)
-// 		.then(() => {
-// 			res.apiSuccess({});
-// 		});
-// });
 
 module.exports = router;

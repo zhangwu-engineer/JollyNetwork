@@ -8,12 +8,14 @@ const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
 const  ApiError = require('../lib/ApiError');
-const Analytics = require('analytics-node');
 const async = require("async");
 const checkEmail = require('../lib/CheckEmail');
 const geocode = require('../lib/geocode');
 const point = require('../lib/point');
 const IdentityAnalytics = require('../analytics/identity');
+const BadgeAnalytics = require('../analytics/badge');
+const WorkAnalytics = require('../analytics/work');
+const RoleAnalytics = require('../analytics/role');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
@@ -57,16 +59,14 @@ class UserController {
 	 * @returns {Promise<Object>}
 	 */
 	async registerUser (options) {
-
+    let { email, firstName, lastName, password, avatar, isBusiness, invite, headers } = options;
 		let self = this,
       authService = JOLLY.service.Authentication,
       mailService = JOLLY.service.Mail,
-      identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-
-    let {email, firstName, lastName, password, avatar, isBusiness, invite} = options,
-				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
-        newUser,
-        newUserProfile;
+      identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers),
+      encryptedPassword = password ? authService.generateHashedPassword(password) : '',
+      newUser,
+      newUserProfile;
 
       email = email.toLowerCase();
 			firstName = firstName.toLowerCase();
@@ -112,7 +112,7 @@ class UserController {
         res.businesses = [userBusinessData.toJson()];
 
         if (invite) {
-          await self.acceptInvite(invite, res);
+          await self.acceptInvite({ invite, user: res, headers });
         }
         mailService.sendEmailVerification(res);
         return res;
@@ -283,10 +283,6 @@ class UserController {
       const sentConnectionRequestCount = await db.collection('connections').countDocuments({
         from: user.id.toString(),
       });
-      // const acceptedInvitationCount = await db.collection('connections').countDocuments({
-      //   to: user.id.toString(),
-      //   status: ConnectionStatus.CONNECTED,
-      // });
       const jobWithCoworkerCount = await db.collection('works').countDocuments({
         user: new mongodb.ObjectID(user.id.toString()),
         coworkers: { $exists: true, $not: { $size: 0 } },
@@ -294,10 +290,6 @@ class UserController {
       const jobWhereVerifiedCoworkerCount = await db.collection('works').countDocuments({
         verifiers: user.id.toString(),
       });
-      // const jobWhereVerifiedByCoworkerCount = await db.collection('works').countDocuments({
-      //   user: new mongodb.ObjectID(user.id.toString()),
-      //   verifiers: { $exists: true, $not: { $size: 0 } },
-      // });
       const userCoworkers = await this.getUserCoworkers(user.slug);
       const userCoworkerCount = userCoworkers.length;
       const connected = {
@@ -309,10 +301,6 @@ class UserController {
             name: 'Connect with a Coworker',
             completed: sentConnectionRequestCount > 0 ? true : false,
           },
-          // {
-          //   name: 'Accept an invitation',
-          //   completed: acceptedInvitationCount > 0 ? true : false,
-          // },
           {
             name: 'Add a coworker to a job',
             completed: jobWithCoworkerCount > 0 ? true : false,
@@ -321,10 +309,6 @@ class UserController {
             name: 'Verify a coworker did a job',
             completed: jobWhereVerifiedCoworkerCount > 0 ? true : false,
           },
-          // {
-          //   name: 'Get Verified on a job by another coworker',
-          //   completed: jobWhereVerifiedByCoworkerCount > 0 ? true : false,
-          // },
           {
             name: 'Get 10 total Coworker Connections',
             completed: userCoworkerCount > 9 ? true : false,
@@ -338,8 +322,9 @@ class UserController {
     }
   }
 
-  async updateUser(userId, data) {
-    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  async updateUser(options) {
+	  const { userId, data, headers } = options;
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     let self = this,
       currentUser = null,
       user = null,
@@ -378,12 +363,13 @@ class UserController {
         identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
+          console.log(data.profile);
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
           const updatedProfileData = updatedProfile.toJson();
           userData.profile = updatedProfileData;
 
-          await this.checkCityFreelancerBadge(userId);
-          await this.checkReadyAndWillingBadge(userId);
+          await this.checkCityFreelancerBadge(userId, headers);
+          await this.checkReadyAndWillingBadge(userId, headers);
 
         }
         if (data.business) {
@@ -400,22 +386,16 @@ class UserController {
     }
   }
 
-  async checkCityFreelancerBadge(userId) {
+  async checkCityFreelancerBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const userRoles = await db.collection('roles').find({ user_id: new mongodb.ObjectID(userId) }).toArray();
       const user = await this.getUserById(userId);
       if (userRoles.length > 0 && user.profile.location) {
         if (!user.profile.cityFreelancer) {
           await this.updateUserProfile(userId, { cityFreelancer: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'city freelancer',
-            }
-          });
+          badgeAnalytics.send(userId, 'city freelancer');
         }
       }
     } catch (err) {
@@ -423,9 +403,9 @@ class UserController {
     }
   }
 
-  async checkActiveFreelancerBadge(userId) {
+  async checkActiveFreelancerBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const userJobCountWithin60Days = await db.collection('works').countDocuments({
         user: new mongodb.ObjectID(userId),
@@ -435,13 +415,7 @@ class UserController {
       if (userJobCountWithin60Days > 0) {
         if (!user.profile.activeFreelancer) {
           await this.updateUserProfile(userId, { activeFreelancer: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'active job streak',
-            }
-          });
+          badgeAnalytics.send(userId, 'active job streak');
         }
       }
     } catch (err) {
@@ -449,9 +423,9 @@ class UserController {
     }
   }
 
-  async checkReadyAndWillingBadge(userId) {
+  async checkReadyAndWillingBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const user = await this.getUserById(userId);
       const userProfile = user.profile;
@@ -466,13 +440,7 @@ class UserController {
       ) {
         if (!user.profile.readyAndWilling) {
           await this.updateUserProfile(userId, { readyAndWilling: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'ready and willing',
-            }
-          });
+          badgeAnalytics.send(userId, 'ready and willing');
         }
       }
     } catch (err) {
@@ -480,9 +448,9 @@ class UserController {
     }
   }
 
-  async checkConnectedBadge(userId) {
+  async checkConnectedBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const user = await this.getUserById(userId);
       const userProfile = user.profile;
@@ -517,13 +485,7 @@ class UserController {
 
         if (howConnected !== '' && userProfile.connected !== howConnected) {
           await this.updateUserProfile(userId, { connected: howConnected });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: howConnected,
-            }
-          });
+          badgeAnalytics.send(userId, howConnected);
         }
       }
     } catch (err) {
@@ -552,7 +514,7 @@ class UserController {
     let self = this;
 
     try {
-      const userData = await self.updateUser(userId, { profile: { phone: data.phone, verifiedPhone: false }});
+      const userData = await self.updateUser({ userId: userId, data: { profile: { phone: data.phone, verifiedPhone: false }} });
       return userData;
     } catch (err) {
       throw err;
@@ -1783,14 +1745,15 @@ class UserController {
 			});
   }
 
-  async acceptInvite(invite, user) {
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  async acceptInvite(options) {
+	  let { invite, user, headers } = options;
+    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const workController = JOLLY.controller.WorkController;
     const connectionController = JOLLY.controller.ConnectionController;
     const self = this;
     try {
       const workData = invite.work;
-      const originalAddMethod = workData.addMethod;
       workData.user = user.id;
       workData.addMethod = 'tagged';
       workData.coworkers = workData.verifiers;
@@ -1802,82 +1765,24 @@ class UserController {
         await connectionController.createCoworkerConnection(workData.verifiers[0], user.id.toString());
       }
       if (workData.verifiers) {
-        analytics.track({
-          userId: user.id.toString(),
-          event: 'Coworker Tagged on Job',
-          properties: {
-            userID: invite.tagger && invite.tagger.userId,
-            jobID: workData.id,
-            eventID: workData.slug,
-            jobAddedMethod: workData.addMethod || 'created',
-            taggedCoworker: {
-              userID: user.id.toString(),
-              email: user.email,
-              name: `${user.firstName} ${user.lastName}`
-            },
-            tagStatus: 'accepted',
-          }
-        });
-        analytics.track({
-          userId: invite.tagger && invite.tagger.userId,
-          event: 'Coworker Job Verified',
-          properties: {
-            userID: invite.tagger && invite.tagger.userId,
-            jobID: workData.id,
-            eventID: workData.slug,
-            jobAddedMethod: originalAddMethod,
-            verificationMethod: 'tagged',
-            verifiedCoworkerUserID: user.id.toString(),
-          }
-        });
-      }
-      analytics.track({
-        userId: user.id.toString(),
-        event: 'Coworker Tag on Job Accepted',
-        properties: {
-          userID: user.id.toString(),
-          jobID: workData.id,
-          eventID: workData.slug,
-          taggingUserID: invite.tagger && invite.tagger.userId,
-        }
-      });
+        workAnalytics.coworkerTagged(user.id.toString(), workData, {
+          coworker: user, tagStatus: 'accepted', tagger: invite.tagger && invite.tagger.userId });
 
-      analytics.track({
-        userId: user.id.toString(),
-        event: 'Job Added',
-        properties: {
-          userID: user.id.toString(),
-          userFullname: `${user.firstName} ${user.lastName}`,
-          userEmail: user.email,
-          jobID: newWorkData.id,
-          eventID: newWorkData.slug,
-          role: newWorkData.role,
-          beginDate: newWorkData.from,
-          endDate: newWorkData.to,
-          jobCreatedTimestamp: newWorkData.date_created,
-          caption: newWorkData.caption,
-          numberOfImages: newWorkData.photos.length,
-          jobAddedMethod: 'tagged',
-          isEventCreator: false,
-        }
+        workAnalytics.coworkerTaggedVerified(invite.tagger && invite.tagger.userId, workData, {
+          coworker: user.id.toString(), verificationMethod: 'tagged' });
+      }
+      workAnalytics.coworkerTagAccepted(user.id.toString(), workData, {taggingUserID: invite.tagger && invite.tagger.userId});
+      workAnalytics.send(user.id.toString(), newWorkData, {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        jobAddedMethod: 'tagged',
+        isEventCreator: false
       });
 
       if (newRole) {
-        analytics.track({
-          userId: user.id.toString(),
-          event: 'Role Added',
-          properties: {
-            userID: user.id.toString(),
-            userFullname: `${user.firstName} ${user.lastName}`,
-            userEmail: user.email,
-            roleName: newRole.name,
-            roleRateLow: newRole.minRate,
-            roleRateHigh: newRole.maxRate,
-            years: newRole.years,
-            throughJob: true,
-            jobID: newWorkData.id,
-            eventID: newWorkData.slug,
-          }
+        roleAnalytics.send(user.id.toString(), newRole, {
+          work: newWorkData, firstName: user.firstName, lastName: user.lastName, email: user.email
         });
       }
 
