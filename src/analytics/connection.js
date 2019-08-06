@@ -8,45 +8,44 @@ class ConnectionAnalytics {
 
   send(connection, params) {
     const method = checkEmail(connection.to) ? 'Email' : 'Nearby';
-    if (params.ignored !== true) {
-      if (connection.status === ConnectionStatus.PENDING) {
-        this.analytics.track({
-          userId: params.userId,
-          event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
-          properties: {
-            requesterUserId: params.userId,
-            invitedUserId: params.toUserId ? params.toUserId : connection.to,
-            method: method,
-            status: 'Pending',
-            type: connection.connectionType,
-          }
-        });
-      } else if (connection.status === ConnectionStatus.CONNECTED) {
-        this.analytics.track({
-          userId: params.userId,
-          event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
-          properties: {
-            requesterUserId: params.userId,
-            invitedUserId: params.toUserId ? params.toUserId : connection.to,
-            method: method,
-            status: 'Accepted',
-            type: connection.connectionType,
-          }
-        });
-      } else if (connection.status == ConnectionStatus.DISCONNECTED) {
-        this.analytics.track({
-          userId: params.userId,
-          event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
-          properties: {
-            requesterUserId: params.userId,
-            invitedUserId: params.toUserId ? params.toUserId : connection.to,
-            method: method,
-            status: 'Disconnected',
-            type: connection.connectionType,
-          }
-        });
-      }
-    } else {
+
+    if (connection.status === ConnectionStatus.PENDING) {
+      this.analytics.track({
+        userId: params.userId,
+        event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
+        properties: {
+          requesterUserId: params.userId,
+          invitedUserId: params.toUserId ? params.toUserId : connection.to,
+          method: method,
+          status: 'Pending',
+          type: connection.connectionType,
+        }
+      });
+    } else if (connection.status === ConnectionStatus.CONNECTED) {
+      this.analytics.track({
+        userId: params.userId,
+        event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
+        properties: {
+          requesterUserId: params.userId,
+          invitedUserId: params.toUserId ? params.toUserId : connection.to,
+          method: method,
+          status: 'Accepted',
+          type: connection.connectionType,
+        }
+      });
+    } else if (connection.status == ConnectionStatus.DISCONNECTED) {
+      this.analytics.track({
+        userId: params.userId,
+        event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
+        properties: {
+          requesterUserId: params.userId,
+          invitedUserId: params.toUserId ? params.toUserId : connection.to,
+          method: method,
+          status: 'Disconnected',
+          type: connection.connectionType,
+        }
+      });
+    } else if (connection.status == ConnectionStatus.IGNORED) {
       this.analytics.track({
         userId: params.userId,
         event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
