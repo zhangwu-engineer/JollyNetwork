@@ -2,7 +2,7 @@
  * Unit controller class, in charge of transactions related to user's units.
  */
 const mongodb = require('mongodb');
-const Analytics = require('analytics-node');
+const CommentAnalytics = require('../analytics/comment');
 const Promise = require('bluebird');
 const EntityComment = require('../entities/EntityComment'),
 	DbNames = require('../enum/DbNames');
@@ -47,8 +47,8 @@ class CommentController {
     const mailService = JOLLY.service.Mail;
     const userController = JOLLY.controller.UserController;
     try {
-      const { content, post, user} = options;
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const { content, post, user, headers } = options;
+      const commentAnalytics = new CommentAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
 
       const newComment = new EntityComment({
         content,
@@ -68,19 +68,11 @@ class CommentController {
 
       await db
         .collection('posts')
-        .updateOne({
-          _id: new mongodb.ObjectID(post),
-        }, {
-          $push: { comments: commentData.id.toString() },
-        });
+        .updateOne(
+          { _id: new mongodb.ObjectID(post)},
+          { $push: { comments: commentData.id.toString() } });
 
-      analytics.track({
-        userId: user,
-        event: 'Comment Submitted',
-        properties: {
-          postID: commentData.post,
-        }
-      });
+      commentAnalytics.send(user, commentData);
 
       return commentData;
 

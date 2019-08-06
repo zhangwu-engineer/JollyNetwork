@@ -1,8 +1,8 @@
-const Analytics = require('analytics-node');
+const BaseAnalytics = require('./base.js');
 
-class IdentityAnalytics {
-  constructor(key) {
-    this.analytics = new Analytics(key);
+class IdentityAnalytics extends BaseAnalytics  {
+  constructor(key, headers) {
+    super(key, headers);
   }
 
   async send(userId) {
@@ -22,6 +22,8 @@ class IdentityAnalytics {
 
     Promise.all([positionsAdded, countJobsAdded, countPostAdded, countCoworkerConnections, countGenericConnections, countPostHelpful, countTaggedCoworker]).then((result) => {
       let params = {
+        returning_user: user.loginCount,
+        email: user.email,
         all_positions: result[0],
         count_positions_added: result[0].length,
         count_jobs_added: result[1],
@@ -35,6 +37,7 @@ class IdentityAnalytics {
       this.analytics.identify({
         userId: userId.toString(),
         traits: params,
+        context: this.getContext()
       });
     })
   }

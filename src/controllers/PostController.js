@@ -2,10 +2,11 @@
  * Unit controller class, in charge of transactions related to user's units.
  */
 const mongodb = require('mongodb');
-const Analytics = require('analytics-node');
 const Promise = require('bluebird');
 const IdentityAnalytics = require('../analytics/identity');
+const PostAnalytics = require('../analytics/post');
 const geocode = require('../lib/geocode');
+const point = require('../lib/point');
 const EntityPost = require('../entities/EntityPost'),
 	DbNames = require('../enum/DbNames');
 
@@ -45,40 +46,29 @@ class PostController {
 	 */
 	async addPost (options) {
     try {
-      const {category, content, location, user} = options;
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
-      const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
-
+      const {category, content, location, user, headers} = options;
+      const postAnalytics = new PostAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+      const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const geo_location = await geocode(location);
       const newPost = new EntityPost({
         category,
         content,
         location,
         user,
-        geo_location: this.point(geo_location),
+        geo_location: point(geo_location),
       });
 
       const post = await this.savePost(newPost);
       const postData = post.toJson({});
 
       identityAnalytics.send(user);
-      analytics.track({
-        userId: user,
-        event: 'Post Created',
-        properties: {
-          postID: postData.id,
-          posterID: user,
-          postType: postData.category,
-          city: postData.location,
-        }
-      });
+      postAnalytics.send(user, postData);
 
       return postData;
 
     } catch (err) {
       throw new ApiError(err.message);
     }
-
 	}
 
 	listPosts(cb) {
@@ -184,10 +174,11 @@ class PostController {
     }
   }
 
-  async votePost(postId, userId) {
+  async votePost(options) {
     const db = this.getDefaultDB();
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
-    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+    const { postId, userId, headers } = options;
+    const postAnalytics = new PostAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     try {
       await db
         .collection('posts')
@@ -198,14 +189,8 @@ class PostController {
         });
       const post = await db.collection('posts').findOne({ _id: new mongodb.ObjectID(postId) });
       identityAnalytics.send(userId);
-      analytics.track({
-        userId,
-        event: 'Helpful Clicked',
-        properties: {
-          postID: postId,
-          userID: userId,
-        }
-      });
+      postAnalytics.sendVote(userId, postId);
+
       await db
         .collection('profiles')
         .updateOne({
@@ -282,17 +267,6 @@ class PostController {
         .find({ 'votes': {'$all': [ userId.toString() ]}}).count();
       resolve(postHelpfulCount);
     });
-  }
-
-  point(location) {
-    console.log(location);
-    return {
-      coordinates : [
-        location.lng,
-        location.lat
-      ],
-      type : "Point"
-    }
   }
 }
 

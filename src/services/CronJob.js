@@ -9,4 +9,12 @@ const coworkersConnectingMailCron = () => {
   });
 };
 
-module.exports = { coworkersConnectingMailCron };
+const monthlyDigestMailCron = () => {
+  cron.schedule("30 7 1 * *", function() {
+    console.log('cron job running');
+    const marketing = new marketingEmails();
+    marketing.monthlyDigestMailer();
+  });
+};
+
+module.exports = { coworkersConnectingMailCron, monthlyDigestMailCron };

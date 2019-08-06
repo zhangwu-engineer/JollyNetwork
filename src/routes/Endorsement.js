@@ -4,7 +4,8 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
-const Analytics = require('analytics-node');
+const WorkAnalytics = require('../analytics/work');
+const buildContext = require('../analytics/helper/buildContext');
 let authService = JOLLY.service.Authentication,
   workController = JOLLY.controller.WorkController,
   userController = JOLLY.controller.UserController,
@@ -111,7 +112,7 @@ router.post('/work/:workSlug/endorsers', (req, res, next) => {
  * create new endorsement into system.
  */
 router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
-  const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, buildContext(req));
   let workData = null;
   let toRole = "";
   workController
@@ -125,42 +126,12 @@ router.post('/', authService.verifyUserAuthentication, (req, res, next) => {
       return endorsementController.addEndorsement(Object.assign({}, req.body, { from: req.userId, role: toRole }));
     })
 		.then((endorsementData) => {
-      analytics.track({
-        userId: req.userId,
-        event: 'Coworker Job Endorsed',
-        properties: {
-          userID: req.userId,
-          jobID: workData.id,
-          eventID: workData.slug,
-          jobAddedMethod: workData.addMethod,
-          qualitySelected: req.body.quality,
-          endorsedCoworkerUserID: req.body.to,
-        }
-      });
+      workAnalytics.coworkerEndorsed(req.userId, workData, {quality: req.body.quality, coworkerId: req.body.to});
 			res.apiSuccess({
 				endorsement: endorsementData
 			});
     })
     .catch(next);
 });
-
-// router.put('/:id', authService.verifyUserAuthentication, (req, res) => {
-// 	unitController
-// 		.updateUnit(req.params.id, req.body)
-// 		.then((unitData) => {
-// 			res.apiSuccess({
-// 				unit: unitData.toJson({}),
-// 			});
-// 		});
-// });
-
-// router.delete('/:id', authService.verifyUserAuthentication, (req, res) => {
-
-// 	unitController
-// 		.deleteUnit(req.params.id)
-// 		.then(() => {
-// 			res.apiSuccess({});
-// 		});
-// });
 
 module.exports = router;

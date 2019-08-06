@@ -43,7 +43,7 @@ class RoleController {
 	async addRole (options) {
     try {
       const userController = JOLLY.controller.UserController;
-			let {name, years, minRate, maxRate, unit, user_id} = options,
+			let {name, years, minRate, maxRate, unit, user_id, headers} = options,
         newRole;
 
       newRole = new EntityRole({
@@ -55,7 +55,6 @@ class RoleController {
         user_id,
 			});
       const roleData = await this.saveRole(newRole);
-      await userController.checkCityFreelancerBadge(user_id);
       return roleData.toJson({});
     } catch(err) {
       throw new ApiError(err.message);

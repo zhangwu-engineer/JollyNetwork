@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const Promise = require('bluebird');
 const asyncMiddleware = require('../lib/AsyncMiddleware');
 const checkEmail = require('../lib/CheckEmail');
+const buildContext = require('../analytics/helper/buildContext');
+const UserAnalytics = require('../analytics/user');
 ConnectionStatus = require('../enum/ConnectionStatus');
 let authService = JOLLY.service.Authentication,
   smsService = JOLLY.service.SMS,
@@ -76,7 +78,8 @@ router.get('/slug/:slug/files', (req, res, next) => {
 
 
 router.put('/:id', authService.verifyUserAuthentication, (req, res, next) => {
-  userController.updateUser(req.params.id, req.body)
+  const params = { userId: req.params.id, data: req.body, headers: buildContext(req) };
+  userController.updateUser(params)
     .then(userData => {
       res.apiSuccess(userData);
     })
@@ -98,9 +101,9 @@ router.get('/me', authService.verifyUserAuthentication, (req, res, next) => {
  * Register new user into system.
  */
 router.post('/register', (req, res, next) => {
-
+  const params = Object.assign({}, req.body, { headers: buildContext(req) });
 	userController
-		.registerUser(req.body)
+		.registerUser(params)
 		.then((userData) => {
 			authToken = authService.generateToken({
 				userId: userData.id
@@ -135,7 +138,7 @@ router.post('/verify-phone', authService.verifyUserAuthentication, (req, res, ne
 router.post('/verify-phone-token', authService.verifyUserAuthentication, (req, res, next) => {
   tokenController.verify(req.body.token)
     .then(() => {
-      return userController.updateUser(req.userId, { profile: { verifiedPhone: true } });
+      return userController.updateUser({ userId: req.userId, data: { profile: { verifiedPhone: true }} });
     })
     .then(() => {
       res.apiSuccess();
@@ -191,21 +194,15 @@ router.post('/city/connected', authService.verifyUserAuthentication, (req, res, 
     .catch(next);
 });
 
-router.post('/city/connected', authService.verifyUserAuthentication, (req, res, next) => {
-  userController.searchCityUsersConnected(req.body.city, req.body.query, req.body.page, req.body.perPage, req.body.role, req.body.activeStatus, req.body.businessId)
-    .then(data => {
-      res.apiSuccess(data);
-    })
-    .catch(next);
-});
-
 router.post('/signup-invite', authService.verifyUserAuthentication, (req, res, next) => {
+  const userAnalytics = new UserAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, buildContext(req));
   userController
     .getUserById(req.userId)
     .then(user => {
       return  mailService.sendSignupInvite(req.body.email, user);
     })
     .then(() => {
+      userAnalytics.sendInvite(req.userId, req.body.email);
       res.apiSuccess({});
     })
     .catch(next);

@@ -8,10 +8,14 @@ const AWS = require('aws-sdk');
 const fileType = require('file-type');
 const Promise = require('bluebird');
 const  ApiError = require('../lib/ApiError');
-const Analytics = require('analytics-node');
 const async = require("async");
 const checkEmail = require('../lib/CheckEmail');
+const geocode = require('../lib/geocode');
+const point = require('../lib/point');
 const IdentityAnalytics = require('../analytics/identity');
+const BadgeAnalytics = require('../analytics/badge');
+const WorkAnalytics = require('../analytics/work');
+const RoleAnalytics = require('../analytics/role');
 const ConnectionStatus = require('../enum/ConnectionStatus');
 const EntityUser = require('../entities/EntityUser'),
   EntityProfile = require('../entities/EntityProfile'),
@@ -19,7 +23,6 @@ const EntityUser = require('../entities/EntityUser'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
-  blockList = require('../enum/blockList'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -56,15 +59,14 @@ class UserController {
 	 * @returns {Promise<Object>}
 	 */
 	async registerUser (options) {
-
+    let { email, firstName, lastName, password, avatar, isBusiness, invite, headers } = options;
 		let self = this,
       authService = JOLLY.service.Authentication,
-      mailService = JOLLY.service.Mail;
-
-    let {email, firstName, lastName, password, avatar, isBusiness, invite} = options,
-				encryptedPassword = password ? authService.generateHashedPassword(password) : '',
-        newUser,
-        newUserProfile;
+      mailService = JOLLY.service.Mail,
+      identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers),
+      encryptedPassword = password ? authService.generateHashedPassword(password) : '',
+      newUser,
+      newUserProfile;
 
       email = email.toLowerCase();
 			firstName = firstName.toLowerCase();
@@ -100,6 +102,7 @@ class UserController {
         }
         newUserProfile = new EntityProfile(newProfileData);
         const userProfileData = await self.saveUserProfile(newUserProfile);
+        identityAnalytics.send(userData._id);
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
 
@@ -109,7 +112,7 @@ class UserController {
         res.businesses = [userBusinessData.toJson()];
 
         if (invite) {
-          await self.acceptInvite(invite, res);
+          await self.acceptInvite({ invite, user: res, headers });
         }
         mailService.sendEmailVerification(res);
         return res;
@@ -280,10 +283,6 @@ class UserController {
       const sentConnectionRequestCount = await db.collection('connections').countDocuments({
         from: user.id.toString(),
       });
-      // const acceptedInvitationCount = await db.collection('connections').countDocuments({
-      //   to: user.id.toString(),
-      //   status: ConnectionStatus.CONNECTED,
-      // });
       const jobWithCoworkerCount = await db.collection('works').countDocuments({
         user: new mongodb.ObjectID(user.id.toString()),
         coworkers: { $exists: true, $not: { $size: 0 } },
@@ -291,10 +290,6 @@ class UserController {
       const jobWhereVerifiedCoworkerCount = await db.collection('works').countDocuments({
         verifiers: user.id.toString(),
       });
-      // const jobWhereVerifiedByCoworkerCount = await db.collection('works').countDocuments({
-      //   user: new mongodb.ObjectID(user.id.toString()),
-      //   verifiers: { $exists: true, $not: { $size: 0 } },
-      // });
       const userCoworkers = await this.getUserCoworkers(user.slug);
       const userCoworkerCount = userCoworkers.length;
       const connected = {
@@ -306,10 +301,6 @@ class UserController {
             name: 'Connect with a Coworker',
             completed: sentConnectionRequestCount > 0 ? true : false,
           },
-          // {
-          //   name: 'Accept an invitation',
-          //   completed: acceptedInvitationCount > 0 ? true : false,
-          // },
           {
             name: 'Add a coworker to a job',
             completed: jobWithCoworkerCount > 0 ? true : false,
@@ -318,10 +309,6 @@ class UserController {
             name: 'Verify a coworker did a job',
             completed: jobWhereVerifiedCoworkerCount > 0 ? true : false,
           },
-          // {
-          //   name: 'Get Verified on a job by another coworker',
-          //   completed: jobWhereVerifiedByCoworkerCount > 0 ? true : false,
-          // },
           {
             name: 'Get 10 total Coworker Connections',
             completed: userCoworkerCount > 9 ? true : false,
@@ -335,8 +322,9 @@ class UserController {
     }
   }
 
-  async updateUser(userId, data) {
-    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  async updateUser(options) {
+	  const { userId, data, headers } = options;
+    const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     let self = this,
       currentUser = null,
       user = null,
@@ -375,12 +363,13 @@ class UserController {
         identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
+          console.log(data.profile);
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
           const updatedProfileData = updatedProfile.toJson();
           userData.profile = updatedProfileData;
 
-          await this.checkCityFreelancerBadge(userId);
-          await this.checkReadyAndWillingBadge(userId);
+          await this.checkCityFreelancerBadge(userId, headers);
+          await this.checkReadyAndWillingBadge(userId, headers);
 
         }
         if (data.business) {
@@ -397,22 +386,16 @@ class UserController {
     }
   }
 
-  async checkCityFreelancerBadge(userId) {
+  async checkCityFreelancerBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const userRoles = await db.collection('roles').find({ user_id: new mongodb.ObjectID(userId) }).toArray();
       const user = await this.getUserById(userId);
       if (userRoles.length > 0 && user.profile.location) {
         if (!user.profile.cityFreelancer) {
           await this.updateUserProfile(userId, { cityFreelancer: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'city freelancer',
-            }
-          });
+          badgeAnalytics.send(userId, 'city freelancer');
         }
       }
     } catch (err) {
@@ -420,9 +403,9 @@ class UserController {
     }
   }
 
-  async checkActiveFreelancerBadge(userId) {
+  async checkActiveFreelancerBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const userJobCountWithin60Days = await db.collection('works').countDocuments({
         user: new mongodb.ObjectID(userId),
@@ -432,13 +415,7 @@ class UserController {
       if (userJobCountWithin60Days > 0) {
         if (!user.profile.activeFreelancer) {
           await this.updateUserProfile(userId, { activeFreelancer: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'active job streak',
-            }
-          });
+          badgeAnalytics.send(userId, 'active job streak');
         }
       }
     } catch (err) {
@@ -446,9 +423,9 @@ class UserController {
     }
   }
 
-  async checkReadyAndWillingBadge(userId) {
+  async checkReadyAndWillingBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const user = await this.getUserById(userId);
       const userProfile = user.profile;
@@ -463,13 +440,7 @@ class UserController {
       ) {
         if (!user.profile.readyAndWilling) {
           await this.updateUserProfile(userId, { readyAndWilling: true });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: 'ready and willing',
-            }
-          });
+          badgeAnalytics.send(userId, 'ready and willing');
         }
       }
     } catch (err) {
@@ -477,9 +448,9 @@ class UserController {
     }
   }
 
-  async checkConnectedBadge(userId) {
+  async checkConnectedBadge(userId, headers) {
     try {
-      const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+      const badgeAnalytics = new BadgeAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const db = this.getDefaultDB();
       const user = await this.getUserById(userId);
       const userProfile = user.profile;
@@ -514,13 +485,7 @@ class UserController {
 
         if (howConnected !== '' && userProfile.connected !== howConnected) {
           await this.updateUserProfile(userId, { connected: howConnected });
-          analytics.track({
-            userId,
-            event: 'Badge Earned',
-            properties: {
-              type: howConnected,
-            }
-          });
+          badgeAnalytics.send(userId, howConnected);
         }
       }
     } catch (err) {
@@ -549,7 +514,7 @@ class UserController {
     let self = this;
 
     try {
-      const userData = await self.updateUser(userId, { profile: { phone: data.phone, verifiedPhone: false }});
+      const userData = await self.updateUser({ userId: userId, data: { profile: { phone: data.phone, verifiedPhone: false }} });
       return userData;
     } catch (err) {
       throw err;
@@ -908,38 +873,32 @@ class UserController {
       checkEmail(userId) ? userId : new mongodb.ObjectID(userId)
     );
 
-    blockList.map(eachId => userIds.push(new mongodb.ObjectID(eachId)) );
+    const aggregates = [];
 
-    const aggregates = [
+    if (city) {
+      const geo_location = await geocode(city);
+      aggregates.push({
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [ geo_location.lng, geo_location.lat]
+          },
+          distanceField: "distance",
+          maxDistance: 80467.2,
+          spherical: true,
+          limit: 50000
+        }
+      });
+    }
+
+    aggregates.push(
       {
         $match : {
           userId: { $nin: userIds },
         }
-      },
-      { $sort  : { userId : -1 } },
-    ];
-    if (city) {
-      aggregates[0]['$match']['location'] = city
-    }
-    aggregates.push({
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user"
       }
-    });
-    aggregates.push({
-      $unwind: "$user"
-    });
-    aggregates.push({
-      $match : {
-        $and: [
-          { 'user.email': { $regex: new RegExp('^((?!@jollyhq.com).)*$', "i") } },
-          { 'user.email': { $regex: new RegExp('^((?!@srvbl.com).)*$', "i") } },
-        ],
-      }
-    });
+    );
+
     if (query) {
       aggregates.push({
         $lookup: {
@@ -1168,139 +1127,6 @@ class UserController {
     }
   }
 
-  async searchCityUsersConnected(city, query, page, perPage, role, activeStatus, businessId) {
-    const db = this.getDefaultDB();
-    const skip = page && perPage ? (page - 1) * perPage : 0;
-
-    const connectionController = JOLLY.controller.ConnectionController;
-
-    let queryConnections1 = {
-      to: { $in: [businessId] },
-      status: ConnectionStatus.CONNECTED
-    };
-    let queryConnections2 = {
-      from: { $in: [businessId] },
-      status: ConnectionStatus.CONNECTED
-    };
-
-    const connections1 = await connectionController
-      .findConnections(queryConnections1);
-    const usersFromConnection1 = connections1.map(connection => connection.from);
-    const connections2 = await connectionController
-      .findConnections(queryConnections2);
-    const usersFromConnection2 = connections2.map(connection => connection.to);
-    let userIds = usersFromConnection1.concat(usersFromConnection2);
-    userIds = userIds.filter((v, i, arr) => arr.indexOf(v) === i);
-    userIds = await Promise.map(userIds, userId =>
-      new mongodb.ObjectID(userId)
-    );
-
-    const aggregates = [
-      {
-        $match : {
-          userId: { $in: userIds },
-        }
-      },
-      { $sort  : { userId : -1 } },
-    ];
-    if (city) {
-      aggregates[0]['$match']['location'] = city
-    }
-    if (query) {
-      aggregates.push({
-        $lookup: {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "user"
-        }
-      });
-      aggregates.push({
-        $unwind: "$user"
-      });
-      aggregates.push({
-        $match : {
-          'user.slug': { $regex: new RegExp(`^${query.split(' ').join('-')}`, "i") },
-        }
-      });
-    }
-    if (role) {
-      aggregates.push({
-        $lookup: {
-          from: "roles",
-          localField: "userId",
-          foreignField: "user_id",
-          as: "roles"
-        }
-      });
-      aggregates.push({
-        $unwind: "$roles"
-      });
-      aggregates.push({
-        $match : {
-          'roles.name': role,
-        }
-      });
-    }
-    if (activeStatus && activeStatus !== '') {
-      aggregates.push({
-        $lookup: {
-          from: "works",
-          localField: "userId",
-          foreignField: "user",
-          as: "userworks"
-        }
-      });
-      aggregates.push({
-        $unwind: "$userId"
-      });
-      if (activeStatus === 'Active')
-        aggregates.push({
-          $match : {
-            'userworks.date_created': { $gt: new Date(Date.now() - 24*60*60*1000*60) }
-          }
-        });
-      else if (activeStatus === 'Inactive')
-        aggregates.push({
-          $match : {
-            $or: [
-              { 'userworks.slug': { $exists: false} },
-              { 'userworks.date_created': { $lte: new Date(Date.now() - 24*60*60*1000*60) } }
-            ]
-          }
-        });
-    }
-    if (page && perPage) {
-      aggregates.push({
-        $facet : {
-          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
-          data: [ { $skip:  skip}, { $limit:  perPage } ]
-        }
-      })
-    } else {
-      aggregates.push({
-        $facet : {
-          meta: [ { $count: "total" }, { $addFields: { page: parseInt(page, 10) } } ],
-          data: [ { $skip:  skip} ]
-        }
-      })
-    }
-    try {
-      const data = await db.collection('profiles').aggregate(aggregates).toArray();
-
-      const profiles = data[0].data;
-      let users = await Promise.map(profiles, profile => this.getUserById(profile.userId));
-
-      return {
-        total: data[0].meta[0] ? data[0].meta[0].total : 0,
-        page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
-        users,
-      };
-    } catch (err) {
-      throw new ApiError(err.message);
-    }
-  }
-
   async getUserCoworkers(userSlug) {
     const db = this.getDefaultDB();
     let coworkers;
@@ -1369,17 +1195,33 @@ class UserController {
           ? this.getUserByEmail(userId).id
           : new mongodb.ObjectID(userId)
       );
-      const aggregates = [
+
+      const aggregates = [];
+
+      if (city) {
+        const geo_location = await geocode(city);
+        aggregates.push({
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [ geo_location.lng, geo_location.lat]
+            },
+            distanceField: "distance",
+            maxDistance: 80467.2,
+            spherical: true,
+            limit: 50000
+          }
+        });
+      }
+
+      aggregates.push(
         {
           $match : {
             userId: { $in: connectionIds },
           }
-        },
-        { $sort  : { userId : -1 } },
-      ];
-      if (city) {
-        aggregates[0]['$match']['location'] = city
-      }
+        }
+      );
+
       if (query) {
         aggregates.push({
           $lookup: {
@@ -1731,8 +1573,11 @@ class UserController {
       collectionName = 'profiles',
       profile = null;
 
-		return new Promise((resolve, reject) => {
-
+		return new Promise(async (resolve, reject) => {
+      if(data.location) {
+        let location = await geocode(data.location);
+        data.geo_location = point(location);
+      }
 			db.collection(collectionName)
 				.updateOne({ userId: new mongodb.ObjectID(userId) }, { $set: data })
 				.then(() => {
@@ -1900,14 +1745,15 @@ class UserController {
 			});
   }
 
-  async acceptInvite(invite, user) {
-    const analytics = new Analytics(JOLLY.config.SEGMENT.WRITE_KEY);
+  async acceptInvite(options) {
+	  let { invite, user, headers } = options;
+    const workAnalytics = new WorkAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+    const roleAnalytics = new RoleAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const workController = JOLLY.controller.WorkController;
     const connectionController = JOLLY.controller.ConnectionController;
     const self = this;
     try {
       const workData = invite.work;
-      const originalAddMethod = workData.addMethod;
       workData.user = user.id;
       workData.addMethod = 'tagged';
       workData.coworkers = workData.verifiers;
@@ -1919,82 +1765,24 @@ class UserController {
         await connectionController.createCoworkerConnection(workData.verifiers[0], user.id.toString());
       }
       if (workData.verifiers) {
-        analytics.track({
-          userId: user.id.toString(),
-          event: 'Coworker Tagged on Job',
-          properties: {
-            userID: invite.tagger && invite.tagger.userId,
-            jobID: workData.id,
-            eventID: workData.slug,
-            jobAddedMethod: workData.addMethod || 'created',
-            taggedCoworker: {
-              userID: user.id.toString(),
-              email: user.email,
-              name: `${user.firstName} ${user.lastName}`
-            },
-            tagStatus: 'accepted',
-          }
-        });
-        analytics.track({
-          userId: invite.tagger && invite.tagger.userId,
-          event: 'Coworker Job Verified',
-          properties: {
-            userID: invite.tagger && invite.tagger.userId,
-            jobID: workData.id,
-            eventID: workData.slug,
-            jobAddedMethod: originalAddMethod,
-            verificationMethod: 'tagged',
-            verifiedCoworkerUserID: user.id.toString(),
-          }
-        });
-      }
-      analytics.track({
-        userId: user.id.toString(),
-        event: 'Coworker Tag on Job Accepted',
-        properties: {
-          userID: user.id.toString(),
-          jobID: workData.id,
-          eventID: workData.slug,
-          taggingUserID: invite.tagger && invite.tagger.userId,
-        }
-      });
+        workAnalytics.coworkerTagged(user.id.toString(), workData, {
+          coworker: user, tagStatus: 'accepted', tagger: invite.tagger && invite.tagger.userId });
 
-      analytics.track({
-        userId: user.id.toString(),
-        event: 'Job Added',
-        properties: {
-          userID: user.id.toString(),
-          userFullname: `${user.firstName} ${user.lastName}`,
-          userEmail: user.email,
-          jobID: newWorkData.id,
-          eventID: newWorkData.slug,
-          role: newWorkData.role,
-          beginDate: newWorkData.from,
-          endDate: newWorkData.to,
-          jobCreatedTimestamp: newWorkData.date_created,
-          caption: newWorkData.caption,
-          numberOfImages: newWorkData.photos.length,
-          jobAddedMethod: 'tagged',
-          isEventCreator: false,
-        }
+        workAnalytics.coworkerTaggedVerified(invite.tagger && invite.tagger.userId, workData, {
+          coworker: user.id.toString(), verificationMethod: 'tagged' });
+      }
+      workAnalytics.coworkerTagAccepted(user.id.toString(), workData, {taggingUserID: invite.tagger && invite.tagger.userId});
+      workAnalytics.send(user.id.toString(), newWorkData, {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        jobAddedMethod: 'tagged',
+        isEventCreator: false
       });
 
       if (newRole) {
-        analytics.track({
-          userId: user.id.toString(),
-          event: 'Role Added',
-          properties: {
-            userID: user.id.toString(),
-            userFullname: `${user.firstName} ${user.lastName}`,
-            userEmail: user.email,
-            roleName: newRole.name,
-            roleRateLow: newRole.minRate,
-            roleRateHigh: newRole.maxRate,
-            years: newRole.years,
-            throughJob: true,
-            jobID: newWorkData.id,
-            eventID: newWorkData.slug,
-          }
+        roleAnalytics.send(user.id.toString(), newRole, {
+          work: newWorkData, firstName: user.firstName, lastName: user.lastName, email: user.email
         });
       }
 
