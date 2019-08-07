@@ -5,14 +5,19 @@ class PostAnalytics extends BaseAnalytics  {
     super(key, headers);
   }
 
+  getEventName(category) {
+    category = category.split('-');
+    category = category.map(c => c[0].toUpperCase() + c.substring(1, c.length));
+    return category.join(' ')
+  }
+
   send(user, post) {
     let params = {
       userId: user,
-      event: 'Post Created',
+      event: `${this.getEventName(post.category)} Post Created`,
       properties: {
         postID: post.id,
         posterID: user,
-        postType: post.category,
         city: post.location,
       }
     };
