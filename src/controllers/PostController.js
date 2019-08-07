@@ -45,21 +45,39 @@ class PostController {
 	 * @returns {Promise<Object>}
 	 */
 	async addPost (options) {
+    const mailService = JOLLY.service.Mail;
     try {
-      const {category, content, location, user, headers} = options;
+      const {category, content, location, user, headers,   dateAndTime, positionForHire, paymentRate} = options;
       const postAnalytics = new PostAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const geo_location = await geocode(location);
-      const newPost = new EntityPost({
+      let postEntityObj = {
         category,
         content,
         location,
         user,
         geo_location: point(geo_location),
-      });
+      };
 
+      if(category == 'work-opportunity'){
+        postEntityObj.dateAndTime = dateAndTime;
+        postEntityObj.positionForHire = positionForHire;
+        postEntityObj.paymentRate = paymentRate;
+      }
+      const newPost = new EntityPost(postEntityObj);
       const post = await this.savePost(newPost);
       const postData = post.toJson({});
+
+      // work opportunity notification email
+
+      if(category == 'work-opportunity') {
+        const users = await this.findUsersByGeoLocationAndPositions(positionForHire, geo_location, user);
+        await users.forEach(async (user) => {
+          if(postData.location.includes('London')) {
+            await mailService.sendWorkOpportunity(user.email, user.avatar, postData.positionForHire, postData.id, postData.location)
+          }
+        });
+      }
 
       identityAnalytics.send(user);
       postAnalytics.send(user, postData);
@@ -266,6 +284,75 @@ class PostController {
       let postHelpfulCount = db.collection('posts')
         .find({ 'votes': {'$all': [ userId.toString() ]}}).count();
       resolve(postHelpfulCount);
+    });
+  }
+
+  findUsersByGeoLocationAndPositions(positions, geo_location, userId) {
+    let db = this.getDefaultDB();
+    return new Promise((resolve, reject) => {
+      let users = db.collection('profiles').aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [ geo_location.lng, geo_location.lat]
+            },
+            distanceField: "distance",
+            maxDistance: 80467.2,
+            spherical: true,
+            limit: 50000
+          }
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "users"
+          }
+        },
+        {
+          $unwind: '$users'
+        },
+        {
+          $lookup: {
+            from: "roles",
+            localField: "userId",
+            foreignField: "user_id",
+            as: "roles"
+          }
+        },
+        {
+          $project: {
+            userId: '$userId',
+            avatar: '$avatar',
+            email: '$users.email',
+            role: '$users.role',
+            roles: {
+              $filter: {
+                input: '$roles',
+                as: 'role',
+                cond: {
+                  "$in": [ "$$role.name", positions ]
+                }
+              }
+            }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              {$expr: {
+                  $gt: [{$size: "$roles"}, 0]
+                }
+              },
+              {'role' : { $eq : 'USER'}},
+              {'userId': {$ne: new mongodb.ObjectId(userId)}}
+            ]
+          }
+        },
+      ]);
+      resolve(users);
     });
   }
 }
