@@ -367,6 +367,54 @@ class Mail {
       });
     });
   }
+
+
+  sendWorkOpportunity(email, avatar, jobTitle, post_id, location){
+    const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
+    var template_name = "work-opportunity";
+    var template_content = [];
+    var message = {
+      "subject": `Work Opportunity`,
+      "to": [{
+        "email": email,
+        "type": "to"
+      }],
+      "merge_vars": [{
+        "rcpt": email,
+        "vars": [{
+          "name": "avatar",
+          "content": avatar
+        },{
+          "name": "jobtitle",
+          "content": jobTitle.join(' · ')
+        }, {
+          "name": "postid",
+          "content": post_id
+        },{
+          "name": "location",
+          "content": location
+        }]
+      }],
+    };
+    var async = false;
+    var ip_pool = "Notificaiton";
+    var send_at = new Date();
+
+    return new Promise((resolve, reject) => {
+      mandrill_client.messages.sendTemplate({
+        "template_name": template_name,
+        "template_content": template_content,
+        "message": message,
+        "async": async,
+        "ip_pool": ip_pool,
+        "send_at": send_at,
+      }, function(result) {
+        resolve(result);
+      }, function(e) {
+        reject(e);
+      });
+    });
+  }
 }
 
 module.exports = Mail;
