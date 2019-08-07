@@ -9,6 +9,7 @@ const buildContext = require('../analytics/helper/buildContext');
 const IdentityAnalytics = require('../analytics/identity');
 let authService = JOLLY.service.Authentication,
   userController = JOLLY.controller.UserController,
+  businessController = JOLLY.controller.BusinessController,
   workController = JOLLY.controller.WorkController,
   endorsementController = JOLLY.controller.EndorsementController,
   roleController = JOLLY.controller.RoleController;
@@ -57,6 +58,18 @@ router.get('/', authService.verifyUserAuthentication, (req, res, next) => {
     .catch(next);
 });
 
+router.get('/business', authService.verifyUserAuthentication, (req, res, next) => {
+
+  roleController
+    .getBusinessRoles(req.params.business_id)
+    .then((roles) => {
+      res.apiSuccess({
+        roles,
+      });
+		})
+		.catch(next);
+});
+
 router.get('/user/:slug', (req, res, next) => {
   let user;
   userController.getUserBySlug(req.params.slug)
@@ -92,6 +105,21 @@ router.get('/user/:slug', (req, res, next) => {
         });
       })
     )
+    .then((roles) => {
+      res.apiSuccess({
+        roles,
+      });
+    })
+    .catch(next);
+});
+
+router.get('/business/:slug', (req, res, next) => {
+  let business;
+  businessController.getBusinessBySlug(req.params.slug)
+    .then(businessData => {
+      business = businessData;
+      return roleController.getBusinessRoles(businessData.id);
+    })
     .then((roles) => {
       res.apiSuccess({
         roles,

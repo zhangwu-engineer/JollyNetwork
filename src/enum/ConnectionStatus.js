@@ -5,7 +5,8 @@
 JOLLY.enum.ConnectionStatus = {
   PENDING: 'PENDING',
   CONNECTED: 'CONNECTED',
-  DISCONNECTED: 'DISCONNECTED'
+  DISCONNECTED: 'DISCONNECTED',
+  IGNORED: 'IGNORED'
 };
 
 module.exports = JOLLY.enum.ConnectionStatus;
