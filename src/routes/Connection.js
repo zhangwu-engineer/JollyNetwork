@@ -24,9 +24,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
   const connections = await connectionController.findConnections({ to: { $in: [req.userId, user.email] } });
   const populatedConnections = await Promise.map(connections, (connection) => {
     return new Promise((resolve, reject) => {
-      let connectionType = connection && connection.connectionType;
-
-      if (connectionType === 'b2f') {
+      if (connection.connectionType === 'b2f') {
         businessController
         .getBusinessById(connection.from)
         .then(business => {
@@ -34,10 +32,8 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
           populatedData.from = business;
           resolve(populatedData);
         })
-        .catch(error => {
-          resolve({})
-        });
-      } else if (connectionType === 'f2f') {
+        .catch(reject);
+      } else if (connection.connectionType !== 'b2f' && connection.connectionType !== 'f2b') {
         userController
           .getUserById(connection.from)
           .then(user => {
@@ -45,9 +41,7 @@ router.get('/', authService.verifyUserAuthentication, asyncMiddleware(async (req
             populatedData.from = user;
             resolve(populatedData);
           })
-          .catch(error => {
-            resolve({})
-          });
+          .catch(reject);
       } else {
         resolve({})
       }
@@ -133,10 +127,18 @@ router.put('/:id/accept', authService.verifyUserAuthentication, asyncMiddleware(
   res.apiSuccess({ connection: connection });
 }));
 
-router.delete('/:id', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
-  const params = { id: req.params.id, userId: req.userId, headers: buildContext(req) };
-  const result = await connectionController.deleteConnection(params);
-	res.apiSuccess({});
+router.post('/:id/ignore', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {
+  let connection = await connectionController.findConnectionById(req.params.id);
+  const params = { status: ConnectionStatus.IGNORED, ignored_at: new Date()};
+
+  if (checkEmail(connection.to)) {
+    let user = await userController.findUserByEmail({email: connection.to});
+    const userData = user.toJson({ isSafeOutput: true });
+    params.to = userData.id.toString();
+  }
+  const options = { id: req.params.id, userId: req.userId, data: params, headers: buildContext(req) };
+  connection = await connectionController.updateConnection(options);
+  res.apiSuccess({ connection: connection });
 }));
 
 router.post('/:id/disconnect', authService.verifyUserAuthentication, asyncMiddleware(async (req, res, next) => {

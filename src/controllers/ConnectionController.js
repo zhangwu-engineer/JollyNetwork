@@ -42,7 +42,7 @@ class ConnectionController {
 	 */
 	async addConnection (options) {
     let { to, toUserId, isCoworker, from, email, fromUserId, connectionType, headers } = options,
-      newConnection;
+      newConnection, toUser;
     const connectionAnalytics = new ConnectionAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
     const userController = JOLLY.controller.UserController;
     const businessController = JOLLY.controller.BusinessController;
@@ -84,23 +84,23 @@ class ConnectionController {
 
       if (existing.length === 0) {
         const connectionData = await this.saveConnection(newConnection);
-
-        let toUser = null;
-        if (toUserId) toUser = await userController.getUserById(toUserId);
-        else {
-          const toBusiness = await businessController.getBusinessById(to);
-          if (toBusiness) {
-            toUser = await userController.getUserById(toBusiness.user.toString());
-          }
-        }
+        const analyticsParams = { userId: fromUserId, isCoworker };
 
         if(checkEmail(to)) {
           await mailService.sendConnectionInvite(to, fromUser);
         } else {
+          if (toUserId) toUser = await userController.getUserById(toUserId);
+          else {
+            const toBusiness = await businessController.getBusinessById(to);
+            if (toBusiness) {
+              toUser = await userController.getUserById(toBusiness.user.toString());
+            }
+          }
+          analyticsParams.toUserId = toUser.id;
           await mailService.sendConnectionInvite(toUser.email, fromUser);
         }
 
-        connectionAnalytics.send(connectionData.toJson({}), { userId: fromUserId, isCoworker, toUserId: toUser.id });
+        connectionAnalytics.send(connectionData.toJson({}), analyticsParams);
         await userController.checkConnectedBadge(fromUserId, headers);
 
         return connectionData.toJson({});
