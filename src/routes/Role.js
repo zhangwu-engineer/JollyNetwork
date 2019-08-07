@@ -135,7 +135,9 @@ router.post('/', authService.verifyUserAuthentication, asyncMiddleware(async (re
   const headers = buildContext(req);
   const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
   const rolesData = await Promise.map(req.body.roles, role => roleController.addRole(Object.assign({}, role, {
-    user_id: req.userId, headers: buildContext(req)
+    user_id: req.userId, 
+    business_id: req.body.business_id,
+    headers: buildContext(req)
   })));
   identityAnalytics.send(req.userId);
   res.apiSuccess({
