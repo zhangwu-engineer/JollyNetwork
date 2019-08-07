@@ -43,7 +43,7 @@ class RoleController {
 	async addRole (options) {
     try {
       const userController = JOLLY.controller.UserController;
-			let {name, years, minRate, maxRate, unit, user_id, business_id, headers} = options,
+			let {name, years, minRate, maxRate, unit, user_id, headers} = options,
         newRole;
 
       newRole = new EntityRole({

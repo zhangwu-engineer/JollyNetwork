@@ -5,13 +5,10 @@ class BadgeAnalytics extends BaseAnalytics {
     super(key, headers);
   }
 
-  send(user, badge) {
+  send(user, badgeName) {
     let params = {
       userId: user,
-      event: 'Badge Earned',
-      properties: {
-        type: badge,
-      }
+      event: `${badgeName} Badge Earned`,
     };
     this.track(params);
   }

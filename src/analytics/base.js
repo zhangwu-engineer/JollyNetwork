@@ -1,9 +1,14 @@
 const Analytics = require('analytics-node');
+const AWS = require('aws-sdk');
+
 
 class BaseAnalytics {
   constructor(key, headers) {
+    AWS.config.region = 'us-west-2';
+    AWS.config.update({ accessKeyId: JOLLY.config.AWS.REPORTING_AWS_ACCESS_KEY_ID, secretAccessKey: JOLLY.config.AWS.REPORTING_AWS_SECRET_ACCESS_KEY });
     this.analytics = new Analytics(key);
     this.headers = headers;
+    this.firehose = new AWS.Firehose();
   }
 
   getContext() {
@@ -26,9 +31,26 @@ class BaseAnalytics {
     return params;
   }
 
+  sendDataToSegment(params) {
+    this.analytics.track(params);
+  }
+
+  sendDataToKinesis(params) {
+    delete params.context;
+    params.timestamp = new Date();
+    const record = {
+      DeliveryStreamName: JOLLY.config.AWS.REPORTING_DELIVERY_STREAM,
+      Record: { Data: JSON.stringify(params) },
+    };
+    this.firehose.putRecord(record, (error, _) => {
+      if (error) console.log(error, error.stack);
+    });
+  }
+
   track(params) {
     params = this.applyContext(params);
-    this.analytics.track(params);
+    this.sendDataToSegment(params);
+    this.sendDataToKinesis(params);
   }
 }
 
