@@ -48,9 +48,10 @@ class PostController {
 	async addPost (options) {
     const mailService = JOLLY.service.Mail;
     try {
-      const {category, content, location, user, headers,   dateAndTime, positionForHire, paymentRate} = options;
+      const {category, content, location, user, headers, date_and_time, position_for_hire, payment_rate} = options;
       const postAnalytics = new PostAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
       const identityAnalytics = new IdentityAnalytics(JOLLY.config.SEGMENT.WRITE_KEY, headers);
+
       const geo_location = await geocode(location);
       let postEntityObj = {
         category,
@@ -61,9 +62,9 @@ class PostController {
       };
 
       if (category === 'work-opportunity') {
-        postEntityObj.date_and_time = dateAndTime;
-        postEntityObj.position_for_hire = positionForHire;
-        postEntityObj.payment_rate = paymentRate;
+        postEntityObj.date_and_time = date_and_time;
+        postEntityObj.position_for_hire = position_for_hire;
+        postEntityObj.payment_rate = payment_rate;
       }
       const newPost = new EntityPost(postEntityObj);
       const post = await this.savePost(newPost);
