@@ -55,11 +55,7 @@ class RoleController {
         user_id,
         business_id,
       });
-      
       const roleData = await this.saveRole(newRole);
-      if (!business_id) {
-        await userController.checkCityFreelancerBadge(user_id);
-      }
       return roleData.toJson({});
     } catch(err) {
       throw new ApiError(err.message);
@@ -184,7 +180,7 @@ class RoleController {
 		if (roleData.id == null) {
 			delete (roleData.id);
     }
-    
+
     let query = { name: roleData.name, user_id: new mongodb.ObjectID(roleData.user_id) };
     if (roleData.business_id) {
       query = { name: roleData.name, business_id: new mongodb.ObjectID(roleData.business_id) };
