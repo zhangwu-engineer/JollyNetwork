@@ -4,9 +4,9 @@
 
 JOLLY.enum.FileType = {
 
-	IMAGE: 'IMAGE',
+  IMAGE: 'IMAGE',
 
-	VIDEO: 'VIDEO'
+  VIDEO: 'VIDEO'
 };
 
 module.exports = JOLLY.enum.FileType;

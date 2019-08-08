@@ -1,4 +1,5 @@
 const BaseAnalytics = require('./base.js');
+const intercomRole = require('../enum/IntercomRole');
 
 class IdentityAnalytics extends BaseAnalytics  {
   constructor(key, headers) {
@@ -25,13 +26,14 @@ class IdentityAnalytics extends BaseAnalytics  {
         returning_user: user.loginCount,
         email: user.email,
         all_positions: result[0],
+        all_positions_intercom: intercomRole(result[0]),
         count_positions_added: result[0].length,
         count_jobs_added: result[1],
         count_feed_posts: result[2],
         count_f2f_coworker_connections: result[3],
         count_f2f_generic_connections: result[4],
         count_posts_marked_heplful: result[5],
-        count_coworkers_tagged_on_jobs: result[6]
+        count_coworkers_tagged_on_jobs: result[6],
       };
       if (user.email.includes('@jollyhq.com')) params.test = true;
       this.analytics.identify({
