@@ -58,6 +58,17 @@ router.post('/search', authService.verifyUserAuthentication, (req, res, next) =>
 
 });
 
+router.post('/top-voted', authService.verifyUserAuthentication, (req, res, next) => {
+  
+  userController.searchTopUsers(req.body.city, req.userId)
+    .then(profilesData => {
+      res.apiSuccess({
+        users: profilesData
+      });
+    }).catch(next);
+
+});
+
 router.get('/slug/:slug', (req, res, next) => {
 	userController.getUserBySlug(req.params.slug)
 		.then(userData => {
