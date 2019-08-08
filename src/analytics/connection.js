@@ -7,53 +7,45 @@ class ConnectionAnalytics extends BaseAnalytics  {
   }
 
   send(connection, data) {
-    const method = checkEmail(connection.to) ? 'Email' : 'Nearby';
     let params;
+    const eventName = connection.isCoworker ? 'Coworker Request' : 'Connection Request';
     if (connection.status === ConnectionStatus.PENDING) {
       params = {
         userId: data.userId,
-        event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
+        event: `${eventName} Sent`,
         properties: {
           requesterUserId: data.userId,
           invitedUserId: data.toUserId ? data.toUserId : connection.to,
-          method: method,
-          status: 'Pending',
           type: connection.connectionType,
         }
       }
     } else if (connection.status === ConnectionStatus.CONNECTED) {
       params = {
         userId: data.userId,
-        event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
+        event: `${eventName} Accepted`,
         properties: {
           requesterUserId: data.userId,
           invitedUserId: data.toUserId ? data.toUserId : connection.to,
-          method: method,
-          status: 'Accepted',
           type: connection.connectionType,
         }
       };
     } else if (connection.status === ConnectionStatus.DISCONNECTED) {
       params = {
         userId: data.userId,
-        event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
+        event: `${connection.isCoworker ? 'Coworker' : ''} Connection Disconnected`.trim(),
         properties: {
           requesterUserId: data.userId,
           invitedUserId: data.toUserId ? data.toUserId : connection.to,
-          method: method,
-          status: 'Disconnected',
           type: connection.connectionType,
         }
       };
     } else if (connection.status === ConnectionStatus.IGNORED) {
       params = {
         userId: data.userId,
-        event: connection.isCoworker ? 'Coworker Request' : 'Connection Request',
+        event: `${eventName} Ignored`,
         properties: {
           requesterUserId: data.userId,
           invitedUserId: data.toUserId ? data.toUserId : connection.to,
-          method: method,
-          status: 'Ignored',
           type: connection.connectionType,
         }
       }

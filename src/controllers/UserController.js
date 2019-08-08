@@ -395,7 +395,7 @@ class UserController {
       if (userRoles.length > 0 && user.profile.location) {
         if (!user.profile.cityFreelancer) {
           await this.updateUserProfile(userId, { cityFreelancer: true });
-          badgeAnalytics.send(userId, 'city freelancer');
+          badgeAnalytics.send(userId, 'City');
         }
       }
     } catch (err) {
@@ -415,7 +415,7 @@ class UserController {
       if (userJobCountWithin60Days > 0) {
         if (!user.profile.activeFreelancer) {
           await this.updateUserProfile(userId, { activeFreelancer: true });
-          badgeAnalytics.send(userId, 'active job streak');
+          badgeAnalytics.send(userId, 'Active');
         }
       }
     } catch (err) {
@@ -440,7 +440,7 @@ class UserController {
       ) {
         if (!user.profile.readyAndWilling) {
           await this.updateUserProfile(userId, { readyAndWilling: true });
-          badgeAnalytics.send(userId, 'ready and willing');
+          badgeAnalytics.send(userId, 'Ready/Willing');
         }
       }
     } catch (err) {
@@ -474,13 +474,13 @@ class UserController {
       ) {
         let howConnected = '';
         if (userCoworkerCount > 99) {
-          howConnected = 'super connected';
+          howConnected = 'Super Connected';
         } else if (userCoworkerCount > 49) {
-          howConnected = 'very connected';
+          howConnected = 'Very Connected';
         } else if (userCoworkerCount > 24) {
-          howConnected = 'well connected';
+          howConnected = 'Well Connected';
         } else if (userCoworkerCount > 9) {
-          howConnected = 'connected';
+          howConnected = 'Connected';
         }
 
         if (howConnected !== '' && userProfile.connected !== howConnected) {
