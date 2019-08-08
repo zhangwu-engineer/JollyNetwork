@@ -50,7 +50,9 @@ class BaseAnalytics {
   track(params) {
     params = this.applyContext(params);
     this.sendDataToSegment(params);
-    this.sendDataToKinesis(params);
+    if(JOLLY.config.APP.NODE_ENV === 'production') {
+      this.sendDataToKinesis(params);
+    }
   }
 }
 
