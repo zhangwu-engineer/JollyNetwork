@@ -7,6 +7,7 @@ const Promise = require('bluebird');
 const IdentityAnalytics = require('../analytics/identity');
 const geocode = require('../lib/geocode');
 const point = require('../lib/point');
+const async = require('async');
 const EntityPost = require('../entities/EntityPost'),
 	DbNames = require('../enum/DbNames');
 
@@ -60,10 +61,10 @@ class PostController {
         geo_location: point(geo_location),
       };
 
-      if(category == 'work-opportunity'){
-        postEntityObj.dateAndTime = dateAndTime;
-        postEntityObj.positionForHire = positionForHire;
-        postEntityObj.paymentRate = paymentRate;
+      if (category === 'work-opportunity') {
+        postEntityObj.date_and_time = dateAndTime;
+        postEntityObj.position_for_hire = positionForHire;
+        postEntityObj.payment_rate = paymentRate;
       }
       const newPost = new EntityPost(postEntityObj);
       const post = await this.savePost(newPost);
@@ -71,11 +72,11 @@ class PostController {
 
       // work opportunity notification email
 
-      if(category == 'work-opportunity') {
+      if (category === 'work-opportunity') {
         const users = await this.findUsersByGeoLocationAndPositions(positionForHire, geo_location, user);
-        await users.forEach(async (user) => {
+        await async.eachOfLimit(users, 5, async (user) => {
           if(postData.location.includes('London')) {
-            await mailService.sendWorkOpportunity(user.email, user.avatar, postData.positionForHire, postData.id, postData.location)
+            await mailService.sendWorkOpportunity(user.email, user.avatar, postData.id, postData.location)
           }
         });
       }
