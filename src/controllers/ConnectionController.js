@@ -289,7 +289,7 @@ class ConnectionController {
                 toUserId = toUser.id;
               }
             }
-            connectionAnalytics.send(data, { userId, toUserId });
+            connectionAnalytics.send(data, { userId: data.from, toUserId });
             resolve (connection);
           }
 
