@@ -401,7 +401,7 @@ class Mail {
   }
 
 
-  sendWorkOpportunity(email, avatar, jobTitle, post_id, location){
+  sendWorkOpportunity(email, avatar, post_id, location){
     const mandrill_client = new mandrill.Mandrill(JOLLY.config.MANDRILL.API_KEY);
     var template_name = "work-opportunity";
     var template_content = [];
@@ -416,13 +416,10 @@ class Mail {
         "vars": [{
           "name": "avatar",
           "content": avatar
-        },{
-          "name": "jobtitle",
-          "content": jobTitle.join(' · ')
         }, {
           "name": "postid",
           "content": post_id
-        },{
+        }, {
           "name": "location",
           "content": location
         }]

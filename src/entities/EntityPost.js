@@ -8,9 +8,9 @@ const ObjectId = require('mongodb').ObjectID;
  * @property {ObjectId} user
  * @property {Array} votes
  * @property {Date|String} date_created
- * @property {String} dateAndTime
- * @property {String} paymentRate
- * @property {Array} positionForHire
+ * @property {String} date_and_time
+ * @property {String} payment_rate
+ * @property {Array} position_for_hire
  *
  */
 
@@ -36,9 +36,9 @@ class EntityPost extends BaseEntityWithID {
     if(options.location) {
       this._geo_location = options.geo_location;
     }
-    this._dateAndTime = options.dateAndTime;
-    this._paymentRate = options.paymentRate;
-    this._positionForHire = options.positionForHire;
+    this._date_and_time = options.date_and_time;
+    this._payment_rate = options.payment_rate;
+    this._position_for_hire = options.position_for_hire;
   }
 
   /**
@@ -57,9 +57,9 @@ class EntityPost extends BaseEntityWithID {
     data.comments = this._comments;
     data.date_created = this._dateCreated;
     data.geo_location = this._geo_location;
-    data.dateAndTime = this._dateAndTime;
-    data.paymentRate = this._paymentRate;
-    data.positionForHire = this._positionForHire;
+    data.date_and_time = this._date_and_time;
+    data.payment_rate = this._payment_rate;
+    data.position_for_hire = this._position_for_hire;
 
     return data;
   }
