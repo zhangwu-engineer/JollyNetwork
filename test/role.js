@@ -63,9 +63,11 @@ describe('Role', () => {
   describe('Create user role ---> POST /role', () => {
     it('should return newly created role data', () => {
       const payload = {
-        name: 'Web Development',
-        rate: '50.56',
-        unit: 'hour',
+        roles: [{
+          name: 'Web Development',
+          rate: '50.56',
+          unit: 'hour',
+        }]
       };
       return chai
         .request(server)
@@ -74,9 +76,10 @@ describe('Role', () => {
         .send(payload)
         .then(res => {
           expect(res).to.have.status(200);
-          expect(res.body.response).to.have.property('role');
-          expect(res.body.response.role).to.have.property('name', 'Web Development');
-          roleId = res.body.response.role.id;
+          expect(res.body.response).to.have.property('roles');
+          expect(res.body.response.roles).to.be.an('array');
+          expect(res.body.response.roles[0]).to.have.property('name', 'Web Development');
+          roleId = res.body.response.roles[0].id;
         })
         .catch(err => {
           throw err;
@@ -118,7 +121,7 @@ describe('Role', () => {
     it('should return updated role data', () => {
       const payload = {
         name: 'Web Development',
-        rate: '60',
+        minRate: '60',
         unit: 'hour',
       };
       return chai
@@ -129,7 +132,7 @@ describe('Role', () => {
         .then(res => {
           expect(res).to.have.status(200);
           expect(res.body.response).to.have.property('role');
-          expect(res.body.response.role).to.have.property('rate', '60');
+          expect(res.body.response.role).to.have.property('minRate', '60');
         })
         .catch(err => {
           throw err;
