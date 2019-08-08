@@ -1,3 +1,3 @@
 module.exports = {
-    UserRole: require('./UserRole')
+  UserRole: require('./UserRole')
 };

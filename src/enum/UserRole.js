@@ -5,9 +5,9 @@
  */
 
 const UserRole = {
-    USER: 'user',
-    ADMIN: 'admin',
-    PRO: 'pro',
+  USER: 'user',
+  ADMIN: 'admin',
+  PRO: 'pro',
 };
 
 module.exports = UserRole;
