@@ -19,6 +19,10 @@ class BaseAnalytics {
         'Google Analytics': {
           clientId: this.headers.clientId,
         },
+        page: {
+          url: this.headers.page.url,
+          path: this.headers.page.path
+        }
       }));
     } else {
       return {}
