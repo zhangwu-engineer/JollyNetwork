@@ -75,6 +75,7 @@ module.exports = (callbackOnComplete) => {
         SECRET_ACCESS_KEY: env.get('AWS_SECRET_ACCESS_KEY', ''),
         REPORTING_AWS_ACCESS_KEY_ID: env.get('REPORTING_AWS_ACCESS_KEY_ID', ''),
         REPORTING_AWS_SECRET_ACCESS_KEY: env.get('REPORTING_AWS_SECRET_ACCESS_KEY', ''),
+        REPORTING_DELIVERY_STREAM: env.get('REPORTING_DELIVERY_STREAM', ''),
       },
       S3: {
         BUCKET: env.get('S3_BUCKET', ''),

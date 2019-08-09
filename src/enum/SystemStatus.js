@@ -4,11 +4,11 @@
 
 JOLLY.enum.SystemStatus = {
 
-	UNVERIFIED: 'UNVERIFIED',
+  UNVERIFIED: 'UNVERIFIED',
 
-	VERIFIED: 'VERIFIED',
+  VERIFIED: 'VERIFIED',
 
-	NEW_USER: 'NEW_USER'
+  NEW_USER: 'NEW_USER'
 };
 
 module.exports = JOLLY.enum.SystemStatus;
