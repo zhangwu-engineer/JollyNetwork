@@ -23,6 +23,7 @@ const EntityUser = require('../entities/EntityUser'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
+  blockList = require('../enum/BlockList'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -106,10 +107,12 @@ class UserController {
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
 
-        const newBusinessData = { user: userData._id };
-        const newUserBusiness = new EntityBusiness(newBusinessData);
-        const userBusinessData = await self.saveUserBusiness(newUserBusiness);
-        res.businesses = [userBusinessData.toJson()];
+        if(isBusiness) {
+          const newBusinessData = { user: userData._id };
+          const newUserBusiness = new EntityBusiness(newBusinessData);
+          const userBusinessData = await self.saveUserBusiness(newUserBusiness);
+          res.businesses = [userBusinessData.toJson()];
+        }
 
         if (invite) {
           await self.acceptInvite({ invite, user: res, headers });
@@ -363,7 +366,6 @@ class UserController {
         identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
-          console.log(data.profile);
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
           const updatedProfileData = updatedProfile.toJson();
           userData.profile = updatedProfileData;
@@ -395,7 +397,7 @@ class UserController {
       if (userRoles.length > 0 && user.profile.location) {
         if (!user.profile.cityFreelancer) {
           await this.updateUserProfile(userId, { cityFreelancer: true });
-          badgeAnalytics.send(userId, 'city freelancer');
+          badgeAnalytics.send(userId, 'City');
         }
       }
     } catch (err) {
@@ -415,7 +417,7 @@ class UserController {
       if (userJobCountWithin60Days > 0) {
         if (!user.profile.activeFreelancer) {
           await this.updateUserProfile(userId, { activeFreelancer: true });
-          badgeAnalytics.send(userId, 'active job streak');
+          badgeAnalytics.send(userId, 'Active');
         }
       }
     } catch (err) {
@@ -440,7 +442,7 @@ class UserController {
       ) {
         if (!user.profile.readyAndWilling) {
           await this.updateUserProfile(userId, { readyAndWilling: true });
-          badgeAnalytics.send(userId, 'ready and willing');
+          badgeAnalytics.send(userId, 'Ready/Willing');
         }
       }
     } catch (err) {
@@ -474,13 +476,13 @@ class UserController {
       ) {
         let howConnected = '';
         if (userCoworkerCount > 99) {
-          howConnected = 'super connected';
+          howConnected = 'Super Connected';
         } else if (userCoworkerCount > 49) {
-          howConnected = 'very connected';
+          howConnected = 'Very Connected';
         } else if (userCoworkerCount > 24) {
-          howConnected = 'well connected';
+          howConnected = 'Well Connected';
         } else if (userCoworkerCount > 9) {
-          howConnected = 'connected';
+          howConnected = 'Connected';
         }
 
         if (howConnected !== '' && userProfile.connected !== howConnected) {
@@ -989,6 +991,66 @@ class UserController {
         page: data[0].meta[0] && data[0].meta[0].page ? data[0].meta[0].page : 1,
         users,
       };
+    } catch (err) {
+      throw new ApiError(err.message);
+    }
+  }
+
+  async searchTopUsers(city, userId) {
+    const db = this.getDefaultDB();
+
+    blockList.push(userId);
+    let blockedIds = blockList.map(eachId => new mongodb.ObjectID(eachId) );
+
+    const aggregates = [
+      {
+        $match : {
+          userId: { $nin: blockedIds },
+          location: { $eq: city },
+        }
+      },
+      { $sort  : { "cred": -1 } },
+    ];
+
+    aggregates.push({
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    });
+    aggregates.push({
+      $unwind: "$user"
+    });
+    aggregates.push({
+      $match : {
+        $and: [
+          { 'user.email': { $regex: new RegExp('^((?!@jollyhq.com).)*$', "i") } },
+          { 'user.email': { $regex: new RegExp('^((?!@srvbl.com).)*$', "i") } },
+        ],
+      }
+    });
+
+    try {
+      const data = await db.collection('profiles').aggregate(aggregates).limit(10).toArray();
+      const profiles = data.map(profileData => (new EntityProfile(profileData)).toJson({}));
+      const populatedProfiles = await Promise.map(profiles, async profile => {
+        return await new Promise(function(resolve, reject) {
+          try {
+            const userController = JOLLY.controller.UserController;
+            const user = userController.getUserById(profile.userId);
+            Promise.all([user]).then((result) => {
+              const populatedProfile = profile;
+              populatedProfile.user = result[0];
+              resolve(populatedProfile);
+            });
+          } catch(err) {
+            reject(err);
+          }
+        });
+      });
+      return populatedProfiles;
     } catch (err) {
       throw new ApiError(err.message);
     }

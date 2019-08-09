@@ -17,7 +17,6 @@ DefaultConfig(async () => {
     let connections = await db.collection('connections').find({connectionType: undefined});
     connections.forEach(async (connection) => {
       if(connection.connectionType === undefined) {
-        console.log(connection);
         let response = await db.collection('connections').findOneAndUpdate(
           {_id: connection._id},
           {$set: { connectionType: 'f2f'}}
