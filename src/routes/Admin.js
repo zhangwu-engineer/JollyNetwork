@@ -33,4 +33,11 @@ router.get('/user/trusted/:userId', authService.verifyAdminAuthentication, async
     }).catch(next);
 }));
 
+router.post('/user/active', authService.verifyAdminAuthentication, asyncMiddleware(async (req, res, next) => {
+  userController.setUserActive(req.body.userId, req.body.status)
+    .then(userData => {
+      res.apiSuccess(userData);
+    }).catch(next);
+}));
+
 module.exports = router;

@@ -1030,7 +1030,7 @@ class UserController {
         ],
       }
     });
-    
+
     try {
       const data = await db.collection('profiles').aggregate(aggregates).limit(10).toArray();
       const profiles = data.map(profileData => (new EntityProfile(profileData)).toJson({}));
@@ -1909,6 +1909,17 @@ class UserController {
     }
   }
 
+  async setUserActive(userId, status) {
+    let self = this,
+      user = null;
+    try {
+      const data = { active: status };
+      user = await self.updateUserCollection(userId, data);
+      return user;
+    } catch (err) {
+      throw err;
+    }
+  }
 }
 
 module.exports = UserController;
