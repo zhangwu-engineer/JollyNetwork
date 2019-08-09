@@ -23,6 +23,7 @@ const EntityUser = require('../entities/EntityUser'),
   EntityWork = require('../entities/EntityWork'),
   EntityRole = require('../entities/EntityRole'),
   SystemUserRoles = require('../enum/SystemUserRoles'),
+  blockList = require('../enum/BlockList'),
   DbNames = require('../enum/DbNames');
 
 class UserController {
@@ -996,15 +997,39 @@ class UserController {
 
   async searchTopUsers(city, userId) {
     const db = this.getDefaultDB();
+
+    blockList.push(userId);
+    let blockedIds = blockList.map(eachId => new mongodb.ObjectID(eachId) );
+
     const aggregates = [
       {
         $match : {
-          userId: { $ne: userId },
+          userId: { $nin: blockedIds },
           location: { $eq: city },
         }
       },
       { $sort  : { "cred": -1 } },
     ];
+
+    aggregates.push({
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    });
+    aggregates.push({
+      $unwind: "$user"
+    });
+    aggregates.push({
+      $match : {
+        $and: [
+          { 'user.email': { $regex: new RegExp('^((?!@jollyhq.com).)*$', "i") } },
+          { 'user.email': { $regex: new RegExp('^((?!@srvbl.com).)*$', "i") } },
+        ],
+      }
+    });
     
     try {
       const data = await db.collection('profiles').aggregate(aggregates).limit(10).toArray();
