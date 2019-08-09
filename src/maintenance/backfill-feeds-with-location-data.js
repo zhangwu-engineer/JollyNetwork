@@ -22,7 +22,6 @@ DefaultConfig(async () => {
     async.eachOfLimit(posts, 1, async (post) => {
       if(post.location) {
         let location = await geocode(post.location);
-        console.log(location);
         db.collection('posts').updateOne(
           { "_id": post._id},
           {

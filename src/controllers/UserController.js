@@ -366,7 +366,6 @@ class UserController {
         identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
-          console.log(data.profile);
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
           const updatedProfileData = updatedProfile.toJson();
           userData.profile = updatedProfileData;
