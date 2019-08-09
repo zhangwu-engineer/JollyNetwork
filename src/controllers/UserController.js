@@ -197,6 +197,9 @@ class UserController {
       if (user) {
         profile = await self.getUserProfile(user.getId());
         const userData = user.toJson({ isSafeOutput: true });
+        if(userData.active === false) {
+          throw new ApiError('User not found');
+        }
         if (userData.role === SystemUserRoles.BUSINESS) {
           const businesses = await self.getUserBusinesses(user.getId());
           userData.businesses = businesses;

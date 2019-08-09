@@ -42,6 +42,10 @@ router.post('/login', (req, res, next) => {
         throw new ApiError('The email or password entered is incorrect', 404);
       }
 
+      if(userData.active == false) {
+        throw new ApiError('Your profile is deactivated, contact support to activate it again', 404);
+      }
+
       if (req.body.invite) {
         userController.acceptInvite({ invite: req.body.invite, user: userData, headers: buildContext(req) });
       }

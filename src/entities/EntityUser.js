@@ -18,71 +18,73 @@
 
 
 const BaseEntityWithID = require('./base/BaseEntityWithID'),
-    SystemStatus = require('../enum/SystemStatus'),
-    SystemUserRoles = require('../enum/SystemUserRoles');
+  SystemStatus = require('../enum/SystemStatus'),
+  SystemUserRoles = require('../enum/SystemUserRoles');
 
 class EntityUser extends BaseEntityWithID {
 
-    /**
-     * User constructor method.
-     * @param {User} options
-     */
-    constructor (options) {
+  /**
+   * User constructor method.
+   * @param {User} options
+   */
+  constructor(options) {
 
-        super (options);
+    super(options);
 
-        this._password = options.password;
-        this._email = options.email;
-        this._verifiedEmail = options.verifiedEmail || false;
-        this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
-        this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
-        this._firstName = options.firstName;
-        this._lastName = options.lastName;
-        this._slug = options.slug;
-        this._source = options.source;
-        this._role = options.role || SystemUserRoles.USER;
-        this._login_count = options.loginCount || 0
+    this._password = options.password;
+    this._email = options.email;
+    this._verifiedEmail = options.verifiedEmail || false;
+    this._dateCreated = options.date_created ? new Date(options.date_created) : new Date();
+    this._dateUpdated = options.date_updated ? new Date(options.date_updated) : this._dateCreated;
+    this._firstName = options.firstName;
+    this._lastName = options.lastName;
+    this._slug = options.slug;
+    this._source = options.source;
+    this._role = options.role || SystemUserRoles.USER;
+    this._login_count = options.loginCount || 0;
+    this._active = options.active;
+  }
+
+  /**
+   * Get user password.
+   * @returns {String}
+   */
+  getPassword() {
+
+    return this._password;
+  }
+
+  /**
+   * @param {Object} [options]
+   * @param {Boolean} options.isSafeOutput - Ensure nothing critical is being exposed in output data.
+   * @return {Object}
+   */
+  toJson(options) {
+
+    options = options || {};
+
+    let isSafeOutput = options.isSafeOutput,
+      data = super.toJson();
+
+    data.email = this._email;
+
+    if (!isSafeOutput) {
+      data.password = this._password;
+      data.verifiedEmail = this._verifiedEmail;
     }
 
-    /**
-     * Get user password.
-     * @returns {String}
-     */
-    getPassword() {
+    data.date_created = this._dateCreated;
+    data.date_updated = this._dateUpdated;
+    data.firstName = this._firstName;
+    data.lastName = this._lastName;
+    data.slug = this._slug;
+    data.source = this._source;
+    data.role = this._role;
+    data.active = this._active;
+    data.loginCount = this._login_count;
 
-        return this._password;
-    }
-
-    /**
-     * @param {Object} [options]
-     * @param {Boolean} options.isSafeOutput - Ensure nothing critical is being exposed in output data.
-     * @return {Object}
-     */
-    toJson (options) {
-
-	    options = options || {};
-
-        let isSafeOutput = options.isSafeOutput,
-            data = super.toJson();
-
-        data.email = this._email;
-
-        if (!isSafeOutput) {
-          data.password = this._password;
-          data.verifiedEmail = this._verifiedEmail;
-        }
-
-        data.date_created = this._dateCreated;
-        data.date_updated = this._dateUpdated;
-        data.firstName = this._firstName;
-        data.lastName = this._lastName;
-        data.slug = this._slug;
-        data.source = this._source;
-        data.role = this._role;
-        data.loginCount = this._login_count;
-
-        return data;
-    }
-
+    return data;
+  }
 }
+
 module.exports = EntityUser;
