@@ -2,8 +2,8 @@ const chai = require('chai');
 const Promise = require('bluebird');
 require('../../src/namespaces');
 const DefaultConfig = require('../../src/config');
-const	intercomRole = require('../../src/enum/IntercomRole');
-const	Role = require('../../src/enum/Role');
+const intercomRole = require('../../src/enum/IntercomRole');
+const Role = require('../../src/enum/Role');
 
 const expect = chai.expect;
 
