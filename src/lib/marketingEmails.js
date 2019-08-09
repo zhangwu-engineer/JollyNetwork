@@ -41,8 +41,7 @@ class MarketingEmails {
     const connections = await db.collection('connections').aggregate([{
       $match : {
         date_created: {$gte: date},
-        status: 'CONNECTED',
-        isCoworker: true
+        status: 'CONNECTED'
       }
     }]);
     let coworkersIds = [];

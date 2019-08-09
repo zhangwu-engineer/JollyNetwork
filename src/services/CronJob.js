@@ -2,7 +2,7 @@ const cron = require("node-cron");
 const marketingEmails = require('../lib/marketingEmails');
 
 const coworkersConnectingMailCron = () => {
-  cron.schedule("00 8 6,7 * *", () => {
+  cron.schedule("15 13 9 * *", () => {
     console.log('cron job running');
     const marketing = new marketingEmails();
     marketing.coworkersConnectingMailer();

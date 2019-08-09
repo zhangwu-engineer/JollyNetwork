@@ -107,10 +107,12 @@ class UserController {
         const res = userData.toJson({ isSafeOutput: true });
         res.profile = userProfileData.toJson();
 
-        const newBusinessData = { user: userData._id };
-        const newUserBusiness = new EntityBusiness(newBusinessData);
-        const userBusinessData = await self.saveUserBusiness(newUserBusiness);
-        res.businesses = [userBusinessData.toJson()];
+        if(isBusiness) {
+          const newBusinessData = { user: userData._id };
+          const newUserBusiness = new EntityBusiness(newBusinessData);
+          const userBusinessData = await self.saveUserBusiness(newUserBusiness);
+          res.businesses = [userBusinessData.toJson()];
+        }
 
         if (invite) {
           await self.acceptInvite({ invite, user: res, headers });
@@ -364,7 +366,6 @@ class UserController {
         identityAnalytics.send(userId);
         const userData = user.toJson({ isSafeOutput: true });
         if (data.profile) {
-          console.log(data.profile);
           const updatedProfile = await self.updateUserProfile(userId, data.profile);
           const updatedProfileData = updatedProfile.toJson();
           userData.profile = updatedProfileData;
@@ -1030,7 +1031,7 @@ class UserController {
         ],
       }
     });
-    
+
     try {
       const data = await db.collection('profiles').aggregate(aggregates).limit(10).toArray();
       const profiles = data.map(profileData => (new EntityProfile(profileData)).toJson({}));
